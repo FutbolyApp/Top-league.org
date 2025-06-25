@@ -1,0 +1,465 @@
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../components/AuthContext';
+import { getSquadraById, joinSquadra } from '../api/squadre';
+import { getLegaById } from '../api/leghe';
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+`;
+
+const BackButton = styled.button`
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  margin-bottom: 2rem;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+`;
+
+const Header = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+`;
+
+const TeamTitle = styled.h1`
+  color: #333;
+  margin: 0 0 1rem 0;
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+`;
+
+const TeamInfo = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+`;
+
+const InfoCard = styled.div`
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+`;
+
+const InfoLabel = styled.div`
+  color: #666;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+`;
+
+const InfoValue = styled.div`
+  color: #333;
+  font-size: 1.5rem;
+  font-weight: 700;
+`;
+
+const TeamStatus = styled.span`
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: ${props => props.$orphan ? '#fff3cd' : '#d4edda'};
+  color: ${props => props.$orphan ? '#856404' : '#155724'};
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+`;
+
+const StatCard = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-left: 4px solid ${props => props.color || '#667eea'};
+`;
+
+const StatTitle = styled.h3`
+  margin: 0 0 0.5rem 0;
+  color: #666;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const StatValue = styled.div`
+  font-size: 2rem;
+  font-weight: 700;
+  color: #333;
+`;
+
+const PlayersSection = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+`;
+
+const SectionTitle = styled.h2`
+  color: #333;
+  margin: 0 0 2rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const PlayersTable = styled.div`
+  overflow-x: auto;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+`;
+
+const TableHeader = styled.th`
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const TableCell = styled.td`
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  color: #333;
+`;
+
+const PlayerName = styled.div`
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.25rem;
+`;
+
+const PlayerRole = styled.span`
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: #e3f2fd;
+  color: #1976d2;
+`;
+
+const MoneyValue = styled.span`
+  font-weight: 600;
+  color: #28a745;
+`;
+
+const CostValue = styled.span`
+  font-weight: 600;
+  color: #dc3545;
+`;
+
+const ViewButton = styled(Link)`
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: transform 0.2s;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+`;
+
+const JoinButton = styled.button`
+  background: linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 1rem;
+  
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 169, 77, 0.3);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
+
+const LoadingContainer = styled.div`
+  text-align: center;
+  padding: 4rem;
+  font-size: 1.2rem;
+  color: #666;
+`;
+
+const ErrorContainer = styled.div`
+  text-align: center;
+  padding: 4rem;
+  font-size: 1.2rem;
+  color: #dc3545;
+  background: #f8d7da;
+  border-radius: 12px;
+  border: 1px solid #f5c6cb;
+`;
+
+const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { token } = useAuth();
+  const [squadra, setSquadra] = useState(null);
+  const [lega, setLega] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [joining, setJoining] = useState(false);
+
+  useEffect(() => {
+    async function fetchSquadra() {
+      try {
+        const res = await getSquadraById(id, token);
+        setSquadra(res.squadra);
+        if (setCurrentTeam) setCurrentTeam(res.squadra);
+        
+        if (res.squadra.lega_id) {
+          const legaRes = await getLegaById(res.squadra.lega_id, token);
+          setLega(legaRes.lega);
+          if (setCurrentLeague) setCurrentLeague(legaRes.lega);
+        }
+      } catch (err) {
+        setError(err.message);
+      }
+      setLoading(false);
+    }
+    if (token) fetchSquadra();
+  }, [id, token, setCurrentLeague, setCurrentTeam]);
+
+  const formatMoney = (value) => {
+    if (!value) return 'FM 0';
+    return `FM ${value.toLocaleString()}`;
+  };
+
+  const getTeamStats = () => {
+    if (!squadra) return {};
+    
+    const totalPlayers = squadra.giocatori?.length || 0;
+    const totalValue = squadra.giocatori?.reduce((sum, g) => sum + (g.costo_attuale || 0), 0) || 0;
+    const totalSalary = squadra.giocatori?.reduce((sum, g) => sum + (g.salario || 0), 0) || 0;
+    const averageAge = squadra.giocatori?.length > 0 
+      ? Math.round(squadra.giocatori.reduce((sum, g) => sum + (g.eta || 0), 0) / squadra.giocatori.length)
+      : 0;
+
+    return {
+      totalPlayers,
+      totalValue,
+      totalSalary,
+      averageAge
+    };
+  };
+
+  // Funzione per calcolare il monte ingaggi (somma dei costi di tutti i giocatori)
+  const getMonteIngaggi = () => {
+    if (!squadra.giocatori) return 0;
+    return squadra.giocatori.reduce((sum, g) => sum + (g.salario || 0), 0);
+  };
+
+  // Funzione per ottenere il nome del proprietario
+  const getProprietarioNome = () => {
+    if (!squadra.proprietario_id) return 'Non Assegnata';
+    // TODO: Implementare la logica per ottenere il nickname del proprietario
+    // Per ora restituisce l'ID, ma dovrebbe essere sostituito con una query al database
+    return `ID: ${squadra.proprietario_id}`;
+  };
+
+  async function handleJoin() {
+    if (!squadra.is_orfana) return;
+    
+    setJoining(true);
+    try {
+      await joinSquadra(squadra.id, token);
+      // Ricarica i dati della squadra
+      const res = await getSquadraById(id, token);
+      setSquadra(res.squadra);
+    } catch (err) {
+      setError(err.message);
+    }
+    setJoining(false);
+  }
+
+  if (loading) return (
+    <Container>
+      <LoadingContainer>Caricamento squadra...</LoadingContainer>
+    </Container>
+  );
+
+  if (error) return (
+    <Container>
+      <ErrorContainer>Errore: {error}</ErrorContainer>
+    </Container>
+  );
+
+  if (!squadra) return (
+    <Container>
+      <ErrorContainer>Squadra non trovata</ErrorContainer>
+    </Container>
+  );
+
+  const stats = getTeamStats();
+
+  return (
+    <Container>
+      <BackButton onClick={() => navigate(-1)}>
+        ← Torna indietro
+      </BackButton>
+      
+      <Header>
+        <TeamTitle>{squadra.nome}</TeamTitle>
+        
+        <TeamInfo>
+          <InfoCard>
+            <InfoLabel>Club Level</InfoLabel>
+            <InfoValue>{squadra.club_level || 1}</InfoValue>
+          </InfoCard>
+          <InfoCard>
+            <InfoLabel>Lega</InfoLabel>
+            <InfoValue>{lega?.nome || 'N/A'}</InfoValue>
+          </InfoCard>
+          <InfoCard>
+            <InfoLabel>Giocatori</InfoLabel>
+            <InfoValue>{stats.totalPlayers}</InfoValue>
+          </InfoCard>
+          <InfoCard>
+            <InfoLabel>Proprietario</InfoLabel>
+            <InfoValue>
+              {squadra.proprietario_id ? `ID: ${squadra.proprietario_id}` : 'Non Assegnata'}
+            </InfoValue>
+          </InfoCard>
+        </TeamInfo>
+
+        {squadra.is_orfana && (
+          <JoinButton onClick={handleJoin} disabled={joining}>
+            {joining ? 'Unione in corso...' : 'Unisciti a questa squadra'}
+          </JoinButton>
+        )}
+      </Header>
+
+      <StatsGrid>
+        <StatCard color="#667eea">
+          <StatTitle>Valore Squadra</StatTitle>
+          <StatValue>{formatMoney(squadra.valore_squadra)}</StatValue>
+        </StatCard>
+        <StatCard color="#28a745">
+          <StatTitle>Casse Societarie</StatTitle>
+          <StatValue>{formatMoney(squadra.casse_societarie)}</StatValue>
+        </StatCard>
+        <StatCard color="#ffc107">
+          <StatTitle>Monte Ingaggi</StatTitle>
+          <StatValue>{formatMoney(getMonteIngaggi())}</StatValue>
+        </StatCard>
+        <StatCard color="#dc3545">
+          <StatTitle>Valore Giocatori</StatTitle>
+          <StatValue>{formatMoney(stats.totalValue)}</StatValue>
+        </StatCard>
+        <StatCard color="#17a2b8">
+          <StatTitle>Età Media</StatTitle>
+          <StatValue>{stats.averageAge} anni</StatValue>
+        </StatCard>
+      </StatsGrid>
+
+      <PlayersSection>
+        <SectionTitle>⚽ Giocatori della Squadra</SectionTitle>
+        
+        {!squadra.giocatori || squadra.giocatori.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+            Nessun giocatore in questa squadra
+          </div>
+        ) : (
+          <PlayersTable>
+            <Table>
+              <thead>
+                <tr>
+                  <TableHeader>Giocatore</TableHeader>
+                  <TableHeader>Ruolo</TableHeader>
+                  <TableHeader>R</TableHeader>
+                  <TableHeader>FR</TableHeader>
+                  <TableHeader>Squadra Reale</TableHeader>
+                  <TableHeader>Età</TableHeader>
+                  <TableHeader>Quotazione</TableHeader>
+                  <TableHeader>Ingaggio</TableHeader>
+                  <TableHeader>UVM</TableHeader>
+                  <TableHeader>Anni Contratto</TableHeader>
+                  <TableHeader>Prestito</TableHeader>
+                  <TableHeader>Triggers</TableHeader>
+                  <TableHeader>Azioni</TableHeader>
+                </tr>
+              </thead>
+              <tbody>
+                {squadra.giocatori.map(giocatore => (
+                  <tr key={giocatore.id}>
+                    <TableCell>
+                      <PlayerName>{giocatore.nome} {giocatore.cognome}</PlayerName>
+                    </TableCell>
+                    <TableCell>
+                      <PlayerRole title={giocatore.ruolo}>{giocatore.ruolo}</PlayerRole>
+                    </TableCell>
+                    <TableCell>{giocatore.r || '-'}</TableCell>
+                    <TableCell>{giocatore.fr || '-'}</TableCell>
+                    <TableCell>{giocatore.squadra_reale}</TableCell>
+                    <TableCell>{giocatore.eta}</TableCell>
+                    <TableCell>{giocatore.quotazione_attuale}</TableCell>
+                    <TableCell>
+                      <CostValue>{formatMoney(giocatore.salario)}</CostValue>
+                    </TableCell>
+                    <TableCell>
+                      <MoneyValue title="Ultimo Valore di Mercato">{formatMoney(giocatore.costo_attuale)}</MoneyValue>
+                    </TableCell>
+                    <TableCell>{giocatore.anni_contratto || 0}</TableCell>
+                    <TableCell>{giocatore.prestito ? 'Sì' : 'No'}</TableCell>
+                    <TableCell>{giocatore.triggers || '-'}</TableCell>
+                    <TableCell>
+                      <ViewButton to={`/giocatore/${giocatore.id}`}>
+                        Visualizza
+                      </ViewButton>
+                    </TableCell>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </PlayersTable>
+        )}
+      </PlayersSection>
+    </Container>
+  );
+};
+
+export default DettaglioSquadra; 

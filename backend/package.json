@@ -1,0 +1,29 @@
+{
+  "name": "topleague-backend",
+  "version": "1.0.0",
+  "description": "Backend for TopLeague fantasy football management app",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "axios": "^1.10.0",
+    "bcryptjs": "^2.4.3",
+    "cheerio": "^1.1.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "extract-zip": "^2.0.1",
+    "jsonwebtoken": "^9.0.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^4.1.1",
+    "puppeteer": "^24.10.2",
+    "sqlite3": "^5.1.6",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  }
+}

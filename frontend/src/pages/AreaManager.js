@@ -1,0 +1,478 @@
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../components/AuthContext';
+import { getSquadreByUtente } from '../api/squadre';
+import { getNotificheByUtente } from '../api/notifiche';
+import { getMovimentiMercato } from '../api/offerte';
+
+const Container = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+`;
+
+const BackButton = styled.button`
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover {
+    color: #FFA94D;
+  }
+`;
+
+const Header = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+`;
+
+const Title = styled.h1`
+  color: #333;
+  margin: 0;
+  font-size: 2rem;
+  background: linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+`;
+
+const TeamsTable = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f0f0f0;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const Th = styled.th`
+  background: #5856d6;
+  color: white;
+  padding: 0.75rem 0.5rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  
+  &:first-child {
+    border-top-left-radius: 8px;
+  }
+  
+  &:last-child {
+    border-top-right-radius: 8px;
+  }
+`;
+
+const Td = styled.td`
+  padding: 1rem 0.5rem;
+  border-bottom: 1px solid #dee2e6;
+  color: #333;
+  vertical-align: middle;
+`;
+
+const TeamName = styled.div`
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+`;
+
+const LeagueName = styled.div`
+  color: #666;
+  font-size: 0.9rem;
+  font-weight: 500;
+`;
+
+const SelectButton = styled.button`
+  background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+  font-size: 0.8rem;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+`;
+
+const ExpandedRow = styled.tr`
+  background: #f8f9fa;
+`;
+
+const ExpandedCell = styled.td`
+  padding: 0;
+  border-bottom: 1px solid #dee2e6;
+`;
+
+const ExpandedContent = styled.div`
+  padding: 1.5rem;
+`;
+
+const TeamStats = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+`;
+
+const StatItem = styled.div`
+  text-align: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+`;
+
+const StatLabel = styled.div`
+  color: #666;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+`;
+
+const StatValue = styled.div`
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+`;
+
+const MoneyValue = styled.span`
+  font-weight: 600;
+  color: #28a745;
+`;
+
+const CostValue = styled.span`
+  font-weight: 600;
+  color: #dc3545;
+`;
+
+const ActionButtons = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+`;
+
+const ActionButton = styled.button`
+  background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 0.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+`;
+
+const MarketMovements = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+`;
+
+const MarketTitle = styled.h4`
+  color: #333;
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+`;
+
+const MovementItem = styled.div`
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+  color: #333;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  font-size: 1.2rem;
+  color: #666;
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  font-size: 1.2rem;
+  color: #dc3545;
+`;
+
+const EmptyContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  font-size: 1.2rem;
+  color: #666;
+  text-align: center;
+`;
+
+const AreaManager = () => {
+  const { token } = useAuth();
+  const navigate = useNavigate();
+  const [squadre, setSquadre] = useState([]);
+  const [notifiche, setNotifiche] = useState([]);
+  const [movimenti, setMovimenti] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [expandedSquadra, setExpandedSquadra] = useState(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      setError('');
+      try {
+        const [squadreRes, notificheRes] = await Promise.all([
+          getSquadreByUtente(token),
+          getNotificheByUtente(token)
+        ]);
+        
+        setSquadre(squadreRes.squadre || []);
+        setNotifiche(notificheRes.notifiche || []);
+        
+        // Carica movimenti di mercato per ogni lega
+        const movimentiPromises = squadreRes.squadre?.map(squadra => 
+          getMovimentiMercato(squadra.lega_id, token)
+        ) || [];
+        
+        const movimentiResults = await Promise.all(movimentiPromises);
+        const allMovimenti = movimentiResults.flatMap(res => res.movimenti || []);
+        setMovimenti(allMovimenti);
+      } catch (err) {
+        setError(err.message);
+      }
+      setLoading(false);
+    }
+    if (token) fetchData();
+  }, [token]);
+
+  const formatMoney = (value) => {
+    if (!value) return 'FM 0';
+    return `FM ${value.toLocaleString()}`;
+  };
+
+  const getNotificheCount = (squadraId) => {
+    return notifiche.filter(n => n.squadra_id === squadraId).length;
+  };
+
+  const getMovimentiByLega = (legaId) => {
+    return movimenti
+      .filter(m => m.lega_id === legaId)
+      .sort((a, b) => new Date(b.data) - new Date(a.data))
+      .slice(0, 5);
+  };
+
+  const handleToggleExpanded = (squadraId) => {
+    setExpandedSquadra(expandedSquadra === squadraId ? null : squadraId);
+  };
+
+  if (loading) return (
+    <Container>
+      <LoadingContainer>Caricamento area manager...</LoadingContainer>
+    </Container>
+  );
+
+  if (error) return (
+    <Container>
+      <ErrorContainer>Errore: {error}</ErrorContainer>
+    </Container>
+  );
+
+  return (
+    <Container>
+      <BackButton onClick={() => navigate(-1)}>
+        ← Torna indietro
+      </BackButton>
+      
+      <Header>
+        <Title>👑 Area Manager</Title>
+      </Header>
+
+      {squadre.length === 0 ? (
+        <EmptyContainer>
+          <div>
+            <h3>Nessuna squadra trovata</h3>
+            <p>Non hai ancora squadre assegnate. Unisciti a una lega per iniziare!</p>
+          </div>
+        </EmptyContainer>
+      ) : (
+        <TeamsTable>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Squadra</Th>
+                <Th>Lega</Th>
+                <Th>Crediti Residui</Th>
+                <Th>Club Level</Th>
+                <Th>Costo Ingaggi</Th>
+                <Th>Valore Squadra</Th>
+                <Th> </Th>
+              </tr>
+            </thead>
+            <tbody>
+              {squadre.map(squadra => {
+                const movimentiLega = getMovimentiByLega(squadra.lega_id);
+                const notificheCount = getNotificheCount(squadra.id);
+                const isExpanded = expandedSquadra === squadra.id;
+                
+                return (
+                  <React.Fragment key={squadra.id}>
+                    <tr>
+                      <Td>
+                        <TeamName>{squadra.nome}</TeamName>
+                      </Td>
+                      <Td>
+                        <LeagueName>{squadra.lega_nome}</LeagueName>
+                      </Td>
+                      <Td>
+                        <MoneyValue>{formatMoney(squadra.casse_societarie)}</MoneyValue>
+                      </Td>
+                      <Td>{squadra.club_level || 1}</Td>
+                      <Td>
+                        <CostValue>{formatMoney(squadra.valore_squadra)}</CostValue>
+                      </Td>
+                      <Td>
+                        <MoneyValue>{formatMoney(squadra.costo_salariale_annuale)}</MoneyValue>
+                      </Td>
+                      <Td>
+                        <SelectButton onClick={() => handleToggleExpanded(squadra.id)}>
+                          {isExpanded ? 'Chiudi' : 'Gestisci'}
+                        </SelectButton>
+                      </Td>
+                    </tr>
+                    {isExpanded && (
+                      <ExpandedRow>
+                        <ExpandedCell colSpan="7">
+                          <ExpandedContent>
+                            <TeamStats>
+                              <StatItem>
+                                <StatLabel>Crediti Residui</StatLabel>
+                                <StatValue>
+                                  <MoneyValue>{formatMoney(squadra.casse_societarie)}</MoneyValue>
+                                </StatValue>
+                              </StatItem>
+                              <StatItem>
+                                <StatLabel>Club Level</StatLabel>
+                                <StatValue>{squadra.club_level || 1}</StatValue>
+                              </StatItem>
+                              <StatItem>
+                                <StatLabel>Costo Ingaggi</StatLabel>
+                                <StatValue>
+                                  <CostValue>{formatMoney(squadra.valore_squadra)}</CostValue>
+                                </StatValue>
+                              </StatItem>
+                              <StatItem>
+                                <StatLabel>Valore Squadra</StatLabel>
+                                <StatValue>
+                                  <MoneyValue>{formatMoney(squadra.costo_salariale_annuale)}</MoneyValue>
+                                </StatValue>
+                              </StatItem>
+                            </TeamStats>
+
+                            <ActionButtons>
+                              <ActionButton 
+                                type="notifiche"
+                                onClick={() => navigate(`/notifiche?squadra=${squadra.id}`)}
+                              >
+                                Notifiche ({notificheCount})
+                              </ActionButton>
+                              <ActionButton 
+                                type="offerta"
+                                onClick={() => navigate(`/proponi-offerta?squadra=${squadra.id}`)}
+                              >
+                                Proponi Offerta
+                              </ActionButton>
+                              <ActionButton 
+                                type="contratti"
+                                onClick={() => navigate(`/paga-contratti?squadra=${squadra.id}`)}
+                              >
+                                Paga Contratti
+                              </ActionButton>
+                              <ActionButton 
+                                type="rinnovo"
+                                onClick={() => navigate(`/rinnovo-contratti?squadra=${squadra.id}`)}
+                              >
+                                Rinnovo Contratti
+                              </ActionButton>
+                              <ActionButton 
+                                type="admin"
+                                onClick={() => navigate(`/richiesta-admin?squadra=${squadra.id}`)}
+                              >
+                                Richiesta Admin
+                              </ActionButton>
+                              <ActionButton 
+                                type="club"
+                                onClick={() => navigate(`/richiedi-club-level?squadra=${squadra.id}`)}
+                              >
+                                Richiedi Club Level
+                              </ActionButton>
+                              <ActionButton 
+                                type="log"
+                                onClick={() => navigate(`/log?squadra=${squadra.id}`)}
+                              >
+                                Log
+                              </ActionButton>
+                            </ActionButtons>
+
+                            <MarketMovements>
+                              <MarketTitle>📈 Ultimi 5 Movimenti di Mercato</MarketTitle>
+                              {movimentiLega.length === 0 ? (
+                                <MovementItem>Nessun movimento recente</MovementItem>
+                              ) : (
+                                movimentiLega.map((movimento, index) => (
+                                  <MovementItem key={index}>
+                                    {movimento.giocatore_nome} si è {movimento.tipo === 'trasferimento' ? 'trasferito' : 'prestato'} da {movimento.squadra_mittente} a {movimento.squadra_destinataria} il {new Date(movimento.data).toLocaleDateString()} per {formatMoney(movimento.valore)}
+                                  </MovementItem>
+                                ))
+                              )}
+                            </MarketMovements>
+                          </ExpandedContent>
+                        </ExpandedCell>
+                      </ExpandedRow>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </Table>
+        </TeamsTable>
+      )}
+    </Container>
+  );
+};
+
+export default AreaManager; 
