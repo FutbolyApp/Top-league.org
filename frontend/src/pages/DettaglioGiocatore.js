@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
-import { getGiocatoreById } from '../api/giocatori';
+import { getGiocatoreById, getQAHistory } from '../api/giocatori';
 import { getSquadraById } from '../api/squadre';
 import { getSquadreByLega } from '../api/leghe';
 import { creaOfferta } from '../api/offerte';
+import { splitRoles, getRoleClass } from '../utils/roleUtils';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -76,12 +78,133 @@ const InfoValue = styled.div`
 `;
 
 const PlayerRole = styled.span`
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  background: #e3f2fd;
-  color: #1976d2;
+  .ruolo-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    margin: 3px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    min-width: 28px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: all 0.2s ease;
+  }
+  
+  .ruolo-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+  }
+  
+  .ruolo-badge:last-child {
+    margin-right: 0;
+  }
+  
+  /* Ruoli Serie A Classic */
+  .ruolo-p { 
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); 
+    color: white; 
+    border-color: #e65100;
+  }
+  
+  .ruolo-d { 
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); 
+    color: white; 
+    border-color: #2e7d32;
+  }
+  
+  .ruolo-c { 
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); 
+    color: white; 
+    border-color: #1565c0;
+  }
+  
+  .ruolo-a { 
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); 
+    color: white; 
+    border-color: #c62828;
+  }
+  
+  /* Ruoli Euroleghe Mantra */
+  /* Portieri - Arancione (come P) */
+  .ruolo-por { 
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); 
+    color: white; 
+    border-color: #e65100;
+  }
+  
+  /* Difensori - Palette di verdi */
+  .ruolo-dc { 
+    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); 
+    color: white; 
+    border-color: #0d4f14;
+  }
+  
+  .ruolo-dd { 
+    background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%); 
+    color: white; 
+    border-color: #1b5e20;
+  }
+  
+  .ruolo-ds { 
+    background: linear-gradient(135deg, #43a047 0%, #388e3c 100%); 
+    color: white; 
+    border-color: #2e7d32;
+  }
+  
+  /* Centrocampisti - Palette di blu */
+  .ruolo-b { 
+    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); 
+    color: white; 
+    border-color: #002171;
+  }
+  
+  .ruolo-e { 
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); 
+    color: white; 
+    border-color: #0d47a1;
+  }
+  
+  .ruolo-m { 
+    background: linear-gradient(135deg, #1e88e5 0%, #1976d2 100%); 
+    color: white; 
+    border-color: #1565c0;
+  }
+  
+  .ruolo-t { 
+    background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%); 
+    color: white; 
+    border-color: #1976d2;
+  }
+  
+  .ruolo-w { 
+    background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%); 
+    color: white; 
+    border-color: #1e88e5;
+  }
+  
+  /* Attaccanti - Palette di rossi */
+  .ruolo-a { 
+    background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%); 
+    color: white; 
+    border-color: #8e0000;
+  }
+  
+  .ruolo-pc { 
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); 
+    color: white; 
+    border-color: #b71c1c;
+  }
+  
+  /* Fallback */
+  .ruolo-default { 
+    background: linear-gradient(135deg, #757575 0%, #616161 100%); 
+    color: white; 
+    border-color: #424242;
+  }
 `;
 
 const StatsGrid = styled.div`
@@ -264,6 +387,26 @@ const ErrorContainer = styled.div`
   color: #dc3545;
 `;
 
+const QAHistorySection = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+`;
+
+const ChartContainer = styled.div`
+  height: 400px;
+  margin-top: 1rem;
+`;
+
+const NoDataMessage = styled.div`
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+`;
+
 const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
   const { token } = useAuth();
   const { id } = useParams();
@@ -281,6 +424,8 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
   });
   const [offertaMsg, setOffertaMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [qaHistory, setQaHistory] = useState([]);
+  const [qaHistoryLoading, setQaHistoryLoading] = useState(false);
 
   useEffect(() => {
     async function fetchGiocatore() {
@@ -298,6 +443,9 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
         
         const squadreRes = await getSquadreByLega(res.giocatore.lega_id, token);
         setSquadre(squadreRes.squadre);
+        
+        // Recupera la cronologia QA
+        await fetchQAHistory();
       } catch (err) {
         setError(err.message);
       }
@@ -305,6 +453,23 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
     }
     if (token) fetchGiocatore();
   }, [id, token, setCurrentTeam]);
+
+  const fetchQAHistory = async () => {
+    setQaHistoryLoading(true);
+    try {
+      const history = await getQAHistory(id, token);
+      // Formatta i dati per il grafico
+      const formattedHistory = history.map(item => ({
+        ...item,
+        data: new Date(item.data_registrazione).toLocaleDateString('it-IT'),
+        qa_value: parseFloat(item.qa_value)
+      })).reverse(); // Inverti per mostrare cronologicamente
+      setQaHistory(formattedHistory);
+    } catch (err) {
+      console.error('Errore nel recupero della cronologia QA:', err);
+    }
+    setQaHistoryLoading(false);
+  };
 
   const formatMoney = (value) => {
     if (!value) return 'FM 0';
@@ -369,12 +534,23 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
           <InfoCard>
             <InfoLabel>Ruolo</InfoLabel>
             <InfoValue>
-              <PlayerRole>{giocatore.ruolo}</PlayerRole>
+              <PlayerRole>
+                {splitRoles(giocatore.ruolo).map((ruolo, index) => (
+                  <span key={index} className={`ruolo-badge ${getRoleClass(ruolo)}`}>{ruolo}</span>
+                ))}
+              </PlayerRole>
             </InfoValue>
           </InfoCard>
           <InfoCard>
             <InfoLabel>Squadra Reale</InfoLabel>
-            <InfoValue>{giocatore.squadra_reale}</InfoValue>
+            <InfoValue>
+              <span
+                style={{ color: '#ff9500', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
+                onClick={() => navigate(`/squadra/${giocatore.squadra_id}`)}
+              >
+                {giocatore.squadra_nome}
+              </span>
+            </InfoValue>
           </InfoCard>
           <InfoCard>
             <InfoLabel>Età</InfoLabel>
@@ -404,6 +580,14 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
           <StatTitle>Costo Precedente</StatTitle>
           <StatValue>{formatMoney(giocatore.costo_precedente)}</StatValue>
         </StatCard>
+        <StatCard color="#ffc107">
+          <StatTitle>QA (Scraping)</StatTitle>
+          <StatValue>{giocatore.qa || 'N/A'}</StatValue>
+        </StatCard>
+        <StatCard color="#fd7e14">
+          <StatTitle>QI (Scraping)</StatTitle>
+          <StatValue>{giocatore.qi || 'N/A'}</StatValue>
+        </StatCard>
       </StatsGrid>
 
       <ContractSection>
@@ -428,6 +612,49 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
           </ContractCard>
         </ContractGrid>
       </ContractSection>
+
+      <QAHistorySection>
+        <SectionTitle>📈 Cronologia QA</SectionTitle>
+        
+        {qaHistoryLoading ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>Caricamento cronologia...</div>
+        ) : qaHistory.length > 0 ? (
+          <ChartContainer>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={qaHistory}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="data" 
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  domain={['dataMin - 0.1', 'dataMax + 0.1']}
+                />
+                <Tooltip 
+                  formatter={(value) => [`QA: ${value}`, 'Quotazione Attuale']}
+                  labelFormatter={(label) => `Data: ${label}`}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="qa_value" 
+                  stroke="#28a745" 
+                  strokeWidth={3}
+                  dot={{ fill: '#28a745', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, stroke: '#28a745', strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        ) : (
+          <NoDataMessage>
+            Nessun dato storico QA disponibile per questo giocatore.
+          </NoDataMessage>
+        )}
+      </QAHistorySection>
 
       <OfferSection>
         <SectionTitle>💰 Proponi Offerta</SectionTitle>

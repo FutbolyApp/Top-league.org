@@ -4,6 +4,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { getSquadraById, joinSquadra } from '../api/squadre';
 import { getLegaById } from '../api/leghe';
+import { getGiocatoriBySquadra } from '../api/giocatori';
+import { splitRoles, getRoleClass } from '../utils/roleUtils';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -177,12 +179,134 @@ const PlayerName = styled.div`
 `;
 
 const PlayerRole = styled.span`
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: #e3f2fd;
-  color: #1976d2;
+  .ruolo-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    margin: 1px;
+    border-radius: 5px;
+    font-size: 9.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    min-width: 18px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    transition: all 0.2s ease;
+  }
+  
+  .ruolo-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.13);
+  }
+  
+  .ruolo-badge:last-child {
+    margin-right: 0;
+  }
+  
+  /* Ruoli Serie A Classic */
+  .ruolo-p { 
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); 
+    color: white; 
+    border-color: #e65100;
+  }
+  
+  .ruolo-d { 
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); 
+    color: white; 
+    border-color: #2e7d32;
+  }
+  
+  .ruolo-c { 
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); 
+    color: white; 
+    border-color: #1565c0;
+  }
+  
+  .ruolo-a { 
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); 
+    color: white; 
+    border-color: #c62828;
+  }
+  
+  /* Ruoli Euroleghe Mantra */
+  /* Portieri - Arancione (come P) */
+  .ruolo-por { 
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); 
+    color: white; 
+    border-color: #e65100;
+  }
+  
+  /* Difensori - Palette di verdi */
+  .ruolo-dc { 
+    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); 
+    color: white; 
+    border-color: #0d4f14;
+  }
+  
+  .ruolo-dd { 
+    background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%); 
+    color: white; 
+    border-color: #1b5e20;
+  }
+  
+  .ruolo-ds { 
+    background: linear-gradient(135deg, #43a047 0%, #388e3c 100%); 
+    color: white; 
+    border-color: #2e7d32;
+  }
+  
+  /* Centrocampisti - Palette di blu */
+  .ruolo-b { 
+    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); 
+    color: white; 
+    border-color: #002171;
+  }
+  
+  .ruolo-e { 
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); 
+    color: white; 
+    border-color: #0d47a1;
+  }
+  
+  .ruolo-m { 
+    background: linear-gradient(135deg, #1e88e5 0%, #1976d2 100%); 
+    color: white; 
+    border-color: #1565c0;
+  }
+  
+  /* Viola per W e T */
+  .ruolo-t { 
+    background: linear-gradient(135deg, #8e24aa 0%, #7b1fa2 100%); 
+    color: white; 
+    border-color: #6a0080;
+  }
+  
+  .ruolo-w { 
+    background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%); 
+    color: white; 
+    border-color: #6a0080;
+  }
+  
+  /* Attaccanti - Palette di rossi */
+  .ruolo-a { 
+    background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%); 
+    color: white; 
+    border-color: #8e0000;
+  }
+  
+  .ruolo-pc { 
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); 
+    color: white; 
+    border-color: #b71c1c;
+  }
+  
+  /* Fallback */
+  .ruolo-default { 
+    background: linear-gradient(135deg, #757575 0%, #616161 100%); 
+    color: white; 
+    border-color: #424242;
+  }
 `;
 
 const MoneyValue = styled.span`
@@ -198,19 +322,15 @@ const CostValue = styled.span`
 `;
 
 const ViewButton = styled(Link)`
-  background: #ff9500;
-  color: white;
-  text-decoration: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
+  color: #FFA94D;
   font-weight: 700;
-  font-size: 0.8rem;
-  transition: all 0.2s;
-  display: inline-block;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
   
   &:hover {
-    background: #e6850e;
-    transform: translateY(-1px);
+    color: #FF8C00;
+    text-decoration: underline;
   }
 `;
 
@@ -442,17 +562,21 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
           aValue = a.eta || 0;
           bValue = b.eta || 0;
           break;
-        case 'quotazione':
-          aValue = a.quotazione_attuale || 0;
-          bValue = b.quotazione_attuale || 0;
+        case 'qi':
+          aValue = a.qi || 0;
+          bValue = b.qi || 0;
           break;
         case 'ingaggio':
           aValue = a.costo_attuale || 0;
           bValue = b.costo_attuale || 0;
           break;
         case 'qa':
-          aValue = a.salario || 0;
-          bValue = b.salario || 0;
+          aValue = a.quotazione_attuale || 0;
+          bValue = b.quotazione_attuale || 0;
+          break;
+        case 'fvmp':
+          aValue = a.fv_mp || 0;
+          bValue = b.fv_mp || 0;
           break;
         case 'anni_contratto':
           aValue = a.anni_contratto || 0;
@@ -651,14 +775,17 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
                   <TableHeader onClick={() => handleSort('eta')}>
                     Età{getSortArrow('eta')}
                   </TableHeader>
-                  <TableHeader onClick={() => handleSort('quotazione')}>
-                    QI{getSortArrow('quotazione')}
+                  <TableHeader onClick={() => handleSort('qi')}>
+                    QI{getSortArrow('qi')}
                   </TableHeader>
                   <TableHeader onClick={() => handleSort('ingaggio')}>
                     Ingaggio{getSortArrow('ingaggio')}
                   </TableHeader>
                   <TableHeader onClick={() => handleSort('qa')}>
                     QA{getSortArrow('qa')}
+                  </TableHeader>
+                  <TableHeader onClick={() => handleSort('fvmp')}>
+                    FVMp{getSortArrow('fvmp')}
                   </TableHeader>
                   <TableHeader onClick={() => handleSort('anni_contratto')}>
                     Anni Contratto{getSortArrow('anni_contratto')}
@@ -681,20 +808,25 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
                     </TableCell>
                     <TableCell>
                       <PlayerRole>
-                        {giocatore.ruolo}
+                        {splitRoles(giocatore.ruolo).map((ruolo, index) => (
+                          <span key={index} className={`ruolo-badge ${getRoleClass(ruolo)}`}>
+                            {ruolo}
+                          </span>
+                        ))}
                       </PlayerRole>
                     </TableCell>
                     <TableCell>{giocatore.r || '-'}</TableCell>
                     <TableCell>{giocatore.fr || '-'}</TableCell>
                     <TableCell>{giocatore.squadra_reale}</TableCell>
                     <TableCell>{giocatore.eta}</TableCell>
-                    <TableCell>{giocatore.quotazione_attuale}</TableCell>
+                    <TableCell>{giocatore.qi || '-'}</TableCell>
                     <TableCell>
                       <CostValue>{formatMoney(giocatore.costo_attuale)}</CostValue>
                     </TableCell>
                     <TableCell>
-                      <MoneyValue>{formatMoney(giocatore.salario)}</MoneyValue>
+                      <MoneyValue>{giocatore.quotazione_attuale || '-'}</MoneyValue>
                     </TableCell>
+                    <TableCell>{giocatore.fv_mp || '-'}</TableCell>
                     <TableCell>{giocatore.anni_contratto || 0}</TableCell>
                     <TableCell>{giocatore.prestito ? 'Sì' : 'No'}</TableCell>
                     <TableCell>{giocatore.triggers || '-'}</TableCell>

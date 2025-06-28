@@ -208,19 +208,15 @@ const CostValue = styled.span`
 `;
 
 const ViewButton = styled(Link)`
-  background: #ff9500;
-  color: white;
+  color: #FFA94D;
+  font-weight: 700;
   text-decoration: none;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 0.8rem;
-  transition: all 0.2s;
-  display: inline-block;
+  cursor: pointer;
+  transition: color 0.2s;
   
   &:hover {
-    background: #e6850e;
-    transform: translateY(-1px);
+    color: #FF8C00;
+    text-decoration: underline;
   }
 `;
 

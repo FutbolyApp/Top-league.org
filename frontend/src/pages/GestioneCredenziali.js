@@ -242,7 +242,8 @@ const GestioneCredenziali = () => {
       const requestBody = {
         leagueUrl: freshLegaData.fantacalcio_url,
         username: freshLegaData.fantacalcio_username,
-        password: freshLegaData.fantacalcio_password
+        password: freshLegaData.fantacalcio_password,
+        lega_id: legaId
       };
 
       const response = await fetch('http://localhost:3001/api/scraping/puppeteer/league', {
@@ -257,9 +258,16 @@ const GestioneCredenziali = () => {
       const result = await response.json();
 
       if (result.success) {
+        let message = `✅ Credenziali valide! Connessione riuscita. Trovate ${result.data?.summary?.squadre_trovate || 0} squadre con ${result.data?.summary?.giocatori_totali || 0} giocatori totali.`;
+        
+        // Aggiungi informazioni sul salvataggio nel database se disponibili
+        if (result.data?.database) {
+          message += `\n\n💾 Salvataggio nel database:\n• ${result.data.database.squadre_salvate} squadre salvate\n• ${result.data.database.giocatori_salvati} giocatori salvati`;
+        }
+        
         setTestResult({
           success: true,
-          message: `✅ Credenziali valide! Connessione riuscita. Trovate ${result.data?.summary?.squadre_trovate || 0} squadre con ${result.data?.summary?.giocatori_totali || 0} giocatori totali.`
+          message: message
         });
       } else {
         setTestResult({

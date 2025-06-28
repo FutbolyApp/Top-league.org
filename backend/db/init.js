@@ -433,5 +433,35 @@ export function ensureTables() {
     )
   `);
 
+  // Tabella squadre di scraping (separata dalle squadre ufficiali)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS squadre_scraping (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lega_id INTEGER NOT NULL,
+      nome TEXT NOT NULL,
+      data_scraping DATETIME DEFAULT CURRENT_TIMESTAMP,
+      fonte_scraping TEXT DEFAULT 'puppeteer',
+      FOREIGN KEY (lega_id) REFERENCES leghe (id)
+    )
+  `);
+
+  // Tabella giocatori di scraping (separata dai giocatori ufficiali)
+  db.run(`
+    CREATE TABLE IF NOT EXISTS giocatori_scraping (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lega_id INTEGER NOT NULL,
+      squadra_scraping_id INTEGER NOT NULL,
+      nome TEXT NOT NULL,
+      ruolo TEXT,
+      squadra_reale TEXT,
+      quotazione REAL,
+      fv_mp TEXT,
+      data_scraping DATETIME DEFAULT CURRENT_TIMESTAMP,
+      fonte_scraping TEXT DEFAULT 'puppeteer',
+      FOREIGN KEY (lega_id) REFERENCES leghe (id),
+      FOREIGN KEY (squadra_scraping_id) REFERENCES squadre_scraping (id)
+    )
+  `);
+
   console.log('All tables ensured successfully!');
 }

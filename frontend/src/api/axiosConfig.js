@@ -1,19 +1,35 @@
 import axios from 'axios';
 
-const instance = axios.create({
+const api = axios.create({
   baseURL: 'http://localhost:3001/api',
   withCredentials: false,
 });
 
-export const apiRequest = async (method, url, data = null, token = null) => {
-  const config = {
-    method,
-    url,
-    headers: {},
-  };
-  if (data) config.data = data;
-  if (token) config.headers['Authorization'] = `Bearer ${token}`;
-  return instance(config).then(res => res.data);
+// Funzione per logout automatico (puoi personalizzare)
+function autoLogout() {
+  localStorage.removeItem('token');
+  window.location.href = '/login';
+}
+
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response && error.response.status === 401) {
+      error.customMessage = 'Sessione scaduta o non autorizzato. Effettua di nuovo il login.';
+      autoLogout();
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const apiRequest = async (method, url, data, token) => {
+  try {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const response = await api({ method, url, data, headers });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.customMessage || error.message || 'Errore sconosciuto');
+  }
 };
 
-export default instance; 
+export default api; 

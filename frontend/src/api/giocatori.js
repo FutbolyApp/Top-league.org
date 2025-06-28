@@ -101,3 +101,26 @@ export async function transferGiocatore(id, transferData, token) {
   });
   return handleResponse(res);
 } 
+
+// Ottieni cronologia QA di un giocatore
+export const getQAHistory = async (giocatoreId, token) => {
+  try {
+    const response = await fetch(`/api/giocatori/${giocatoreId}/qa-history`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Errore nel recupero della cronologia QA');
+    }
+
+    const data = await response.json();
+    return data.history;
+  } catch (error) {
+    console.error('Errore API getQAHistory:', error);
+    throw error;
+  }
+}; 

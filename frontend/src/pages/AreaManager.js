@@ -5,6 +5,7 @@ import { useAuth } from '../components/AuthContext';
 import { getSquadreByUtente } from '../api/squadre';
 import { getNotificheByUtente } from '../api/notifiche';
 import { getMovimentiMercato } from '../api/offerte';
+import { cleanupProfiles } from '../api/scraping';
 
 const Container = styled.div`
   max-width: 1400px;
@@ -34,6 +35,15 @@ const Header = styled.div`
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 `;
 
 const Title = styled.h1`
@@ -241,6 +251,28 @@ const EmptyContainer = styled.div`
   text-align: center;
 `;
 
+const CleanupButton = styled.button`
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+  font-size: 0.8rem;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
 const AreaManager = () => {
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -250,6 +282,7 @@ const AreaManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedSquadra, setExpandedSquadra] = useState(null);
+  const [cleaningProfiles, setCleaningProfiles] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -300,6 +333,18 @@ const AreaManager = () => {
     setExpandedSquadra(expandedSquadra === squadraId ? null : squadraId);
   };
 
+  const handleCleanupProfiles = async () => {
+    try {
+      setCleaningProfiles(true);
+      const result = await cleanupProfiles();
+      alert(`Pulizia completata! Rimossi ${result.removedProfiles || 0} profili.`);
+    } catch (error) {
+      alert('Errore durante la pulizia dei profili: ' + error.message);
+    } finally {
+      setCleaningProfiles(false);
+    }
+  };
+
   if (loading) return (
     <Container>
       <LoadingContainer>Caricamento area manager...</LoadingContainer>
@@ -319,7 +364,15 @@ const AreaManager = () => {
       </BackButton>
       
       <Header>
-        <Title>👑 Area Manager</Title>
+        <HeaderLeft>
+          <Title>👑 Area Manager</Title>
+        </HeaderLeft>
+        <CleanupButton 
+          onClick={handleCleanupProfiles}
+          disabled={cleaningProfiles}
+        >
+          {cleaningProfiles ? '🧹 Pulendo...' : '🧹 Pulisci Profili Browser'}
+        </CleanupButton>
       </Header>
 
       {squadre.length === 0 ? (

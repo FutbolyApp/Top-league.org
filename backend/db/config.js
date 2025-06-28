@@ -131,6 +131,95 @@ export function initDb() {
       FOREIGN KEY (user_id) REFERENCES users(id)
     );`);
 
+    // Tabella squadre di scraping (separata dalle squadre ufficiali)
+    db.run(`CREATE TABLE IF NOT EXISTS squadre_scraping (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lega_id INTEGER NOT NULL,
+      nome TEXT NOT NULL,
+      data_scraping DATETIME DEFAULT CURRENT_TIMESTAMP,
+      fonte_scraping TEXT DEFAULT 'puppeteer',
+      FOREIGN KEY (lega_id) REFERENCES leghe (id)
+    );`);
+
+    // Tabella giocatori di scraping (separata dai giocatori ufficiali)
+    db.run(`CREATE TABLE IF NOT EXISTS giocatori_scraping (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lega_id INTEGER NOT NULL,
+      squadra_scraping_id INTEGER NOT NULL,
+      nome TEXT NOT NULL,
+      ruolo TEXT,
+      squadra_reale TEXT,
+      quotazione REAL,
+      qi REAL,
+      fv_mp TEXT,
+      data_scraping DATETIME DEFAULT CURRENT_TIMESTAMP,
+      fonte_scraping TEXT DEFAULT 'puppeteer',
+      FOREIGN KEY (lega_id) REFERENCES leghe (id),
+      FOREIGN KEY (squadra_scraping_id) REFERENCES squadre_scraping (id)
+    );`);
+
+    // Tabella classifica di scraping
+    db.run(`CREATE TABLE IF NOT EXISTS classifica_scraping (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lega_id INTEGER NOT NULL,
+      posizione INTEGER NOT NULL,
+      squadra TEXT NOT NULL,
+      punti INTEGER DEFAULT 0,
+      partite INTEGER DEFAULT 0,
+      data_scraping DATETIME DEFAULT CURRENT_TIMESTAMP,
+      fonte_scraping TEXT DEFAULT 'playwright',
+      FOREIGN KEY (lega_id) REFERENCES leghe (id)
+    );`);
+
+    // Tabella voti di scraping
+    db.run(`CREATE TABLE IF NOT EXISTS voti_scraping (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lega_id INTEGER NOT NULL,
+      giocatore TEXT NOT NULL,
+      voto REAL NOT NULL,
+      squadra TEXT,
+      giornata INTEGER DEFAULT 1,
+      data_scraping DATETIME DEFAULT CURRENT_TIMESTAMP,
+      fonte_scraping TEXT DEFAULT 'playwright',
+      FOREIGN KEY (lega_id) REFERENCES leghe (id)
+    );`);
+
+    // Tabella formazioni di scraping
+    db.run(`CREATE TABLE IF NOT EXISTS formazioni_scraping (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lega_id INTEGER NOT NULL,
+      squadra TEXT NOT NULL,
+      modulo TEXT,
+      titolari TEXT, -- JSON array di nomi
+      panchinari TEXT, -- JSON array di nomi
+      data_scraping DATETIME DEFAULT CURRENT_TIMESTAMP,
+      fonte_scraping TEXT DEFAULT 'playwright',
+      FOREIGN KEY (lega_id) REFERENCES leghe (id)
+    );`);
+
+    // Tabella mercato di scraping
+    db.run(`CREATE TABLE IF NOT EXISTS mercato_scraping (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lega_id INTEGER NOT NULL,
+      giocatore TEXT NOT NULL,
+      da TEXT,
+      a TEXT,
+      prezzo TEXT,
+      tipo TEXT,
+      data_scraping DATETIME DEFAULT CURRENT_TIMESTAMP,
+      fonte_scraping TEXT DEFAULT 'playwright',
+      FOREIGN KEY (lega_id) REFERENCES leghe (id)
+    );`);
+
     console.log('All tables ensured.');
+    
+    // Aggiungi colonna qi se non esiste
+    db.run(`ALTER TABLE giocatori_scraping ADD COLUMN qi REAL;`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Errore aggiunta colonna qi:', err);
+      } else {
+        console.log('Colonna qi aggiunta o già esistente');
+      }
+    });
   });
 } 

@@ -5,6 +5,7 @@ import { useAuth } from '../components/AuthContext';
 import { getLeghe } from '../api/leghe';
 import { getSquadreByLega } from '../api/leghe';
 import { getGiocatoriBySquadra } from '../api/giocatori';
+import { splitRoles, getRoleClass } from '../utils/roleUtils';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -137,6 +138,134 @@ const TableCell = styled.td`
   padding: 1rem;
   border-bottom: 1px solid #eee;
   color: #333;
+  
+  .ruolo-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    min-width: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: all 0.2s ease;
+  }
+  
+  .ruolo-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  
+  .ruolo-badge:last-child {
+    margin-right: 0;
+  }
+  
+  /* Ruoli Serie A Classic */
+  .ruolo-p { 
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); 
+    color: white; 
+    border-color: #e65100;
+  }
+  
+  .ruolo-d { 
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); 
+    color: white; 
+    border-color: #2e7d32;
+  }
+  
+  .ruolo-c { 
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); 
+    color: white; 
+    border-color: #1565c0;
+  }
+  
+  .ruolo-a { 
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); 
+    color: white; 
+    border-color: #c62828;
+  }
+  
+  /* Ruoli Euroleghe Mantra */
+  /* Portieri - Arancione (come P) */
+  .ruolo-por { 
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); 
+    color: white; 
+    border-color: #e65100;
+  }
+  
+  /* Difensori - Palette di verdi */
+  .ruolo-dc { 
+    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); 
+    color: white; 
+    border-color: #0d4f14;
+  }
+  
+  .ruolo-dd { 
+    background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%); 
+    color: white; 
+    border-color: #1b5e20;
+  }
+  
+  .ruolo-ds { 
+    background: linear-gradient(135deg, #43a047 0%, #388e3c 100%); 
+    color: white; 
+    border-color: #2e7d32;
+  }
+  
+  /* Centrocampisti - Palette di blu */
+  .ruolo-b { 
+    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); 
+    color: white; 
+    border-color: #002171;
+  }
+  
+  .ruolo-e { 
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); 
+    color: white; 
+    border-color: #0d47a1;
+  }
+  
+  .ruolo-m { 
+    background: linear-gradient(135deg, #1e88e5 0%, #1976d2 100%); 
+    color: white; 
+    border-color: #1565c0;
+  }
+  
+  .ruolo-t { 
+    background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%); 
+    color: white; 
+    border-color: #1976d2;
+  }
+  
+  .ruolo-w { 
+    background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%); 
+    color: white; 
+    border-color: #1e88e5;
+  }
+  
+  /* Attaccanti - Palette di rossi */
+  .ruolo-a { 
+    background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%); 
+    color: white; 
+    border-color: #8e0000;
+  }
+  
+  .ruolo-pc { 
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); 
+    color: white; 
+    border-color: #b71c1c;
+  }
+  
+  /* Fallback */
+  .ruolo-default { 
+    background: linear-gradient(135deg, #757575 0%, #616161 100%); 
+    color: white; 
+    border-color: #424242;
+  }
 `;
 
 const PlayerName = styled.div`
@@ -463,9 +592,18 @@ const PagaContratti = () => {
                   return (
                     <tr key={giocatore.id}>
                       <TableCell>
-                        <PlayerName>{giocatore.nome} {giocatore.cognome}</PlayerName>
+                        <span
+                          style={{ color: '#ff9500', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
+                          onClick={() => navigate(`/giocatore/${giocatore.id}`)}
+                        >
+                          {giocatore.nome} {giocatore.cognome}
+                        </span>
                       </TableCell>
-                      <TableCell>{giocatore.ruolo}</TableCell>
+                      <TableCell>
+                        {splitRoles(giocatore.ruolo).map((ruolo, index) => (
+                          <span key={index} className={`ruolo-badge ${getRoleClass(ruolo)}`}>{ruolo}</span>
+                        ))}
+                      </TableCell>
                       <TableCell>
                         <MoneyValue>{formatMoney(giocatore.salario)}</MoneyValue>
                       </TableCell>

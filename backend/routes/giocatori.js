@@ -10,7 +10,13 @@ const db = getDb();
 // Ottieni i dettagli di un giocatore
 router.get('/:giocatoreId', requireAuth, (req, res) => {
   const giocatoreId = req.params.giocatoreId;
-  getGiocatoreById(giocatoreId, (err, giocatore) => {
+  db.get(`
+    SELECT g.*, 
+           COALESCE(g.qa, 0) as qa_scraping,
+           COALESCE(g.qi, 0) as qi_scraping
+    FROM giocatori g 
+    WHERE g.id = ?
+  `, [giocatoreId], (err, giocatore) => {
     if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
     if (!giocatore) return res.status(404).json({ error: 'Giocatore non trovato' });
     res.json({ giocatore });
@@ -20,7 +26,13 @@ router.get('/:giocatoreId', requireAuth, (req, res) => {
 // Ottieni giocatori di una squadra
 router.get('/squadra/:squadraId', requireAuth, (req, res) => {
   const squadraId = req.params.squadraId;
-  db.all('SELECT * FROM giocatori WHERE squadra_id = ?', [squadraId], (err, rows) => {
+  db.all(`
+    SELECT g.*, 
+           COALESCE(g.qa, 0) as qa_scraping,
+           COALESCE(g.qi, 0) as qi_scraping
+    FROM giocatori g 
+    WHERE g.squadra_id = ?
+  `, [squadraId], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
     res.json({ giocatori: rows });
   });
@@ -71,7 +83,13 @@ router.post('/batch', requireAuth, (req, res) => {
 // Ottieni tutti i giocatori di una lega
 router.get('/lega/:legaId', requireAuth, (req, res) => {
   const legaId = req.params.legaId;
-  db.all('SELECT * FROM giocatori WHERE lega_id = ?', [legaId], (err, rows) => {
+  db.all(`
+    SELECT g.*, 
+           COALESCE(g.qa, 0) as qa_scraping,
+           COALESCE(g.qi, 0) as qi_scraping
+    FROM giocatori g 
+    WHERE g.lega_id = ?
+  `, [legaId], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
     res.json({ giocatori: rows });
   });
@@ -390,6 +408,32 @@ router.post('/:id/transfer', requireAuth, (req, res) => {
     .catch(err => {
       res.status(500).json({ error: 'Errore verifica permessi', details: err.message });
     });
+});
+
+// Ottieni cronologia QA di un giocatore
+router.get('/:id/qa-history', requireAuth, (req, res) => {
+  const giocatoreId = req.params.id;
+  
+  db.all(`
+    SELECT qa_value, data_registrazione, fonte 
+    FROM qa_history 
+    WHERE giocatore_id = ? 
+    ORDER BY data_registrazione DESC 
+    LIMIT 50
+  `, [giocatoreId], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: 'Errore DB', details: err.message });
+    }
+    
+    // Formatta le date per il frontend
+    const history = rows.map(row => ({
+      qa_value: row.qa_value,
+      data_registrazione: row.data_registrazione,
+      fonte: row.fonte
+    }));
+    
+    res.json({ history });
+  });
 });
 
 export default router; 

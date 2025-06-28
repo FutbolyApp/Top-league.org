@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { getDb } from '../db/config.js';
 import { 
   testScraping, 
   scrapeClassifica, 
@@ -13,8 +14,13 @@ import {
 
 // Importa il nuovo scraper Puppeteer
 import FantacalcioScraper from '../utils/scraperPuppeteer.js';
+import { testCredentialsWithPuppeteer } from '../utils/scraperPuppeteer.js';
+
+// Importa il nuovo scraper Playwright
+import PlaywrightScraper from '../utils/playwrightScraper.js';
 
 const router = express.Router();
+const db = getDb();
 
 // Test scraping per un URL
 router.post('/test', requireAuth, async (req, res) => {
@@ -39,9 +45,11 @@ router.post('/puppeteer/league', requireAuth, async (req, res) => {
   try {
     const { 
       leagueUrl, 
+      scrapingUrls,
       username, 
       password, 
-      tournamentId = null 
+      tournamentId = null,
+      lega_id = null
     } = req.body;
     
     if (!leagueUrl || !username || !password) {
@@ -50,14 +58,17 @@ router.post('/puppeteer/league', requireAuth, async (req, res) => {
       });
     }
     
-    console.log(`🚀 Avvio scraping Puppeteer per: ${leagueUrl}`);
-    console.log(`👤 Username ricevuto: ${username}`);
-    console.log(`🔑 Password ricevuta: ${password}`);
-    console.log(`📊 Dettagli richiesta:`, {
+    console.log(`Avvio scraping Puppeteer per: ${leagueUrl}`);
+    console.log(`Username ricevuto: ${username}`);
+    console.log(`Password ricevuta: ${password}`);
+    console.log(`URL di scraping:`, scrapingUrls);
+    console.log(`Dettagli richiesta:`, {
       leagueUrl,
+      scrapingUrls,
       username,
       password: password ? '***' : 'MISSING',
       tournamentId,
+      lega_id,
       userId: req.user.id,
       timestamp: new Date().toISOString()
     });
@@ -65,17 +76,29 @@ router.post('/puppeteer/league', requireAuth, async (req, res) => {
     const scraper = new FantacalcioScraper();
     
     try {
-      const results = await scraper.scrapeLeague(leagueUrl, { username, password }, tournamentId);
+      const results = await scraper.scrapeLeague(
+        leagueUrl,
+        scrapingUrls,
+        { username, password },
+        tournamentId,
+        lega_id
+      );
       
       if (results) {
-        console.log('✅ Scraping completato con successo');
+        console.log('Scraping completato con successo');
+        
+        let message = 'Scraping completato con successo';
+        if (results.database) {
+          message += `. Salvati nel database: ${results.database.squadre_salvate} squadre, ${results.database.giocatori_salvati} giocatori`;
+        }
+        
         res.json({ 
           success: true, 
-          message: 'Scraping completato con successo',
+          message: message,
           data: results 
         });
       } else {
-        console.log('❌ Scraping fallito - risultati nulli');
+        console.log('Scraping fallito - risultati nulli');
         res.json({ 
           success: false, 
           error: 'Scraping fallito - controlla le credenziali e l\'URL',
@@ -83,7 +106,7 @@ router.post('/puppeteer/league', requireAuth, async (req, res) => {
         });
       }
     } catch (scrapingError) {
-      console.error('❌ Errore durante lo scraping:', scrapingError);
+      console.error('Errore durante lo scraping:', scrapingError);
       res.json({ 
         success: false,
         error: 'Errore durante lo scraping: ' + scrapingError.message,
@@ -92,11 +115,93 @@ router.post('/puppeteer/league', requireAuth, async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Errore generale scraping Puppeteer:', error);
+    console.error('Errore generale scraping Puppeteer:', error);
     res.json({ 
       success: false,
       error: 'Errore durante lo scraping: ' + error.message,
       message: 'Si è verificato un errore generale nel sistema di scraping'
+    });
+  }
+});
+
+// NUOVO ENDPOINT: Scraping con login manuale
+router.post('/puppeteer/manual-login', requireAuth, async (req, res) => {
+  try {
+    const { 
+      leagueUrl, 
+      scrapingUrls,
+      username, 
+      password, 
+      tournamentId = null,
+      lega_id = null
+    } = req.body;
+    
+    if (!leagueUrl) {
+      return res.status(400).json({ 
+        error: 'leagueUrl è richiesto' 
+      });
+    }
+    
+    console.log(`🚀 Avvio scraping con login manuale per: ${leagueUrl}`);
+    console.log(`🌐 URL di scraping:`, scrapingUrls);
+    console.log(`📊 Dettagli richiesta:`, {
+      leagueUrl,
+      scrapingUrls,
+      username: username || 'NON RICHIESTO',
+      password: password ? '***' : 'NON RICHIESTO',
+      tournamentId,
+      lega_id,
+      userId: req.user.id,
+      timestamp: new Date().toISOString()
+    });
+    
+    const scraper = new FantacalcioScraper();
+    
+    try {
+      const results = await scraper.scrapeLeagueWithManualLogin(
+        leagueUrl, 
+        scrapingUrls, 
+        { username: username || '', password: password || '' }, 
+        tournamentId, 
+        lega_id
+      );
+      
+      if (results) {
+        console.log('✅ Scraping con login manuale completato con successo');
+        
+        let message = 'Scraping con login manuale completato con successo';
+        if (results.database) {
+          message += `. Salvati nel database: ${results.database.squadre_salvate} squadre, ${results.database.giocatori_salvati} giocatori`;
+        }
+        
+        res.json({ 
+          success: true, 
+          message: message,
+          data: results 
+        });
+      } else {
+        console.log('❌ Scraping con login manuale fallito - risultati nulli');
+        res.json({ 
+          success: false, 
+          error: 'Scraping fallito - controlla l\'URL e il processo di login',
+          message: 'Il processo di scraping non è riuscito a completarsi'
+        });
+      }
+    } catch (scrapingError) {
+      console.error('❌ Errore durante lo scraping con login manuale:', scrapingError);
+      res.json({ 
+        success: false,
+        error: 'Errore durante lo scraping: ' + scrapingError.message,
+        message: 'Si è verificato un errore durante il processo di scraping con login manuale'
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ Errore generale scraping con login manuale:', error);
+    res.json({ 
+      success: false,
+      error: 'Errore durante lo scraping: ' + error.message,
+      message: 'Si è verificato un errore generale nel sistema di scraping con login manuale'
     });
   }
 });
@@ -106,25 +211,51 @@ router.post('/update-credentials', requireAuth, async (req, res) => {
   try {
     const { 
       lega_id, 
-      fantacalcio_username, 
-      fantacalcio_password 
+      username, 
+      password 
     } = req.body;
     
-    if (!lega_id || !fantacalcio_username || !fantacalcio_password) {
+    if (!lega_id || !username || !password) {
       return res.status(400).json({ 
-        error: 'lega_id, fantacalcio_username e fantacalcio_password sono richiesti' 
+        error: 'lega_id, username e password sono richiesti' 
       });
     }
     
-    // TODO: Aggiorna le credenziali nel database
-    // Per ora restituisce successo
+    console.log(`🔐 Aggiornamento credenziali per lega ${lega_id}`);
+    
+    // Aggiorna le credenziali nel database
+    const db = getDb();
+    
+    db.run(
+      `UPDATE leghe 
+       SET fantacalcio_username = ?, fantacalcio_password = ?, updated_at = datetime('now')
+       WHERE id = ?`,
+      [username, password, lega_id],
+      function(err) {
+        if (err) {
+          console.error('❌ Errore aggiornamento credenziali:', err);
+          return res.status(500).json({ 
+            error: 'Errore nell\'aggiornamento delle credenziali nel database' 
+          });
+        }
+        
+        if (this.changes === 0) {
+          return res.status(404).json({ 
+            error: 'Lega non trovata' 
+          });
+        }
+        
+        console.log('✅ Credenziali aggiornate con successo');
     res.json({ 
       success: true, 
-      message: 'Credenziali aggiornate con successo' 
+          message: 'Credenziali aggiornate con successo',
+          lega_id: lega_id
     });
+      }
+    );
     
   } catch (error) {
-    console.error('Errore aggiornamento credenziali:', error);
+    console.error('❌ Errore aggiornamento credenziali:', error);
     res.status(500).json({ 
       error: 'Errore nell\'aggiornamento delle credenziali' 
     });
@@ -521,6 +652,975 @@ router.post('/test-urls', requireAuth, async (req, res) => {
             message: 'Errore interno del server'
         });
     }
+});
+
+// Test credenziali con Puppeteer
+router.post('/test-credentials-puppeteer', requireAuth, async (req, res) => {
+    try {
+        const { lega_id, username, password } = req.body;
+        if (!lega_id || !username || !password) {
+            return res.status(400).json({ success: false, message: 'lega_id, username e password sono richiesti' });
+        }
+        const result = await testCredentialsWithPuppeteer(username, password);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+});
+
+// Test URL di scraping con Puppeteer (per siti protetti)
+router.post('/test-urls-puppeteer', requireAuth, async (req, res) => {
+    try {
+        const { leagueUrl, scrapingUrls, username, password } = req.body;
+        
+        if (!leagueUrl) {
+            return res.status(400).json({
+                success: false,
+                message: 'League URL è richiesto'
+            });
+        }
+        
+        if (!username || !password) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Username e password sono richiesti per testare URL protetti'
+            });
+        }
+
+        console.log('🔗 TEST URL SCRAPING CON PUPPETEER:', leagueUrl);
+        console.log('🌐 URL di scraping da testare:', scrapingUrls);
+
+        const scraper = new FantacalcioScraper();
+        
+        try {
+            // Testa tutti gli URL di scraping
+            const results = await scraper.testUrls(leagueUrl, scrapingUrls, { username, password });
+            
+            return res.json({
+                success: true,
+                message: 'Test URL completato con successo',
+                data: results
+            });
+
+        } catch (error) {
+            console.error('❌ Errore test URL Puppeteer:', error);
+            return res.status(500).json({
+                success: false,
+                message: `Errore durante il test: ${error.message}`
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Errore endpoint test URL Puppeteer:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Errore interno del server'
+        });
+    }
+});
+
+// Endpoint per ottenere i dati di scraping di una lega
+router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
+  try {
+    const { legaId } = req.params;
+    console.log(`[DEBUG] /dati-scraping/${legaId} - Inizio richiesta`);
+    
+    // Verifica che l'utente abbia accesso alla lega
+    let lega;
+    try {
+      lega = await new Promise((resolve, reject) => {
+        db.get('SELECT * FROM leghe WHERE id = ?', [legaId], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query lega:`, err);
+      return res.status(500).json({ error: 'Errore query lega', details: err.message });
+    }
+    
+    if (!lega) {
+      console.warn(`[DEBUG] Lega non trovata: ${legaId}`);
+      return res.status(404).json({ error: 'Lega non trovata', legaId });
+    }
+    
+    // Ottieni squadre di scraping
+    let squadreScraping;
+    try {
+      squadreScraping = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT id, nome, data_scraping, fonte_scraping 
+          FROM squadre_scraping 
+          WHERE lega_id = ? 
+          ORDER BY nome
+        `, [legaId], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query squadre_scraping:`, err);
+      return res.status(500).json({ error: 'Errore query squadre_scraping', details: err.message });
+    }
+    
+    // Ottieni giocatori di scraping
+    let giocatoriScraping;
+    try {
+      giocatoriScraping = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT gs.*, ss.nome as nome_squadra_scraping
+          FROM giocatori_scraping gs
+          JOIN squadre_scraping ss ON gs.squadra_scraping_id = ss.id
+          WHERE gs.lega_id = ?
+          ORDER BY ss.nome, gs.nome
+        `, [legaId], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query giocatori_scraping:`, err);
+      return res.status(500).json({ error: 'Errore query giocatori_scraping', details: err.message });
+    }
+    
+    // Raggruppa giocatori per squadra
+    const squadreConGiocatori = squadreScraping.map(squadra => ({
+      ...squadra,
+      giocatori: giocatoriScraping.filter(g => g.squadra_scraping_id === squadra.id)
+    }));
+    
+    // Ottieni classifica di scraping
+    let classificaScraping;
+    try {
+      classificaScraping = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT posizione, squadra, punti, partite, data_scraping
+          FROM classifica_scraping 
+          WHERE lega_id = ? 
+          ORDER BY posizione
+        `, [legaId], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query classifica_scraping:`, err);
+      classificaScraping = [];
+    }
+    
+    // Ottieni voti di scraping
+    let votiScraping;
+    try {
+      votiScraping = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT giocatore, voto, squadra, giornata, data_scraping
+          FROM voti_scraping 
+          WHERE lega_id = ? 
+          ORDER BY giornata DESC, voto DESC
+        `, [legaId], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query voti_scraping:`, err);
+      votiScraping = [];
+    }
+    
+    // Ottieni formazioni di scraping
+    let formazioniScraping;
+    try {
+      formazioniScraping = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT squadra, modulo, titolari, panchinari, data_scraping
+          FROM formazioni_scraping 
+          WHERE lega_id = ? 
+          ORDER BY squadra
+        `, [legaId], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows.map(row => ({
+            ...row,
+            titolari: row.titolari ? JSON.parse(row.titolari) : [],
+            panchinari: row.panchinari ? JSON.parse(row.panchinari) : []
+          })));
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query formazioni_scraping:`, err);
+      formazioniScraping = [];
+    }
+    
+    // Ottieni mercato di scraping
+    let mercatoScraping;
+    try {
+      mercatoScraping = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT giocatore, da, a, prezzo, tipo, data_scraping
+          FROM mercato_scraping 
+          WHERE lega_id = ? 
+          ORDER BY data_scraping DESC
+        `, [legaId], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query mercato_scraping:`, err);
+      mercatoScraping = [];
+    }
+    
+    console.log(`[DEBUG] /dati-scraping/${legaId} - Successo, squadre: ${squadreScraping.length}, giocatori: ${giocatoriScraping.length}, classifica: ${classificaScraping.length}, voti: ${votiScraping.length}, formazioni: ${formazioniScraping.length}, mercato: ${mercatoScraping.length}`);
+    res.json({
+      success: true,
+      lega: {
+        id: lega.id,
+        nome: lega.nome
+      },
+      dati_scraping: {
+        rose: squadreConGiocatori,
+        classifica: classificaScraping,
+        voti: votiScraping,
+        formazioni: formazioniScraping,
+        mercato: mercatoScraping,
+        totale_squadre: squadreScraping.length,
+        totale_giocatori: giocatoriScraping.length,
+        totale_posizioni: classificaScraping.length,
+        totale_voti: votiScraping.length,
+        totale_formazioni: formazioniScraping.length,
+        totale_movimenti: mercatoScraping.length,
+        ultimo_scraping: squadreScraping.length > 0 ? 
+          Math.max(...squadreScraping.map(s => new Date(s.data_scraping).getTime())) : null
+      }
+    });
+    
+  } catch (error) {
+    console.error('[DEBUG] Errore generico dati-scraping:', error);
+    res.status(500).json({ error: 'Errore interno del server', details: error.message });
+  }
+});
+
+// Endpoint per confrontare dati ufficiali vs scraping
+router.get('/confronto/:legaId', requireAuth, async (req, res) => {
+  try {
+    const { legaId } = req.params;
+    console.log(`[DEBUG] /confronto/${legaId} - Inizio richiesta`);
+    
+    // Verifica che l'utente abbia accesso alla lega
+    let lega;
+    try {
+      lega = await new Promise((resolve, reject) => {
+        db.get('SELECT * FROM leghe WHERE id = ?', [legaId], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query lega:`, err);
+      return res.status(500).json({ error: 'Errore query lega', details: err.message });
+    }
+    
+    if (!lega) {
+      console.warn(`[DEBUG] Lega non trovata: ${legaId}`);
+      return res.status(404).json({ error: 'Lega non trovata', legaId });
+    }
+    
+    // Ottieni squadre ufficiali
+    let squadreUfficiali;
+    try {
+      squadreUfficiali = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT id, nome, casse_societarie, valore_squadra 
+          FROM squadre 
+          WHERE lega_id = ? 
+          ORDER BY nome
+        `, [legaId], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query squadre ufficiali:`, err);
+      return res.status(500).json({ error: 'Errore query squadre ufficiali', details: err.message });
+    }
+    
+    // Ottieni giocatori ufficiali
+    let giocatoriUfficiali;
+    try {
+      giocatoriUfficiali = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT g.*, s.nome as nome_squadra
+          FROM giocatori g
+          JOIN squadre s ON g.squadra_id = s.id
+          WHERE g.lega_id = ?
+          ORDER BY s.nome, g.nome
+        `, [legaId], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query giocatori ufficiali:`, err);
+      return res.status(500).json({ error: 'Errore query giocatori ufficiali', details: err.message });
+    }
+    
+    // Ottieni squadre di scraping
+    let squadreScraping;
+    try {
+      squadreScraping = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT id, nome, data_scraping 
+          FROM squadre_scraping 
+          WHERE lega_id = ? 
+          ORDER BY nome
+        `, [legaId], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query squadre_scraping:`, err);
+      return res.status(500).json({ error: 'Errore query squadre_scraping', details: err.message });
+    }
+    
+    // Ottieni giocatori di scraping
+    let giocatoriScraping;
+    try {
+      giocatoriScraping = await new Promise((resolve, reject) => {
+        db.all(`
+          SELECT gs.*, ss.nome as nome_squadra_scraping
+          FROM giocatori_scraping gs
+          JOIN squadre_scraping ss ON gs.squadra_scraping_id = ss.id
+          WHERE gs.lega_id = ?
+          ORDER BY ss.nome, gs.nome
+        `, [legaId], (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        });
+      });
+    } catch (err) {
+      console.error(`[DEBUG] Errore query giocatori_scraping:`, err);
+      return res.status(500).json({ error: 'Errore query giocatori_scraping', details: err.message });
+    }
+    
+    // Analisi del confronto
+    const confronto = {
+      squadre_ufficiali: squadreUfficiali.length,
+      squadre_scraping: squadreScraping.length,
+      giocatori_ufficiali: giocatoriUfficiali.length,
+      giocatori_scraping: giocatoriScraping.length,
+      squadre_comuni: 0,
+      giocatori_comuni: 0,
+      differenze: []
+    };
+    
+    // Trova squadre comuni
+    const nomiSquadreUfficiali = squadreUfficiali.map(s => s.nome.toLowerCase());
+    const nomiSquadreScraping = squadreScraping.map(s => s.nome.toLowerCase());
+    
+    confronto.squadre_comuni = nomiSquadreUfficiali.filter(nome => 
+      nomiSquadreScraping.includes(nome)
+    ).length;
+    
+    // Trova giocatori comuni
+    const nomiGiocatoriUfficiali = giocatoriUfficiali.map(g => g.nome.toLowerCase());
+    const nomiGiocatoriScraping = giocatoriScraping.map(g => g.nome.toLowerCase());
+    
+    confronto.giocatori_comuni = nomiGiocatoriUfficiali.filter(nome => 
+      nomiGiocatoriScraping.includes(nome)
+    ).length;
+    
+    console.log(`[DEBUG] /confronto/${legaId} - Successo, squadre ufficiali: ${squadreUfficiali.length}, scraping: ${squadreScraping.length}`);
+    res.json({
+      success: true,
+      lega: {
+        id: lega.id,
+        nome: lega.nome
+      },
+      confronto,
+      dati_ufficiali: {
+        squadre: squadreUfficiali,
+        giocatori: giocatoriUfficiali
+      },
+      dati_scraping: {
+        squadre: squadreScraping,
+        giocatori: giocatoriScraping
+      }
+    });
+    
+  } catch (error) {
+    console.error('[DEBUG] Errore generico confronto:', error);
+    res.status(500).json({ error: 'Errore interno del server', details: error.message });
+  }
+});
+
+// Debug: analizza struttura pagina
+router.post('/debug-page-structure', requireAuth, async (req, res) => {
+    try {
+        const { url, username, password } = req.body;
+        
+        if (!url) {
+            return res.status(400).json({
+                success: false,
+                message: 'URL è richiesto'
+            });
+        }
+
+        console.log('🔍 DEBUG: Analisi struttura pagina:', url);
+
+        const scraper = new FantacalcioScraper();
+        
+        try {
+            if (!await scraper.init()) {
+                throw new Error('Impossibile inizializzare il browser Puppeteer');
+            }
+
+            // Se sono fornite credenziali, fai login
+            if (username && password) {
+                if (!await scraper.login(username, password)) {
+                    throw new Error('Login fallito - credenziali non valide');
+                }
+            }
+
+            // Analizza la struttura della pagina
+            const structure = await scraper.debugPageStructure(url);
+            
+            await scraper.close();
+            
+            return res.json({
+                success: true,
+                message: 'Struttura pagina analizzata con successo',
+                data: structure
+            });
+
+        } catch (error) {
+            await scraper.close();
+            throw error;
+        }
+        
+    } catch (error) {
+        console.error('❌ Errore debug struttura pagina:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: `Errore durante l'analisi: ${error.message}`
+        });
+    }
+});
+
+// NUOVO ENDPOINT: Scraping con Playwright (frontend)
+router.post('/playwright', requireAuth, async (req, res) => {
+  try {
+    const { 
+      leagueUrl, 
+      scrapingUrls,
+      username, 
+      password, 
+      tournamentId = null,
+      lega_id = null,
+      selectedTournament = null,
+      tournament = null
+    } = req.body;
+    
+    if (!leagueUrl || !username || !password) {
+      return res.status(400).json({ 
+        error: 'leagueUrl, username e password sono richiesti' 
+      });
+    }
+    
+    console.log('Recupero tornei per lega:', lega_id);
+    console.log('URL:', leagueUrl);
+    console.log(`Avvio scraping con Playwright per: ${leagueUrl}`);
+    console.log(`Username ricevuto: ${username}`);
+    console.log(`Password ricevuta: ${password}`);
+    console.log(`URL di scraping:`, scrapingUrls);
+    console.log(`Torneo selezionato:`, tournament || selectedTournament);
+    console.log(`Dettagli richiesta:`, {
+      leagueUrl,
+      scrapingUrls,
+      username,
+      password: password ? '***' : 'MISSING',
+      tournamentId,
+      lega_id,
+      tournament: tournament || selectedTournament,
+      userId: req.user.id,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Importa PlaywrightScraper dal backend
+    const { default: PlaywrightScraper } = await import('../utils/playwrightScraper.js');
+    const scraper = new PlaywrightScraper();
+    
+    try {
+      const results = await scraper.scrapeLeague(
+        leagueUrl,
+        scrapingUrls,
+        { username, password },
+        tournamentId,
+        lega_id
+      );
+      
+      if (results) {
+        console.log('✅ Scraping con Playwright completato con successo');
+        
+        // Salva i dati nel database se abbiamo una lega_id e dati validi
+        if (lega_id && results) {
+          try {
+            console.log('💾 Salvataggio dati nel database...');
+            
+            // Prima elimina tutti i dati di scraping precedenti
+            console.log('🗑️ Eliminazione dati di scraping precedenti...');
+            await scraper.clearAllScrapingData(lega_id);
+            
+            results.database = {};
+            
+            // Salva rose
+            if (results.rose && Array.isArray(results.rose) && results.rose.length > 0) {
+              const roseResults = await scraper.saveRoseToDatabase(lega_id, results.rose);
+              results.database.rose = roseResults;
+              console.log('✅ Rose salvate nel database:', roseResults);
+            }
+            
+            // Salva classifica
+            if (results.classifica && Array.isArray(results.classifica) && results.classifica.length > 0) {
+              const classificaResults = await scraper.saveClassificaToDatabase(lega_id, results.classifica);
+              results.database.classifica = classificaResults;
+              console.log('✅ Classifica salvata nel database:', classificaResults);
+            }
+            
+            // Salva formazioni
+            if (results.formazioni && Array.isArray(results.formazioni) && results.formazioni.length > 0) {
+              const formazioniResults = await scraper.saveFormazioniToDatabase(lega_id, results.formazioni);
+              results.database.formazioni = formazioniResults;
+              console.log('✅ Formazioni salvate nel database:', formazioniResults);
+            }
+            
+            console.log('✅ Tutti i dati salvati nel database');
+          } catch (dbError) {
+            console.error('❌ Errore salvataggio database:', dbError);
+            results.database = { error: dbError.message };
+          }
+        }
+        
+        let message = 'Scraping con Playwright completato con successo';
+        if (results.summary) {
+          message += `. Trovate: ${results.summary.squadre_trovate} squadre, ${results.summary.giocatori_totali} giocatori`;
+        }
+        
+        if (results.database && results.database.success) {
+          message += `. Salvati nel database: ${results.database.squadre_salvate} squadre, ${results.database.giocatori_salvati} giocatori`;
+        }
+        
+        if (tournament || selectedTournament) {
+          message += ` (Torneo ID: ${tournament || selectedTournament})`;
+        }
+        
+        res.json({ 
+          success: true, 
+          message: message,
+          data: results 
+        });
+      } else {
+        console.log('❌ Scraping con Playwright fallito - risultati nulli');
+        res.json({ 
+          success: false, 
+          error: 'Scraping fallito - controlla le credenziali e l\'URL',
+          message: 'Le credenziali potrebbero essere errate o l\'URL non è valido'
+        });
+      }
+    } catch (scrapingError) {
+      console.error('❌ Errore durante lo scraping con Playwright:', scrapingError);
+      res.json({ 
+        success: false,
+        error: 'Errore durante lo scraping: ' + scrapingError.message,
+        message: 'Si è verificato un errore durante il processo di scraping con Playwright'
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ Errore generale scraping con Playwright:', error);
+    res.json({ 
+      success: false,
+      error: 'Errore durante lo scraping: ' + error.message,
+      message: 'Si è verificato un errore generale nel sistema di scraping con Playwright'
+    });
+  }
+});
+
+// NUOVO ENDPOINT: Pulizia profili browser
+router.post('/cleanup-profiles', requireAuth, async (req, res) => {
+  try {
+    console.log('🧹 Richiesta pulizia profili browser...');
+    
+    // Importa PlaywrightScraper per usare il metodo di pulizia
+    const { default: PlaywrightScraper } = await import('../utils/playwrightScraper.js');
+    
+    // Pulisci i profili Playwright
+    await PlaywrightScraper.cleanupAllProfiles();
+    
+    // Pulisci anche i profili Puppeteer se necessario
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    const currentDir = process.cwd();
+    const files = fs.readdirSync(currentDir);
+    
+    const puppeteerProfiles = files.filter(file => 
+      file.startsWith('puppeteer_profile') && 
+      fs.statSync(path.join(currentDir, file)).isDirectory()
+    );
+    
+    let removedCount = 0;
+    
+    for (const profile of puppeteerProfiles) {
+      try {
+        fs.rmSync(path.join(currentDir, profile), { recursive: true, force: true });
+        console.log(`✅ Rimosso profilo Puppeteer: ${profile}`);
+        removedCount++;
+      } catch (error) {
+        console.log(`⚠️ Errore rimozione ${profile}: ${error.message}`);
+      }
+    }
+    
+    console.log('✅ Pulizia profili completata');
+    
+    res.json({ 
+      success: true, 
+      message: 'Pulizia profili browser completata con successo',
+      removedProfiles: removedCount
+    });
+    
+  } catch (error) {
+    console.error('❌ Errore pulizia profili:', error);
+    res.json({ 
+      success: false,
+      error: 'Errore durante la pulizia: ' + error.message
+    });
+  }
+});
+
+// Endpoint di test temporaneo per tornei senza autenticazione
+router.post('/tournaments-test', async (req, res) => {
+    try {
+        const { lega_id, leagueUrl, username, password } = req.body;
+        
+        if (!lega_id || !leagueUrl || !username || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Dati mancanti: lega_id, leagueUrl, username, password sono obbligatori'
+            });
+        }
+
+        console.log('Recupero tornei per lega:', lega_id);
+        console.log('URL:', leagueUrl);
+
+        // Recupera il tipo di lega dal database
+        const legaInfo = await new Promise((resolve, reject) => {
+            db.get(
+                'SELECT tipo_lega FROM leghe WHERE id = ?',
+                [lega_id],
+                (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                }
+            );
+        });
+
+        if (!legaInfo) {
+            return res.status(400).json({
+                success: false,
+                message: 'Lega non trovata nel database'
+            });
+        }
+
+        console.log('Tipo lega dal database:', legaInfo.tipo_lega);
+
+        const scraper = new PlaywrightScraper();
+        
+        try {
+            // Inizializza il browser
+            if (!await scraper.init()) {
+                throw new Error('Impossibile inizializzare Playwright');
+            }
+
+            // Imposta il tipo di lega dal database e l'URL
+            scraper.setLeagueType(legaInfo.tipo_lega, leagueUrl);
+
+            // Login
+            const loginSuccess = await scraper.login(username, password, leagueUrl);
+            if (!loginSuccess) {
+                throw new Error('Login fallito');
+            }
+
+            // Recupera i tornei disponibili
+            const tournaments = await scraper.getAvailableTournaments();
+
+            await scraper.close();
+
+            res.json({
+                success: true,
+                tournaments: tournaments,
+                tipo_lega: scraper.tipoLega
+            });
+
+        } catch (error) {
+            await scraper.close();
+            throw error;
+        }
+
+    } catch (error) {
+        console.error('❌ Errore recupero tornei:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Errore durante il recupero dei tornei'
+        });
+    }
+});
+
+// Ottieni tornei disponibili per una lega
+router.post('/tournaments', requireAuth, async (req, res) => {
+    try {
+        const { lega_id, leagueUrl, username, password } = req.body;
+        
+        console.log('🔍 [TOURNAMENTS] Richiesta ricevuta:', { lega_id, leagueUrl, username: username ? '***' : 'MISSING' });
+        
+        if (!lega_id || !leagueUrl || !username || !password) {
+            console.log('❌ [TOURNAMENTS] Dati mancanti:', { lega_id: !!lega_id, leagueUrl: !!leagueUrl, username: !!username, password: !!password });
+            return res.status(400).json({
+                success: false,
+                message: 'Dati mancanti: lega_id, leagueUrl, username, password sono obbligatori'
+            });
+        }
+
+        console.log('✅ [TOURNAMENTS] Dati validi, recupero info lega...');
+
+        // Recupera il tipo di lega dal database
+        const legaInfo = await new Promise((resolve, reject) => {
+            db.get(
+                'SELECT tipo_lega FROM leghe WHERE id = ?',
+                [lega_id],
+                (err, row) => {
+                    if (err) {
+                        console.error('❌ [TOURNAMENTS] Errore query lega:', err);
+                        reject(err);
+                    } else {
+                        console.log('✅ [TOURNAMENTS] Lega trovata:', row);
+                        resolve(row);
+                    }
+                }
+            );
+        });
+
+        if (!legaInfo) {
+            console.log('❌ [TOURNAMENTS] Lega non trovata nel database');
+            return res.status(400).json({
+                success: false,
+                message: 'Lega non trovata nel database'
+            });
+        }
+
+        console.log('✅ [TOURNAMENTS] Tipo lega dal database:', legaInfo.tipo_lega);
+        console.log('🔧 [TOURNAMENTS] Creazione PlaywrightScraper...');
+
+        const scraper = new PlaywrightScraper();
+        
+        try {
+            console.log('🔧 [TOURNAMENTS] Inizializzazione browser...');
+            // Inizializza il browser
+            if (!await scraper.init()) {
+                throw new Error('Impossibile inizializzare Playwright');
+            }
+
+            console.log('✅ [TOURNAMENTS] Browser inizializzato');
+            console.log('🔧 [TOURNAMENTS] Impostazione tipo lega e URL...');
+
+            // Imposta il tipo di lega dal database e l'URL
+            scraper.setLeagueType(legaInfo.tipo_lega, leagueUrl);
+
+            console.log('✅ [TOURNAMENTS] Tipo lega impostato');
+            console.log('🔐 [TOURNAMENTS] Tentativo login...');
+
+            // Login
+            const loginSuccess = await scraper.login(username, password, leagueUrl);
+            if (!loginSuccess) {
+                throw new Error('Login fallito');
+            }
+
+            console.log('✅ [TOURNAMENTS] Login riuscito');
+            console.log('🔍 [TOURNAMENTS] Recupero tornei disponibili...');
+
+            // Recupera i tornei disponibili
+            const tournaments = await scraper.getAvailableTournaments();
+
+            console.log('✅ [TOURNAMENTS] Tornei recuperati:', tournaments?.length || 0);
+
+            await scraper.close();
+            console.log('✅ [TOURNAMENTS] Browser chiuso');
+
+            res.json({
+                success: true,
+                tournaments: tournaments,
+                tipo_lega: scraper.tipoLega
+            });
+
+        } catch (error) {
+            console.error('❌ [TOURNAMENTS] Errore durante lo scraping:', error);
+            await scraper.close();
+            throw error;
+        }
+
+    } catch (error) {
+        console.error('❌ [TOURNAMENTS] Errore generale:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Errore durante il recupero dei tornei'
+        });
+    }
+});
+
+// Endpoint di test senza autenticazione
+router.get('/test', (req, res) => {
+    res.json({ 
+        success: true, 
+        message: 'Server funzionante',
+        timestamp: new Date().toISOString()
+    });
+});
+
+// NUOVO ENDPOINT: Scraping batch di più tornei con Playwright
+router.post('/playwright-batch', requireAuth, async (req, res) => {
+  try {
+    const { 
+      leagueUrl, 
+      scrapingUrls,
+      username, 
+      password, 
+      tournamentIds = [],
+      lega_id = null
+    } = req.body;
+    
+    if (!leagueUrl || !username || !password) {
+      return res.status(400).json({ 
+        error: 'leagueUrl, username e password sono richiesti' 
+      });
+    }
+    
+    if (!tournamentIds || tournamentIds.length === 0) {
+      return res.status(400).json({ 
+        error: 'Almeno un tournamentId è richiesto per lo scraping batch' 
+      });
+    }
+    
+    console.log(`Avvio scraping batch con Playwright per ${tournamentIds.length} tornei`);
+    console.log('URL:', leagueUrl);
+    console.log('Tornei:', tournamentIds);
+    
+    // Importa PlaywrightScraper dal backend
+    const { default: PlaywrightScraper } = await import('../utils/playwrightScraper.js');
+    const scraper = new PlaywrightScraper();
+    
+    const batchResults = [];
+    let successCount = 0;
+    let errorCount = 0;
+    
+    try {
+      // Inizializza il browser una sola volta per tutti i tornei
+      await scraper.init();
+      
+      // Login una sola volta
+      const loginSuccess = await scraper.login(username, password);
+      if (!loginSuccess) {
+        throw new Error('Login fallito per tutti i tornei');
+      }
+      
+      // Scraping per ogni torneo
+      for (let i = 0; i < tournamentIds.length; i++) {
+        const tournamentId = tournamentIds[i];
+        
+        console.log(`Scraping torneo ${i + 1}/${tournamentIds.length}: ${tournamentId}`);
+        
+        try {
+          // Seleziona il torneo
+          await scraper.selectTournament(tournamentId);
+          
+          // Esegui lo scraping
+          const results = await scraper.scrapeLeague(
+            leagueUrl,
+            scrapingUrls,
+            { username, password },
+            tournamentId,
+            lega_id
+          );
+          
+          if (results && results.rose) {
+            successCount++;
+            batchResults.push({
+              tournamentId,
+              success: true,
+              data: results,
+              summary: {
+                squadre: results.rose.length,
+                giocatori: results.rose.reduce((total, squadra) => total + (squadra.giocatori?.length || 0), 0)
+              }
+            });
+            
+            console.log(`✅ Torneo ${tournamentId} completato: ${results.rose.length} squadre`);
+          } else {
+            errorCount++;
+            batchResults.push({
+              tournamentId,
+              success: false,
+              error: 'Nessun dato estratto'
+            });
+            console.log(`❌ Torneo ${tournamentId} fallito: nessun dato`);
+          }
+          
+        } catch (tournamentError) {
+          errorCount++;
+          batchResults.push({
+            tournamentId,
+            success: false,
+            error: tournamentError.message
+          });
+          console.log(`❌ Errore torneo ${tournamentId}: ${tournamentError.message}`);
+        }
+        
+        // Pausa tra le richieste
+        if (i < tournamentIds.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+      
+      await scraper.close();
+      
+      const message = `Scraping batch completato: ${successCount} successi, ${errorCount} errori su ${tournamentIds.length} tornei`;
+      
+      res.json({ 
+        success: successCount > 0,
+        message: message,
+        data: batchResults,
+        summary: {
+          total: tournamentIds.length,
+          success: successCount,
+          errors: errorCount
+        }
+      });
+      
+    } catch (scrapingError) {
+      await scraper.close();
+      console.error('❌ Errore durante lo scraping batch:', scrapingError);
+      res.json({ 
+        success: false,
+        error: 'Errore durante lo scraping batch: ' + scrapingError.message,
+        data: batchResults
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ Errore generale scraping batch:', error);
+    res.json({ 
+      success: false,
+      error: 'Errore durante lo scraping batch: ' + error.message
+    });
+  }
 });
 
 export default router; 
