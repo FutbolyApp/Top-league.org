@@ -19,12 +19,19 @@ services:
   - type: web
     name: topleague-frontend
     env: static
-    buildCommand: cd frontend && npm install && npm run build
+    buildCommand: |
+      cd frontend
+      npm install --legacy-peer-deps
+      ls -la public/
+      cat public/index.html
+      npm run build
     staticPublishPath: ./frontend/build
     envVars:
       - key: NODE_ENV
         value: production
       - key: CI
+        value: false
+      - key: GENERATE_SOURCEMAP
         value: false
     routes:
       - type: rewrite
