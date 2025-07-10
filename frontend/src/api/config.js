@@ -1,4 +1,8 @@
-const API_BASE_URL = 'http://localhost:3001/api';
+// Configurazione API URL
+const isDevelopment = process.env.NODE_ENV === 'development';
+const API_BASE_URL = isDevelopment 
+  ? 'http://localhost:3001/api'
+  : 'https://topleague-backend.onrender.com/api'; // Sostituisci con il tuo URL Render del backend
 
 async function fetchWithRetry(url, options = {}, retries = 3) {
   try {
