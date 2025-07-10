@@ -31,7 +31,16 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://topleaguem-frontend.onrender.com',
+    'https://topleaguem.onrender.com'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Servi file statici dalla cartella uploads
@@ -53,6 +62,16 @@ const upload = multer({ dest: path.join(__dirname, 'uploads') });
 app.get('/api/ping', (req, res) => {
   console.log('Ping received');
   res.json({ message: 'pong' });
+});
+
+// Test CORS endpoint
+app.get('/api/test-cors', (req, res) => {
+  console.log('CORS test received');
+  res.json({ 
+    message: 'CORS test successful',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin
+  });
 });
 
 // Placeholder: upload file Excel
