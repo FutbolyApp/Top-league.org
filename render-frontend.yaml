@@ -3,12 +3,13 @@ services:
     name: topleague-frontend
     env: static
     buildCommand: |
+      cd frontend
       pwd
       ls -la
       ls -la public/
       npm install --legacy-peer-deps
       npm run build
-    staticPublishPath: ./build
+    staticPublishPath: ./frontend/build
     envVars:
       - key: NODE_ENV
         value: production
