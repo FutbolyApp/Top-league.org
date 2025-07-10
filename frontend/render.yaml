@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: topleague-frontend
+    env: static
+    buildCommand: npm install --legacy-peer-deps && npm run build
+    staticPublishPath: ./build
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CI
+        value: false
+      - key: GENERATE_SOURCEMAP
+        value: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html 

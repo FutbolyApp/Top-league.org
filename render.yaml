@@ -14,21 +14,4 @@ services:
     disk:
       name: sqlite-data
       mountPath: /data/db
-      sizeGB: 1
-
-  - type: web
-    name: topleague-frontend
-    env: static
-    buildCommand: cd frontend && npm run build:render
-    staticPublishPath: ./frontend/build
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: CI
-        value: false
-      - key: GENERATE_SOURCEMAP
-        value: false
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html 
+      sizeGB: 1 
