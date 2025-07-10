@@ -4,15 +4,23 @@ const API_BASE_URL = isDevelopment
   ? 'http://localhost:3001/api'
   : 'https://topleaguem.onrender.com/api'; // URL del backend su Render
 
+console.log('API_BASE_URL:', API_BASE_URL);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
 async function fetchWithRetry(url, options = {}, retries = 3) {
+  const fullUrl = `${API_BASE_URL}${url}`;
+  console.log('Making request to:', fullUrl, 'with options:', { ...options, body: options.body ? '***' : undefined });
+  
   try {
-    const response = await fetch(`${API_BASE_URL}${url}`, {
+    const response = await fetch(fullUrl, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
     });
+    
+    console.log('Response status:', response.status, 'for URL:', fullUrl);
     
     if (!response.ok) {
       let errorMessage = 'Errore del server';

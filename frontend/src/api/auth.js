@@ -23,7 +23,17 @@ async function handleResponse(res) {
   return res.json();
 }
 
-export const login = (credentials) => api.post('/auth/login', credentials);
+export const login = async (credentials) => {
+  console.log('Login attempt with credentials:', { email: credentials.email, password: '***' });
+  try {
+    const response = await api.post('/auth/login', credentials);
+    console.log('Login response received:', response);
+    return response;
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+};
 
 export const register = (userData) => api.post('/auth/register', userData);
 
