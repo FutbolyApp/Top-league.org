@@ -24,6 +24,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: CI
+        value: false
     routes:
       - type: rewrite
         source: /*
