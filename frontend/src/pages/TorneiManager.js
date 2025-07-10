@@ -103,7 +103,7 @@ const Tr = styled.tr`
 
 const Badge = styled.span`
   background: ${props => {
-    switch (props.status) {
+    switch (props.$status) {
       case 'giocata': return '#28a745';
       case 'programmata': return '#ffc107';
       case 'in_corso': return '#17a2b8';
@@ -232,7 +232,7 @@ const TorneiManager = () => {
                 >
                   <h4>{torneo.nome}</h4>
                   <p>Tipo: {torneo.tipo}</p>
-                  <p>Stato: <Badge status={torneo.stato}>{torneo.stato}</Badge></p>
+                  <p>Stato: <Badge $status={torneo.stato}>{torneo.stato}</Badge></p>
                   <p>Giornate: {torneo.partite_giocate || 0}/{torneo.partite_totali || 0}</p>
                 </div>
               ))}
@@ -316,7 +316,7 @@ const TorneiManager = () => {
                       </Td>
                       <Td>{partita.squadra_trasferta_nome}</Td>
                       <Td>
-                        <Badge status={partita.stato}>{partita.stato}</Badge>
+                        <Badge $status={partita.stato}>{partita.stato}</Badge>
                       </Td>
                     </Tr>
                   ))}

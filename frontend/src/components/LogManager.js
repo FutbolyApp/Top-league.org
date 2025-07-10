@@ -163,8 +163,8 @@ const Pagination = styled.div`
 `;
 
 const PageButton = styled.button`
-  background: ${props => props.active ? '#ff8c42' : 'white'};
-  color: ${props => props.active ? 'white' : '#333'};
+  background: ${props => props.$active ? '#ff8c42' : 'white'};
+  color: ${props => props.$active ? 'white' : '#333'};
   border: 1px solid #ddd;
   padding: 8px 12px;
   border-radius: 6px;
@@ -172,7 +172,7 @@ const PageButton = styled.button`
   transition: all 0.2s ease;
   
   &:hover {
-    background: ${props => props.active ? '#ff8c42' : '#f5f5f5'};
+    background: ${props => props.$active ? '#ff8c42' : '#f5f5f5'};
   }
 `;
 
@@ -227,7 +227,7 @@ const LogManager = () => {
   const fetchLeghe = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/leghe', {
+      const response = await fetch('http://localhost:3001/api/leghe', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -243,7 +243,7 @@ const LogManager = () => {
   const fetchUtenti = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/utenti', {
+      const response = await fetch('http://localhost:3001/api/utenti', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -457,7 +457,7 @@ const LogManager = () => {
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
               <PageButton
                 key={page}
-                active={page === currentPage}
+                $active={page === currentPage}
                 onClick={() => setCurrentPage(page)}
               >
                 {page}

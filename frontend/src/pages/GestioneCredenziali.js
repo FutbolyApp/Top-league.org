@@ -310,7 +310,7 @@ const GestioneCredenziali = () => {
       </Header>
 
       <FormCard>
-        <FormTitle>⚙️ Credenziali Fantacalcio.it</FormTitle>
+        <FormTitle>⚙️ Credenziali piattaforma esterna</FormTitle>
         <Form onSubmit={handleUpdateCredentials}>
           <FormGroup>
             <Label>Username</Label>
@@ -318,7 +318,7 @@ const GestioneCredenziali = () => {
               type="text"
               value={credentials.username}
               onChange={(e) => setCredentials(prev => ({ ...prev, username: e.target.value }))}
-              placeholder="Inserisci username Fantacalcio.it"
+              placeholder="Inserisci username piattaforma esterna"
               required
             />
           </FormGroup>
@@ -329,7 +329,7 @@ const GestioneCredenziali = () => {
               type="password"
               value={credentials.password}
               onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
-              placeholder="Inserisci password Fantacalcio.it"
+              placeholder="Inserisci password piattaforma esterna"
               required
             />
           </FormGroup>

@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext';
+import { api } from '../api/config';
 
 const NotificationContext = createContext();
 
@@ -16,57 +19,99 @@ const NotificationContainer = styled.div`
     top: 20px;
     right: 20px;
     z-index: 1000;
-    max-width: 400px;
+    max-width: 250px;
 `;
 
 const NotificationItem = styled.div`
-    background: ${props => {
-        switch (props.type) {
-            case 'success': return '#4caf50';
-            case 'error': return '#f44336';
-            case 'warning': return '#ff9800';
-            default: return '#2196f3';
-        }
-    }};
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
     color: white;
-    padding: 15px 20px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    animation: slideIn 0.3s ease-out;
+    padding: 0.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    transform: translateX(${props => props.$show ? '0' : '100%'});
+    opacity: ${props => props.$show ? '1' : '0'};
+    position: relative;
     
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
+    &:hover {
+        transform: translateX(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
 `;
 
-const CloseButton = styled.button`
+const NotificationCloseButton = styled.button`
+    position: absolute;
+    top: 2px;
+    right: 2px;
     background: none;
     border: none;
-    color: white;
-    font-size: 18px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
     cursor: pointer;
-    margin-left: 10px;
-    padding: 0;
-    width: 20px;
-    height: 20px;
+    padding: 1px;
+    border-radius: 2px;
+    transition: all 0.2s ease;
+    width: 16px;
+    height: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     
     &:hover {
-        opacity: 0.8;
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
     }
+`;
+
+const NotificationCounter = styled.span`
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: bold;
+    margin-left: 4px;
+`;
+
+const NotificationTitle = styled.div`
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+    font-size: 0.75rem;
+    padding-right: 20px;
+    color: white;
+`;
+
+const NotificationMessage = styled.div`
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.2;
+    margin-bottom: 0.2rem;
+`;
+
+const NotificationTime = styled.div`
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.7);
+`;
+
+const NotificationBadge = styled.div`
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #dc3545;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
 `;
 
 const ModalOverlay = styled.div`
@@ -202,24 +247,82 @@ const Button = styled.button`
 `;
 
 export const NotificationProvider = ({ children }) => {
+    const { user, token } = useAuth();
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
+    const [unreadCount, setUnreadCount] = useState(0);
     const [modal, setModal] = useState(null);
+    const [showNotification, setShowNotification] = useState(false);
 
-    const addNotification = (message, type = 'info', duration = 5000) => {
-        const id = Date.now() + Math.random();
-        const newNotification = { id, message, type };
+    useEffect(() => {
+        if (!user || !token) {
+            setNotifications([]);
+            setUnreadCount(0);
+            return;
+        }
+
+        // Carica notifiche iniziali
+        loadNotifications();
+
+        // Polling per nuove notifiche ogni 120 secondi (invece di 60)
+        const interval = setInterval(loadNotifications, 120000);
+
+        return () => clearInterval(interval);
+    }, [user, token]);
+
+    const loadNotifications = async () => {
+        if (!user || !token) {
+            setNotifications([]);
+            setUnreadCount(0);
+            return;
+        }
         
-        setNotifications(prev => [...prev, newNotification]);
-        
-        if (duration > 0) {
-            setTimeout(() => {
-                removeNotification(id);
-            }, duration);
+        try {
+            const response = await api.get('/notifiche', token);
+            const notifiche = response.notifiche || [];
+            
+            // Normalizza le notifiche per gestire entrambi i campi (letta e letto)
+            const notificheNormalizzate = notifiche.map(n => ({
+                ...n,
+                letta: n.letta || n.letto === 1,
+                letto: n.letto || (n.letta ? 1 : 0)
+            }));
+            
+            setNotifications(notificheNormalizzate);
+            setUnreadCount(notificheNormalizzate.filter(n => !n.letta).length || 0);
+        } catch (error) {
+            console.error('Errore caricamento notifiche:', error);
+            setNotifications([]);
+            setUnreadCount(0);
         }
     };
 
-    const removeNotification = (id) => {
-        setNotifications(prev => prev.filter(notification => notification.id !== id));
+    const markAsRead = async (notificationId) => {
+        try {
+            // Prova prima l'endpoint /read
+            let response = await api.post(`/notifiche/${notificationId}/read`, {}, token);
+            
+            // Se fallisce, prova l'endpoint /letta
+            if (!response) {
+                response = await api.put(`/notifiche/${notificationId}/letta`, {}, token);
+            }
+            
+            if (response) {
+                // Aggiorna lo stato locale
+                setNotifications(prev => 
+                    prev.map(n => 
+                        n.id === notificationId ? { ...n, letta: true, letto: 1 } : n
+                    )
+                );
+                setUnreadCount(prev => Math.max(0, prev - 1));
+            }
+        } catch (error) {
+            console.error('Errore marcatura notifica come letta:', error);
+        }
+    };
+
+    const removeNotification = (notificationId) => {
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
     };
 
     const showModal = (config) => {
@@ -260,30 +363,204 @@ export const NotificationProvider = ({ children }) => {
         });
     };
 
+    const formatTime = (dateString) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 60000) return 'Ora';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)}m fa`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)}h fa`;
+        return date.toLocaleDateString('it-IT');
+    };
+
+    const getNotificationType = (tipo) => {
+        switch (tipo) {
+            case 'richiesta_ingresso': return 'info';
+            case 'risposta_richiesta': return 'success';
+            case 'risposta_richiesta_admin': return 'success';
+            case 'trasferimento': return 'warning';
+            case 'pagamento': return 'warning';
+            default: return 'info';
+        }
+    };
+
+    const markAllAsRead = async () => {
+        try {
+            await api.put('/notifiche/tutte-lette', {}, token);
+            
+            // Aggiorna lo stato locale
+            setNotifications(prev => 
+                prev.map(n => ({ ...n, letta: true, letto: 1 }))
+            );
+            setUnreadCount(0);
+        } catch (error) {
+            console.error('Errore marcatura tutte notifiche come lette:', error);
+        }
+    };
+
+    const handleNotificationClick = (notification) => {
+        // Nascondi immediatamente la notifica
+        setShowNotification(false);
+        
+        // Marca come letta immediatamente nello stato locale
+        setNotifications(prev => 
+            prev.map(n => 
+                n.id === notification.id ? { ...n, letta: true, letto: 1 } : n
+            )
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        
+        // Chiama l'API per marcare come letta
+        markAsRead(notification.id);
+        
+        // Naviga sempre alla pagina delle notifiche
+        navigate('/notifiche');
+    };
+
+    const handleCloseNotification = () => {
+        // Nascondi immediatamente la notifica
+        setShowNotification(false);
+        
+        // Trova la notifica corrente e marcala come letta
+        const unreadNotifications = notifications.filter(n => !n.letta);
+        const currentNotification = unreadNotifications[0];
+        
+        if (currentNotification) {
+            // Marca come letta immediatamente nello stato locale
+            setNotifications(prev => 
+                prev.map(n => 
+                    n.id === currentNotification.id ? { ...n, letta: true, letto: 1 } : n
+                )
+            );
+            setUnreadCount(prev => Math.max(0, prev - 1));
+            
+            // Chiama l'API per marcare come letta
+            markAsRead(currentNotification.id);
+        }
+    };
+
+    // Mostra la prima notifica non letta
+    useEffect(() => {
+        const unreadNotifications = notifications.filter(n => !n.letta && n.letto !== 1);
+        
+        if (unreadNotifications.length > 0 && !showNotification) {
+            setShowNotification(true);
+            
+            // Nascondi automaticamente dopo 8 secondi
+            const timer = setTimeout(() => {
+                handleCloseNotification();
+            }, 8000);
+            
+            return () => clearTimeout(timer);
+        } else if (unreadNotifications.length === 0) {
+            // Se non ci sono più notifiche non lette, nascondi la notifica
+            setShowNotification(false);
+        }
+    }, [notifications, showNotification]);
+
     const value = {
-        addNotification,
+        addNotification: (message, type = 'info', duration = 5000) => {
+            const id = Date.now() + Math.random();
+            const newNotification = { id, message, type };
+            
+            setNotifications(prev => [...prev, newNotification]);
+            
+            if (duration > 0) {
+                setTimeout(() => {
+                    removeNotification(id);
+                }, duration);
+            }
+        },
         removeNotification,
+        markAsRead,
+        markAllAsRead,
         showModal,
         hideModal,
         showErrorModal,
         showConfirmModal,
-        showSuccessModal
+        showSuccessModal,
+        notifications
+    };
+
+    const getNotificationColor = (type) => {
+        switch (type) {
+            case 'trasferimento': return '#28a745';
+            case 'offerta': return '#17a2b8';
+            case 'sistema': return '#6f42c1';
+            case 'richiesta_ingresso': return '#28a745';
+            case 'risposta_richiesta': return '#6f42c1';
+            case 'risposta_richiesta_admin': return '#6f42c1';
+            case 'richiesta_unione_squadra': return '#fd7e14';
+            case 'risposta_richiesta_unione': return '#20c997';
+            default: return '#007bff';
+        }
+    };
+
+    const getNotificationIcon = (type) => {
+        switch (type) {
+            case 'trasferimento': return '🔄';
+            case 'offerta': return '💰';
+            case 'sistema': return '⚙️';
+            case 'richiesta_ingresso': return '🔐';
+            case 'risposta_richiesta': return '✅';
+            case 'richiesta_unione_squadra': return '👥';
+            case 'risposta_richiesta_unione': return '🎯';
+            case 'risposta_richiesta_admin': return '📄';
+            default: return '📢';
+        }
     };
 
     return (
         <NotificationContext.Provider value={value}>
             {children}
             
-            <NotificationContainer>
-                {notifications.map(notification => (
-                    <NotificationItem key={notification.id} type={notification.type}>
-                        <span>{notification.message}</span>
-                        <CloseButton onClick={() => removeNotification(notification.id)}>
-                            ×
-                        </CloseButton>
-                    </NotificationItem>
-                ))}
-            </NotificationContainer>
+            {showNotification && (() => {
+                const unreadNotifications = notifications.filter(n => !n.letta && n.letto !== 1);
+                const currentNotification = unreadNotifications[0];
+                
+                // Se non ci sono notifiche non lette o la notifica corrente è già stata letta, non mostrare nulla
+                if (!currentNotification || currentNotification.letta || currentNotification.letto === 1) {
+                    setShowNotification(false);
+                    return false;
+                }
+                
+                return (
+                    <NotificationContainer>
+                        <NotificationItem
+                            $type={getNotificationType(currentNotification.tipo)}
+                            $show={showNotification}
+                            onClick={() => handleNotificationClick(currentNotification)}
+                        >
+                            <NotificationCloseButton 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCloseNotification();
+                                }}
+                            >
+                                ×
+                            </NotificationCloseButton>
+                            
+                            <NotificationTitle>
+                                {currentNotification.titolo || 'Notifica'}
+                                {unreadCount > 1 && (
+                                    <NotificationCounter>
+                                        {unreadCount}
+                                    </NotificationCounter>
+                                )}
+                            </NotificationTitle>
+                            
+                            <NotificationMessage>
+                                {currentNotification.messaggio}
+                            </NotificationMessage>
+                            
+                            <NotificationTime>
+                                {formatTime(currentNotification.data_creazione)}
+                            </NotificationTime>
+                        </NotificationItem>
+                    </NotificationContainer>
+                );
+            })()}
 
             {modal && (
                 <ModalOverlay onClick={hideModal}>

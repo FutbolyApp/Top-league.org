@@ -8,7 +8,7 @@ const db = getDb();
 // Ottieni tutte le notifiche dell'utente loggato
 router.get('/', requireAuth, (req, res) => {
   const userId = req.user.id;
-  db.all('SELECT * FROM notifiche WHERE utente_id = ? ORDER BY data_creazione DESC', [userId], (err, rows) => {
+  db.all('SELECT *, COALESCE(dati_aggiuntivi, "{}") as dati_aggiuntivi FROM notifiche WHERE utente_id = ? AND (archiviata = 0 OR archiviata IS NULL) ORDER BY data_creazione DESC', [userId], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Errore DB' });
     res.json({ notifiche: rows });
   });
@@ -17,7 +17,7 @@ router.get('/', requireAuth, (req, res) => {
 // Ottieni tutte le notifiche dell'utente loggato (alias)
 router.get('/utente', requireAuth, (req, res) => {
   const userId = req.user.id;
-  db.all('SELECT * FROM notifiche WHERE utente_id = ? ORDER BY data_creazione DESC', [userId], (err, rows) => {
+  db.all('SELECT *, COALESCE(dati_aggiuntivi, "{}") as dati_aggiuntivi FROM notifiche WHERE utente_id = ? AND (archiviata = 0 OR archiviata IS NULL) ORDER BY data_creazione DESC', [userId], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Errore DB' });
     res.json({ notifiche: rows });
   });
@@ -84,6 +84,18 @@ router.put('/:notificaId/letta', requireAuth, (req, res) => {
   });
 });
 
+// Marca notifica come letta (POST endpoint per compatibilità frontend)
+router.post('/:notificaId/read', requireAuth, (req, res) => {
+  const notificaId = req.params.notificaId;
+  const userId = req.user.id;
+  
+  db.run('UPDATE notifiche SET letto = 1, data_lettura = datetime("now") WHERE id = ? AND utente_id = ?', [notificaId, userId], function(err) {
+    if (err) return res.status(500).json({ error: 'Errore aggiornamento' });
+    if (this.changes === 0) return res.status(404).json({ error: 'Notifica non trovata' });
+    res.json({ success: true });
+  });
+});
+
 // Marca tutte le notifiche come lette
 router.put('/tutte-lette', requireAuth, (req, res) => {
   const userId = req.user.id;
@@ -104,6 +116,28 @@ router.delete('/:notificaId', requireAuth, (req, res) => {
     if (this.changes === 0) return res.status(404).json({ error: 'Notifica non trovata' });
     res.json({ success: true });
   });
+});
+
+// Archivia notifiche (aggiorna il campo archiviata)
+router.put('/archivia', requireAuth, (req, res) => {
+  const userId = req.user.id;
+  const { notifica_ids } = req.body;
+  
+  if (!notifica_ids || !Array.isArray(notifica_ids) || notifica_ids.length === 0) {
+    return res.status(400).json({ error: 'Lista notifiche richiesta' });
+  }
+  
+  const placeholders = notifica_ids.map(() => '?').join(',');
+  const params = [...notifica_ids, userId];
+  
+  db.run(
+    `UPDATE notifiche SET archiviata = 1 WHERE id IN (${placeholders}) AND utente_id = ?`,
+    params,
+    function(err) {
+      if (err) return res.status(500).json({ error: 'Errore archiviazione' });
+      res.json({ success: true, archiviate: this.changes });
+    }
+  );
 });
 
 export default router; 

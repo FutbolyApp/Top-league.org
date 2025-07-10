@@ -85,3 +85,51 @@ export function generateToken(user) {
     { expiresIn: '24h' }
   );
 } 
+
+export function requireLegaAdminOrSuperAdmin(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return res.status(401).json({ error: 'Token mancante' });
+  const token = authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Token non fornito' });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    console.log('requireLegaAdminOrSuperAdmin - Payload JWT:', payload);
+    console.log('requireLegaAdminOrSuperAdmin - Ruolo nel payload:', payload.ruolo);
+    
+    // Permette accesso a superadmin o admin di lega
+    if (payload.ruolo !== 'superadmin' && payload.ruolo !== 'SuperAdmin' && payload.ruolo !== 'admin') {
+      console.log('requireLegaAdminOrSuperAdmin - Accesso negato: ruolo non valido');
+      return res.status(403).json({ error: 'Accesso negato: richiesto Admin o SuperAdmin' });
+    }
+    console.log('requireLegaAdminOrSuperAdmin - Accesso autorizzato');
+    req.user = payload;
+    next();
+  } catch (e) {
+    console.log('requireLegaAdminOrSuperAdmin - Errore verifica token:', e.message);
+    return res.status(401).json({ error: 'Token non valido' });
+  }
+}
+
+export function requireSubadminOrAdmin(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return res.status(401).json({ error: 'Token mancante' });
+  const token = authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Token non fornito' });
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    console.log('requireSubadminOrAdmin - Payload JWT:', payload);
+    console.log('requireSubadminOrAdmin - Ruolo nel payload:', payload.ruolo);
+    
+    // Permette accesso a superadmin, admin o subadmin
+    if (payload.ruolo !== 'superadmin' && payload.ruolo !== 'SuperAdmin' && payload.ruolo !== 'admin' && payload.ruolo !== 'subadmin') {
+      console.log('requireSubadminOrAdmin - Accesso negato: ruolo non valido');
+      return res.status(403).json({ error: 'Accesso negato: richiesto Subadmin, Admin o SuperAdmin' });
+    }
+    console.log('requireSubadminOrAdmin - Accesso autorizzato');
+    req.user = payload;
+    next();
+  } catch (e) {
+    console.log('requireSubadminOrAdmin - Errore verifica token:', e.message);
+    return res.status(401).json({ error: 'Token non valido' });
+  }
+} 

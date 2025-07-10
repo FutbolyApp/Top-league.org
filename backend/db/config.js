@@ -21,6 +21,41 @@ export function getDb() {
   return db;
 }
 
+// Funzione per aggiungere colonne mancanti alla tabella giocatori
+function addMissingColumns() {
+  const db = getDb();
+  
+  // Aggiungi colonne mancanti alla tabella giocatori
+  const columns = [
+    'qi INTEGER',
+    'qa INTEGER', 
+    'fvm INTEGER',
+    'media_voto REAL',
+    'fantamedia_voto REAL',
+    'presenze INTEGER',
+    'goalfatti INTEGER',
+    'goalsubiti INTEGER',
+    'rigoriparati INTEGER',
+    'rigoricalciati INTEGER',
+    'rigorisegnati INTEGER',
+    'rigorisbagliati INTEGER',
+    'assist INTEGER',
+    'ammonizioni INTEGER',
+    'espulsioni INTEGER',
+    'autogol INTEGER'
+  ];
+
+  columns.forEach(column => {
+    const [columnName] = column.split(' ');
+    db.run(`ALTER TABLE giocatori ADD COLUMN ${column}`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error(`Errore aggiunta colonna ${columnName}:`, err.message);
+      }
+      // else console.log(`Colonna ${columnName} aggiunta o già esistente`);
+    });
+  });
+}
+
 export function initDb() {
   const db = getDb();
   db.serialize(() => {
@@ -89,21 +124,28 @@ export function initDb() {
       costo_precedente INTEGER,
       salario INTEGER DEFAULT 0,
       prestito BOOLEAN DEFAULT 0,
+      squadra_prestito_id INTEGER,
       anni_contratto INTEGER DEFAULT 1,
       cantera BOOLEAN DEFAULT 0,
       triggers TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (squadra_id) REFERENCES squadre(id),
-      FOREIGN KEY (lega_id) REFERENCES leghe(id)
+      FOREIGN KEY (lega_id) REFERENCES leghe(id),
+      FOREIGN KEY (squadra_prestito_id) REFERENCES squadre(id)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS notifiche (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
+      utente_id INTEGER NOT NULL,
+      lega_id INTEGER,
+      tipo TEXT DEFAULT 'generale',
+      titolo TEXT,
       messaggio TEXT NOT NULL,
       letta BOOLEAN DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
+      data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+      data_lettura DATETIME,
+      FOREIGN KEY (utente_id) REFERENCES users(id),
+      FOREIGN KEY (lega_id) REFERENCES leghe(id)
     );`);
 
     db.run(`CREATE TABLE IF NOT EXISTS offerte (
@@ -129,6 +171,44 @@ export function initDb() {
       dettagli TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
+    );`);
+
+    // Tabella log squadre
+    db.run(`CREATE TABLE IF NOT EXISTS log_squadre (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      squadra_id INTEGER NOT NULL,
+      lega_id INTEGER NOT NULL,
+      tipo_evento TEXT NOT NULL,
+      categoria TEXT NOT NULL,
+      titolo TEXT NOT NULL,
+      descrizione TEXT,
+      dati_aggiuntivi TEXT,
+      utente_id INTEGER,
+      giocatore_id INTEGER,
+      data_evento DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (squadra_id) REFERENCES squadre (id),
+      FOREIGN KEY (lega_id) REFERENCES leghe (id),
+      FOREIGN KEY (utente_id) REFERENCES users (id),
+      FOREIGN KEY (giocatore_id) REFERENCES giocatori (id)
+    );`);
+
+    // Tabella richieste di ingresso
+    db.run(`CREATE TABLE IF NOT EXISTS richieste_ingresso (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      utente_id INTEGER NOT NULL,
+      lega_id INTEGER NOT NULL,
+      squadra_id INTEGER NOT NULL,
+      password_fornita TEXT,
+      stato TEXT DEFAULT 'in_attesa',
+      data_richiesta DATETIME DEFAULT CURRENT_TIMESTAMP,
+      data_risposta DATETIME,
+      risposta_admin_id INTEGER,
+      messaggio_richiesta TEXT,
+      messaggio_risposta TEXT,
+      FOREIGN KEY(utente_id) REFERENCES users(id),
+      FOREIGN KEY(lega_id) REFERENCES leghe(id),
+      FOREIGN KEY(squadra_id) REFERENCES squadre(id),
+      FOREIGN KEY(risposta_admin_id) REFERENCES users(id)
     );`);
 
     // Tabella squadre di scraping (separata dalle squadre ufficiali)
@@ -192,6 +272,9 @@ export function initDb() {
       modulo TEXT,
       titolari TEXT, -- JSON array di nomi
       panchinari TEXT, -- JSON array di nomi
+      giornata INTEGER,
+      tipo_squadra TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       data_scraping DATETIME DEFAULT CURRENT_TIMESTAMP,
       fonte_scraping TEXT DEFAULT 'playwright',
       FOREIGN KEY (lega_id) REFERENCES leghe (id)
@@ -217,9 +300,17 @@ export function initDb() {
     db.run(`ALTER TABLE giocatori_scraping ADD COLUMN qi REAL;`, (err) => {
       if (err && !err.message.includes('duplicate column name')) {
         console.error('Errore aggiunta colonna qi:', err);
-      } else {
-        console.log('Colonna qi aggiunta o già esistente');
       }
     });
+
+    // Aggiungi colonna created_at se non esiste
+    db.run(`ALTER TABLE formazioni_scraping ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP;`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error('Errore aggiunta colonna created_at:', err);
+      }
+    });
+    
+    // Aggiungi colonne mancanti alla tabella giocatori
+    addMissingColumns();
   });
 } 

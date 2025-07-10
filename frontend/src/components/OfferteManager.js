@@ -154,7 +154,7 @@ const StatusBadge = styled.span`
   font-size: 0.8rem;
   font-weight: 500;
   background: ${props => {
-    switch (props.status) {
+    switch (props.$status) {
       case 'accettata': return '#d4edda';
       case 'rifiutata': return '#f8d7da';
       case 'in_attesa': return '#fff3cd';
@@ -162,7 +162,7 @@ const StatusBadge = styled.span`
     }
   }};
   color: ${props => {
-    switch (props.status) {
+    switch (props.$status) {
       case 'accettata': return '#155724';
       case 'rifiutata': return '#721c24';
       case 'in_attesa': return '#856404';
@@ -423,7 +423,7 @@ const OfferteManager = () => {
                         <MoneyValue>{offerta.valore ? `FM ${offerta.valore.toLocaleString()}` : 'FM 0'}</MoneyValue>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={offerta.stato}>
+                        <StatusBadge $status={offerta.stato}>
                           {offerta.stato.toUpperCase()}
                         </StatusBadge>
                       </TableCell>

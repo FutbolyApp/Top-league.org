@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from './AuthContext';
+import { useNotification } from './NotificationSystem';
+import { checkSubadmin } from '../api/subadmin';
+import { useSubadminNotifications } from '../hooks/useSubadminNotifications';
 
 const Nav = styled.nav`
   background: white;
@@ -150,9 +153,26 @@ const LogoutLink = styled(Link)`
 
 const Navigation = () => {
   const { user, token, logoutUser, refreshUserData } = useAuth();
+  const { notifications, markSubadminRequestsAsRead } = useNotification();
+  const { pendingChanges: subadminPendingChanges } = useSubadminNotifications();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const [pendingAdminRequests, setPendingAdminRequests] = useState(0);
+  const [isSubadmin, setIsSubadmin] = useState(false);
+  const [subadminLeagues, setSubadminLeagues] = useState([]);
+
+  const isAdmin = user && (
+    user.ruolo === 'admin' ||
+    user.ruolo === 'superadmin' ||
+    user.ruolo === 'SuperAdmin' ||
+    (user.leghe_admin && user.leghe_admin.length > 0)
+  );
+
+  const isSuperAdmin = user && (
+    user.ruolo === 'superadmin' ||
+    user.ruolo === 'SuperAdmin'
+  );
 
   // Controllo automatico dei dati utente
   useEffect(() => {
@@ -168,22 +188,91 @@ const Navigation = () => {
     }
   }, [user, token, refreshUserData]);
 
-  const isAdmin = user && (
-    user.ruolo === 'admin' ||
-    user.ruolo === 'superadmin' ||
-    user.ruolo === 'SuperAdmin' ||
-    (user.leghe_admin && user.leghe_admin.length > 0)
-  );
+  // Fetch pending admin requests count
+  useEffect(() => {
+    const fetchPendingAdminRequests = async () => {
+      if (user && token && isAdmin) {
+        try {
+          const response = await fetch('http://localhost:3001/api/leghe/richieste/admin', {
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            // L'API restituisce { richieste: [...] }, quindi contiamo le richieste
+            setPendingAdminRequests(data.richieste ? data.richieste.length : 0);
+          } else if (response.status === 401) {
+            console.warn('Utente non autorizzato per accedere alle richieste admin');
+            setPendingAdminRequests(0);
+          } else if (response.status === 403) {
+            console.warn('Accesso negato: richiesti privilegi admin');
+            setPendingAdminRequests(0);
+          } else {
+            console.error('Errore nel recupero richieste admin pendenti:', response.status);
+            setPendingAdminRequests(0);
+          }
+        } catch (error) {
+          console.error('Errore nel recupero richieste admin pendenti:', error);
+          setPendingAdminRequests(0);
+        }
+      } else {
+        setPendingAdminRequests(0);
+      }
+    };
 
-  const isSuperAdmin = user && (
-    user.ruolo === 'superadmin' ||
-    user.ruolo === 'SuperAdmin'
-  );
+    fetchPendingAdminRequests();
+  }, [user, token, isAdmin]);
+
+  // Verifica se l'utente è subadmin
+  useEffect(() => {
+    const checkSubadminStatus = async () => {
+      if (user && token) {
+        try {
+          // Chiamata API per verificare se l'utente è subadmin di qualche lega
+          const response = await fetch('http://localhost:3001/api/subadmin/check-all', {
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setIsSubadmin(data.isSubadmin || false);
+            setSubadminLeagues(data.leagues || []);
+          } else if (response.status === 401) {
+            console.warn('Utente non autorizzato per verificare status subadmin');
+            setIsSubadmin(false);
+            setSubadminLeagues([]);
+          } else if (response.status === 403) {
+            console.warn('Accesso negato per verificare status subadmin');
+            setIsSubadmin(false);
+            setSubadminLeagues([]);
+          } else {
+            console.error('Errore nel controllo subadmin:', response.status);
+            setIsSubadmin(false);
+            setSubadminLeagues([]);
+          }
+        } catch (error) {
+          console.error('Errore nel controllo subadmin:', error);
+          setIsSubadmin(false);
+          setSubadminLeagues([]);
+        }
+      } else {
+        setIsSubadmin(false);
+        setSubadminLeagues([]);
+      }
+    };
+
+    checkSubadminStatus();
+  }, [user, token]);
 
   const handleLogout = () => {
     logoutUser();
     navigate('/');
-    setIsDropdownOpen(false);
   };
 
   const isActive = (path) => {
@@ -212,15 +301,72 @@ const Navigation = () => {
               </NavLink>
               
               {isAdmin && (
-                <NavLink to="/area-admin" className={isActive('/area-admin') ? 'active' : ''}>
-                  Area Admin
-                </NavLink>
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <NavLink to="/area-admin" className={isActive('/area-admin') ? 'active' : ''}>
+                    Area Admin
+                    {(() => {
+                      // Usa il conteggio delle richieste pendenti invece delle notifiche non lette
+                      return pendingAdminRequests > 0 && (
+                        <span style={{
+                          background: '#ff3b30',
+                          color: 'white',
+                          borderRadius: '50%',
+                          width: '18px',
+                          height: '18px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.7rem',
+                          fontWeight: '600',
+                          marginLeft: '0.5rem'
+                        }}>
+                          {pendingAdminRequests > 9 ? '9+' : pendingAdminRequests}
+                        </span>
+                      );
+                    })()}
+                  </NavLink>
+                </div>
               )}
               
               {isSuperAdmin && (
+                <div style={{ position: 'relative', display: 'inline-block' }}>
                 <NavLink to="/super-admin-dashboard" className={isActive('/super-admin-dashboard') ? 'active' : ''}>
                   Super Admin
                 </NavLink>
+                </div>
+              )}
+              
+              {isSubadmin && (
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <NavLink to="/subadmin-area" className={isActive('/subadmin-area') ? 'active' : ''}>
+                    Subadmin
+                    {(() => {
+                      // Conta solo le notifiche non lette per subadmin (NON le modifiche in attesa)
+                      const unreadSubadminNotifications = notifications.filter(n => 
+                        (n.tipo === 'subadmin_request' || n.tipo === 'subadmin_response' || n.tipo === 'richiesta_ingresso') && 
+                        (!n.letto || n.letto === 0)
+                      );
+                      
+                      return unreadSubadminNotifications.length > 0 && (
+                      <span style={{
+                        background: '#ff3b30',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '18px',
+                        height: '18px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.7rem',
+                        fontWeight: '600',
+                        marginLeft: '0.5rem'
+                      }}>
+                          {unreadSubadminNotifications.length > 9 ? '9+' : unreadSubadminNotifications.length}
+                      </span>
+                      );
+                    })()}
+                  </NavLink>
+                </div>
               )}
             </>
           )}
@@ -228,6 +374,52 @@ const Navigation = () => {
 
         {user ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Icona Notifiche */}
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                onClick={() => navigate('/notifiche')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#86868b',
+                  cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: '6px',
+                  fontSize: '1.2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+                title="Notifiche"
+              >
+                🔔
+                {(() => {
+                  const unreadCount = notifications.filter(n => !n.letto || n.letto === 0).length;
+                  return unreadCount > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-5px',
+                      right: '-5px',
+                      background: '#ff3b30',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '18px',
+                      height: '18px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.7rem',
+                      fontWeight: '600',
+                      border: '2px solid white'
+                    }}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  );
+                })()}
+              </button>
+            </div>
+            
             <UserInfo>
               {user.username || user.nome}
             </UserInfo>

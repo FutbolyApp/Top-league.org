@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { getUserLeghe } from '../api/leghe';
 import { getSquadreByUtente } from '../api/squadre';
 import { getNotificheUtente } from '../api/notifiche';
+import { getMovimentiMercato } from '../api/offerte';
+import DefaultLogo from '../assets/logo_placeholder.png'; // Assicurati di avere un placeholder
 
 const Container = styled.div`
   max-width: 1200px;
@@ -15,6 +17,243 @@ const Container = styled.div`
   min-height: 100vh;
 `;
 
+// Stili per la landing page calcistica
+const HeroSection = styled.div`
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: white;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="80" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="90" r="1.5" fill="rgba(255,255,255,0.1)"/></svg>');
+    opacity: 0.3;
+  }
+`;
+
+const HeroTitle = styled.h1`
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+  
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
+`;
+
+const HeroSubtitle = styled.p`
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+  position: relative;
+  z-index: 1;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const CTAButtons = styled.div`
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+`;
+
+const CTAButton = styled(Link)`
+  background: ${props => props.$primary ? 'linear-gradient(135deg, #ff6b35 0%, #f7931e 100%)' : 'rgba(255,255,255,0.2)'};
+  color: white;
+  padding: 1rem 2rem;
+  border-radius: 50px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  border: 2px solid ${props => props.$primary ? 'transparent' : 'rgba(255,255,255,0.3)'};
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    background: ${props => props.$primary ? 'linear-gradient(135deg, #e55a2b 0%, #e0851a 100%)' : 'rgba(255,255,255,0.3)'};
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+  }
+`;
+
+const BannerImg = styled.img`
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto 1.5rem auto;
+  display: block;
+  border-radius: 18px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+`;
+
+const SmallCTAButton = styled(Link)`
+  background: ${props => props.$primary ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%)'};
+  color: white;
+  padding: 0.7rem 1.5rem;
+  border-radius: 30px;
+  min-width: 160px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  text-align: center;
+  display: inline-block;
+  font-weight: 600;
+  font-size: 1.05rem;
+  border: none;
+  text-decoration: none;
+  transition: all 0.3s;
+  cursor: pointer;
+  &:hover {
+    filter: brightness(0.95);
+    transform: translateY(-2px);
+  }
+`;
+
+const FeaturesSection = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+`;
+
+const FeatureCard = styled.div`
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-5px);
+  }
+`;
+
+const FeatureIcon = styled.div`
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #1e3c72;
+`;
+
+const FeatureTitle = styled.h3`
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+`;
+
+const FeatureDescription = styled.p`
+  color: #666;
+  line-height: 1.6;
+`;
+
+const StatsSection = styled.div`
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  text-align: center;
+`;
+
+const StatItem = styled.div`
+  padding: 1rem;
+`;
+
+const StatNumber = styled.div`
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1e3c72;
+  margin-bottom: 0.5rem;
+`;
+
+const StatLabel = styled.div`
+  color: #666;
+  font-weight: 500;
+`;
+
+// Stili per la scheda espandibile
+const ExpandedRow = styled.tr`
+  background: #f8f9fa;
+`;
+
+const ExpandedCell = styled.td`
+  padding: 0;
+  border-bottom: 1px solid #dee2e6;
+`;
+
+const ExpandedContent = styled.div`
+  padding: 1.5rem;
+`;
+
+const ActionButtons = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+`;
+
+const ActionButton = styled.button`
+  background: linear-gradient(135deg, #6f42c1 0%, #5a2d91 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 0.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: transform 0.2s;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+`;
+
+const MarketMovements = styled.div`
+  margin-top: 1.5rem;
+`;
+
+const MarketTitle = styled.h4`
+  color: #333;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+`;
+
+const MovementItem = styled.div`
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #666;
+  border-left: 3px solid #6f42c1;
+`;
+
+// Stili per utenti autenticati (mantenuti dal codice originale)
 const Header = styled.div`
   background: white;
   border-radius: 12px;
@@ -50,33 +289,6 @@ const UserInfo = styled.div`
 const UserName = styled.span`
   font-weight: 600;
   color: #1d1d1f;
-`;
-
-const QuickActionsContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-bottom: 1rem;
-`;
-
-const QuickActionButton = styled(Link)`
-  background: #5856d6;
-  color: white;
-  text-decoration: none;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 0.8rem;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  
-  &:hover {
-    background: #4a4ac4;
-    transform: translateY(-1px);
-  }
 `;
 
 const ActionsSection = styled.div`
@@ -198,75 +410,36 @@ const Th = styled.th`
 
 const Td = styled.td`
   padding: 0.75rem;
-  border-bottom: 1px solid #dee2e6;
-  color: #333;
-  vertical-align: middle;
+  border-bottom: 1px solid #e5e5e7;
+  font-size: 0.9rem;
 `;
 
 const StyledLink = styled(Link)`
-  color: #007bff;
+  color: #5856d6;
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 500;
   
   &:hover {
-    color: #0056b3;
     text-decoration: underline;
   }
 `;
 
 const StatusBadge = styled.span`
-  background: ${props => {
-    switch (props.$status) {
-      case 'pubblica': return '#28a745';
-      case 'privata': return '#6c757d';
-      default: return '#6c757d';
-    }
-  }};
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-`;
-
-const FeatureTag = styled.span`
-  background: ${props => props.active ? '#d4edda' : '#f8f9fa'};
-  color: ${props => props.active ? '#155724' : '#666'};
   padding: 0.25rem 0.5rem;
   border-radius: 12px;
   font-size: 0.8rem;
-  font-weight: 500;
-  margin-right: 0.25rem;
-  margin-bottom: 0.25rem;
-  display: inline-block;
-`;
-
-const MoneyValue = styled.span`
   font-weight: 600;
-  color: #28a745;
-`;
-
-const ViewMoreButton = styled(Link)`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  text-decoration: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  display: inline-block;
-  transition: transform 0.2s;
+  text-transform: uppercase;
   
-  &:hover {
-    transform: translateY(-1px);
-  }
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #86868b;
-  font-size: 0.9rem;
+  ${props => props.$status === 'pubblica' && `
+    background: #d4edda;
+    color: #155724;
+  `}
+  
+  ${props => props.$status === 'privata' && `
+    background: #f8d7da;
+    color: #721c24;
+  `}
 `;
 
 const LoadingContainer = styled.div`
@@ -274,8 +447,8 @@ const LoadingContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 400px;
-  font-size: 1rem;
-  color: #86868b;
+  font-size: 1.2rem;
+  color: #666;
 `;
 
 const ErrorContainer = styled.div`
@@ -283,47 +456,99 @@ const ErrorContainer = styled.div`
   justify-content: center;
   align-items: center;
   min-height: 400px;
-  font-size: 1rem;
+  font-size: 1.2rem;
   color: #dc3545;
+`;
+
+const ActionsGridCentered = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 1rem;
+
+  @media (max-width: 600px) {
+    flex-direction: column;
+    gap: 0.7rem;
+    width: 100%;
+  }
+`;
+
+const ManagerButton = styled.button`
+  background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: transform 0.2s;
+  &:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #0056b3 0%, #007AFF 100%);
+  }
+`;
+
+const MoneyValue = styled.span`
+  font-weight: 600;
+  color: #28a745;
 `;
 
 const Home = () => {
   const { user, token } = useAuth();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [legheAdmin, setLegheAdmin] = useState([]);
   const [squadre, setSquadre] = useState([]);
   const [notifiche, setNotifiche] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
-  // Stato per l'ordinamento delle leghe admin
   const [sortFieldLeghe, setSortFieldLeghe] = useState('nome');
   const [sortDirectionLeghe, setSortDirectionLeghe] = useState('asc');
-  
-  // Stato per l'ordinamento delle squadre
   const [sortFieldSquadre, setSortFieldSquadre] = useState('nome');
   const [sortDirectionSquadre, setSortDirectionSquadre] = useState('asc');
+  
+  // Stati per la scheda espandibile
+  const [expandedSquadra, setExpandedSquadra] = useState(null);
+  const [movimenti, setMovimenti] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
-      if (!user || !token) return;
+      if (!user || !token) {
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
-        const [legheRes, squadreRes, notificheRes] = await Promise.all([
-          getUserLeghe(token),
-          getSquadreByUtente(token),
-          getNotificheUtente(token)
-        ]);
         
+        // Carica leghe admin
+        const legheRes = await getUserLeghe(token);
         setLegheAdmin(legheRes.leghe || []);
+        
+        // Carica squadre dell'utente
+        const squadreRes = await getSquadreByUtente(token);
         setSquadre(squadreRes.squadre || []);
+        
+        // Carica notifiche
+        const notificheRes = await getNotificheUtente(token);
         setNotifiche(notificheRes.notifiche || []);
-      } catch (error) {
-        console.error('Errore caricamento dati:', error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
+        
+        // Carica movimenti di mercato per tutte le squadre
+        const movimentiPromises = squadreRes.squadre?.map(squadra => 
+          getMovimentiMercato(squadra.lega_id, token)
+        ) || [];
+        
+        const movimentiResults = await Promise.all(movimentiPromises);
+        const allMovimenti = movimentiResults.flatMap(res => res.movimenti || []);
+        setMovimenti(allMovimenti);
+        
+      } catch (err) {
+        setError(err.message);
       }
+      setLoading(false);
     };
     
     loadData();
@@ -371,24 +596,79 @@ const Home = () => {
 
   // Funzione per ordinare le squadre
   const sortSquadre = (squadreToSort) => {
-    return [...squadreToSort].sort((a, b) => {
-      let aValue = a[sortFieldSquadre];
-      let bValue = b[sortFieldSquadre];
+    return squadreToSort.sort((a, b) => {
+      let aValue, bValue;
       
-      if (aValue === null || aValue === undefined) aValue = '';
-      if (bValue === null || bValue === undefined) bValue = '';
-      
-      aValue = String(aValue).toLowerCase();
-      bValue = String(bValue).toLowerCase();
+      switch (sortFieldSquadre) {
+        case 'nome':
+          aValue = a.nome || '';
+          bValue = b.nome || '';
+          break;
+        case 'club_level':
+          aValue = a.club_level || 1;
+          bValue = b.club_level || 1;
+          break;
+        case 'casse_societarie':
+          aValue = a.casse_societarie || 0;
+          bValue = b.casse_societarie || 0;
+          break;
+        default:
+          aValue = a.nome || '';
+          bValue = b.nome || '';
+      }
       
       if (sortDirectionSquadre === 'asc') {
-        return aValue.localeCompare(bValue);
+        return aValue > bValue ? 1 : -1;
       } else {
-        return bValue.localeCompare(aValue);
+        return aValue < bValue ? 1 : -1;
       }
     });
   };
 
+  // Funzioni helper per la scheda espandibile
+  const formatMoney = (value) => {
+    if (!value) return 'FM 0';
+    return `FM ${value.toLocaleString()}`;
+  };
+
+  const getNotificheCount = (squadraId) => {
+    return notifiche.filter(n => n.squadra_id === squadraId).length;
+  };
+
+  const getMovimentiByLega = (legaId) => {
+    return movimenti
+      .filter(m => m.lega_id === legaId)
+      .sort((a, b) => new Date(b.data) - new Date(a.data))
+      .slice(0, 5);
+  };
+
+  const handleToggleExpanded = (squadraId) => {
+    setExpandedSquadra(expandedSquadra === squadraId ? null : squadraId);
+  };
+
+  // Se l'utente non è autenticato, mostra la landing page calcistica
+  if (!user || !token) {
+    return (
+      <Container>
+        <HeroSection>
+          <HeroTitle>TopLeague</HeroTitle>
+          <HeroSubtitle>
+            La piattaforma definitiva per gestire il tuo Fantacalcio con stile professionale
+          </HeroSubtitle>
+          <CTAButtons>
+            <CTAButton to="/login" $primary>
+              Login
+            </CTAButton>
+            <CTAButton to="/register">
+              Registrati
+            </CTAButton>
+          </CTAButtons>
+        </HeroSection>
+      </Container>
+    );
+  }
+
+  // Se l'utente è autenticato, mostra la dashboard normale
   if (loading) return (
     <Container>
       <LoadingContainer>Caricamento dashboard...</LoadingContainer>
@@ -416,25 +696,147 @@ const Home = () => {
       </Header>
 
       <ActionsSection>
-        <ActionsGrid>
-          <ActionCard to="/crea-lega" $variant="crea">
-            <ActionIcon></ActionIcon>
-            <ActionTitle>Crea Lega</ActionTitle>
-            <ActionDescription>
-              Crea una nuova lega per gestire il tuo Fantacalcio
-            </ActionDescription>
-          </ActionCard>
-          
-          <ActionCard to="/unisciti-lega" $variant="unisciti">
-            <ActionIcon></ActionIcon>
-            <ActionTitle>Unisciti a Lega</ActionTitle>
-            <ActionDescription>
-              Trova e unisciti a una lega esistente
-            </ActionDescription>
-          </ActionCard>
-        </ActionsGrid>
+        <div style={{width: '100%'}}>
+          <BannerImg src="/TLprova.png" alt="TopLeague" />
+          <ActionsGridCentered>
+            <SmallCTAButton to="/crea-lega" $primary>
+              Crea Lega
+            </SmallCTAButton>
+            <SmallCTAButton to="/unisciti-lega">
+              Unisciti a Lega
+            </SmallCTAButton>
+          </ActionsGridCentered>
+        </div>
       </ActionsSection>
 
+      {/* Area Manager con scheda espandibile */}
+      {squadre.length > 0 && (
+        <Section>
+          <SectionTitle>Area Manager</SectionTitle>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Squadra</Th>
+                <Th>Club Level</Th>
+                <Th>Torneo</Th>
+                <Th>Ingaggi</Th>
+                <Th>Crediti Residui</Th>
+                <Th>Valore Attuale</Th>
+                <Th>Giocatori</Th>
+                <Th> </Th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedSquadre.map(squadra => {
+                const movimentiLega = getMovimentiByLega(squadra.lega_id);
+                const notificheCount = getNotificheCount(squadra.id);
+                const isExpanded = expandedSquadra === squadra.id;
+                let valoreAttuale = 0;
+                let ingaggi = 0;
+                let numGiocatori = 0;
+                if (Array.isArray(squadra.giocatori) && squadra.giocatori.length > 0) {
+                  valoreAttuale = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g.quotazione_attuale) || 0), 0);
+                  ingaggi = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g.costo_attuale) || 0), 0);
+                  numGiocatori = squadra.giocatori.length;
+                } else if (typeof squadra.numero_giocatori === 'number') {
+                  numGiocatori = squadra.numero_giocatori;
+                }
+                const maxGiocatori = squadra.max_giocatori || 30;
+                const logoUrl = squadra.logo_url;
+                const torneoNome = squadra.torneo_nome || 'N/A';
+                return (
+                  <React.Fragment key={squadra.id}>
+                    <tr>
+                      <Td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {logoUrl ? (
+                          <img src={`http://localhost:3001/uploads/${logoUrl}`} alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+                        ) : (
+                          <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iMTYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iI0U1RTVFNyIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxwYXRoIGQ9Ik0xNiA4QzE4LjIwOTEgOCAyMCA5Ljc5MDg2IDIwIDEyQzIwIDE0LjIwOTEgMTguMjA5MSAxNiAxNiAxNkMxMy43OTA5IDE2IDEyIDE0LjIwOTEgMTIgMTJDMTIgOS43OTA4NiAxMy43OTA5IDggMTYgOFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTggMjRDMTAuMjA5MSAyNCAxMiAyMi4yMDkxIDEyIDIwQzEyIDE3Ljc5MDkgMTAuMjA5MSAxNiA4IDE2QzUuNzkwODYgMTYgNCAxNy43OTA5IDQgMjBDNCAyMi4yMDkxIDUuNzkwODYgMjQgOCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTI0IDI0QzI2LjIwOTEgMjQgMjggMjIuMjA5MSAyOCAyMEMyOCAxNy43OTA5IDI2LjIwOTEgMTYgMjQgMTZDMjEuNzkwOSAxNiAyMCAxNy43OTA5IDIwIDIwQzIwIDIyLjIwOTEgMjEuNzkwOSAyNCAyNCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+" alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+                        )}
+                        <span style={{ fontWeight: 600, cursor: 'pointer', color: '#FF8C42' }} onClick={() => navigate(`/gestione-squadra/${squadra.lega_id}`)}>{squadra.nome}</span>
+                      </Td>
+                      <Td>{squadra.club_level || 1}</Td>
+                      <Td>{torneoNome}</Td>
+                      <Td>FM {ingaggi.toLocaleString()}</Td>
+                      <Td><MoneyValue>{squadra.casse_societarie?.toLocaleString() || 0} FM</MoneyValue></Td>
+                      <Td>FM {valoreAttuale.toLocaleString()}</Td>
+                      <Td>{numGiocatori}/{maxGiocatori}</Td>
+                      <Td>
+                        <ManagerButton onClick={() => handleToggleExpanded(squadra.id)}>
+                          {isExpanded ? 'Chiudi' : 'Gestisci'}
+                        </ManagerButton>
+                      </Td>
+                    </tr>
+                    {isExpanded && (
+                      <ExpandedRow>
+                        <ExpandedCell colSpan="8">
+                          <ExpandedContent>
+                            <ActionButtons>
+                              <ActionButton 
+                                onClick={() => navigate(`/gestione-squadra/${squadra.lega_id}`)}
+                              >
+                                Visualizza
+                              </ActionButton>
+                              <ActionButton 
+                                onClick={() => navigate(`/notifiche?squadra=${squadra.id}`)}
+                              >
+                                Notifiche ({notificheCount})
+                              </ActionButton>
+                              <ActionButton 
+                                onClick={() => navigate(`/proponi-offerta?squadra=${squadra.id}`)}
+                              >
+                                Proponi Offerta
+                              </ActionButton>
+                              <ActionButton 
+                                onClick={() => navigate(`/richiesta-admin?squadra=${squadra.id}`)}
+                              >
+                                Richiesta Admin
+                              </ActionButton>
+                              <ActionButton 
+                                onClick={() => navigate(`/log-squadra/${squadra.id}`)}
+                              >
+                                Log
+                              </ActionButton>
+                            </ActionButtons>
+
+                            <MarketMovements>
+                              <MarketTitle>📢 Ultime 5 Notifiche</MarketTitle>
+                              {notifiche.filter(n => n.squadra_id === squadra.id).slice(0, 5).length === 0 ? (
+                                <MovementItem>Nessuna notifica recente</MovementItem>
+                              ) : (
+                                notifiche.filter(n => n.squadra_id === squadra.id).slice(0, 5).map((notifica, index) => (
+                                  <MovementItem key={index}>
+                                    {notifica.titolo}: {notifica.messaggio} - {new Date(notifica.created_at).toLocaleDateString()}
+                                  </MovementItem>
+                                ))
+                              )}
+                            </MarketMovements>
+
+                            <MarketMovements>
+                              <MarketTitle>📈 Ultimi 5 Movimenti di Mercato</MarketTitle>
+                              {movimentiLega.length === 0 ? (
+                                <MovementItem>Nessun movimento recente</MovementItem>
+                              ) : (
+                                movimentiLega.map((movimento, index) => (
+                                  <MovementItem key={index}>
+                                    {movimento.giocatore_nome} si è {movimento.tipo === 'trasferimento' ? 'trasferito' : 'prestato'} da {movimento.squadra_mittente} a {movimento.squadra_destinataria} il {new Date(movimento.data).toLocaleDateString()} per {formatMoney(movimento.valore)}
+                                  </MovementItem>
+                                ))
+                              )}
+                            </MarketMovements>
+                          </ExpandedContent>
+                        </ExpandedCell>
+                      </ExpandedRow>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </Table>
+        </Section>
+      )}
+
+      {/* Area Admin originale */}
       {legheAdmin.length > 0 && (
         <Section>
           <SectionTitle>Area Admin</SectionTitle>
@@ -490,103 +892,30 @@ const Home = () => {
               ))}
             </tbody>
           </Table>
-          {legheAdmin.length > 3 && (
-            <ViewMoreButton to="/area-admin">
-              Altre Leghe
-            </ViewMoreButton>
-          )}
         </Section>
       )}
 
-      {squadre.length > 0 && (
+      {notifiche.length > 0 && (
         <Section>
-          <SectionTitle>Area Manager</SectionTitle>
-          <Table>
-            <thead>
-              <tr>
-                <Th 
-                  $sortable 
-                  $sortDirection={sortFieldSquadre === 'nome' ? sortDirectionSquadre : null}
-                  onClick={() => handleSortSquadre('nome')}
-                >
-                  Nome Squadra
-                </Th>
-                <Th 
-                  $sortable 
-                  $sortDirection={sortFieldSquadre === 'lega_nome' ? sortDirectionSquadre : null}
-                  onClick={() => handleSortSquadre('lega_nome')}
-                >
-                  Nome Lega
-                </Th>
-                <Th>Torneo</Th>
-                <Th 
-                  $sortable 
-                  $sortDirection={sortFieldSquadre === 'modalita' ? sortDirectionSquadre : null}
-                  onClick={() => handleSortSquadre('modalita')}
-                >
-                  Modalità
-                </Th>
-                <Th>Tipo</Th>
-                <Th>Squadre</Th>
-                <Th 
-                  $sortable 
-                  $sortDirection={sortFieldSquadre === 'valore_squadra' ? sortDirectionSquadre : null}
-                  onClick={() => handleSortSquadre('valore_squadra')}
-                >
-                  Valore
-                </Th>
-                <Th 
-                  $sortable 
-                  $sortDirection={sortFieldSquadre === 'casse_societarie' ? sortDirectionSquadre : null}
-                  onClick={() => handleSortSquadre('casse_societarie')}
-                >
-                  Crediti
-                </Th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedSquadre.map(squadra => (
-                <tr key={squadra.id}>
-                  <Td>
-                    <StyledLink to={`/squadra/${squadra.id}`}>
-                      {squadra.nome}
-                    </StyledLink>
-                  </Td>
-                  <Td>{squadra.lega_nome || 'N/A'}</Td>
-                  <Td>-</Td>
-                  <Td>{squadra.lega_modalita || 'N/A'}</Td>
-                  <Td>
-                    <StatusBadge $status={squadra.lega_is_pubblica ? 'pubblica' : 'privata'}>
-                      {squadra.lega_is_pubblica ? 'Pubblica' : 'Privata'}
-                    </StatusBadge>
-                  </Td>
-                  <Td>{squadra.lega_squadre_assegnate || 0}/{squadra.lega_numero_squadre_totali || 0}</Td>
-                  <Td>
-                    <MoneyValue>FM {squadra.valore_squadra?.toLocaleString() || 0}</MoneyValue>
-                  </Td>
-                  <Td>
-                    <MoneyValue>FM {squadra.casse_societarie?.toLocaleString() || 0}</MoneyValue>
-                  </Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-          {squadre.length > 3 && (
-            <ViewMoreButton to="/area-manager">
-              Altre Squadre
-            </ViewMoreButton>
-          )}
+          <SectionTitle>Notifiche Recenti</SectionTitle>
+          {notifiche.slice(0, 5).map(notifica => (
+            <div key={notifica.id} style={{ 
+              padding: '1rem', 
+              borderBottom: '1px solid #e5e5e7',
+              backgroundColor: notifica.letta ? 'transparent' : '#f8f9fa'
+            }}>
+              <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>
+                {notifica.titolo}
+              </div>
+              <div style={{ color: '#666', fontSize: '0.9rem' }}>
+                {notifica.messaggio}
+              </div>
+              <div style={{ color: '#999', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                {new Date(notifica.created_at).toLocaleDateString('it-IT')}
+              </div>
+            </div>
+          ))}
         </Section>
-      )}
-
-      {legheAdmin.length === 0 && squadre.length === 0 && (
-        <EmptyState>
-          <p>Non hai ancora leghe o squadre. Inizia creando una lega o unendoti a una esistente!</p>
-          <QuickActionsContainer>
-            <QuickActionButton to="/crea-lega">Crea Lega</QuickActionButton>
-            <QuickActionButton to="/unisciti-lega">Unisciti a Lega</QuickActionButton>
-          </QuickActionsContainer>
-        </EmptyState>
       )}
     </Container>
   );

@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { getLegaById, getSquadreByLega, deleteLeague } from '../api/leghe';
+import { getTorneiLega } from '../api/tornei';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -80,8 +81,8 @@ const LeagueFeatures = styled.div`
 `;
 
 const FeatureTag = styled.span`
-  background: ${props => props.active ? '#007AFF' : '#e5e5e7'};
-  color: ${props => props.active ? 'white' : '#86868b'};
+  background: ${props => props.$active ? '#007AFF' : '#e5e5e7'};
+  color: ${props => props.$active ? 'white' : '#86868b'};
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
   font-size: 0.75rem;
@@ -208,14 +209,14 @@ const CostValue = styled.span`
 `;
 
 const ViewButton = styled(Link)`
-  color: #FFA94D;
+  color: #E67E22;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
   transition: color 0.2s;
   
   &:hover {
-    color: #FF8C00;
+    color: #D35400;
     text-decoration: underline;
   }
 `;
@@ -356,27 +357,38 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
   const [deleting, setDeleting] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [selectedTournament, setSelectedTournament] = useState('all');
-
-  // Mock tournaments data - in a real app this would come from the backend
-  const tournaments = [
-    { id: 'all', name: 'Tutti i Tornei' },
-    { id: '1', name: 'Serie A' },
-    { id: '2', name: 'Champions League' },
-    { id: '3', name: 'Coppa Italia' }
-  ];
+  const [tournaments, setTournaments] = useState([
+    { id: 'all', name: 'Tutti i Tornei' }
+  ]);
 
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       setError('');
       try {
-        const resLega = await getLegaById(id, token);
+        const [resLega, resSquadre, resTornei] = await Promise.all([
+          getLegaById(id, token),
+          getSquadreByLega(id, token),
+          getTorneiLega(id, token)
+        ]);
+        
         setLega(resLega.lega);
         if (setCurrentLeague) setCurrentLeague(resLega.lega);
         if (setCurrentTeam) setCurrentTeam(null);
         
-        const resSquadre = await getSquadreByLega(id, token);
         setSquadre(resSquadre.squadre);
+        
+        // Aggiungi i tornei reali al filtro
+        const torneiReali = resTornei.tornei || [];
+        const torneiOptions = [
+          { id: 'all', name: 'Tutti i Tornei' },
+          ...torneiReali.map(torneo => ({
+            id: torneo.id.toString(),
+            name: torneo.nome
+          })),
+          { id: 'na', name: 'N/A (Senza Torneo)' }
+        ];
+        setTournaments(torneiOptions);
       } catch (err) {
         setError(err.message);
       }
@@ -392,6 +404,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
 
   const getLeagueStats = () => {
     const totalSquadre = squadre.length;
+    const squadreConProprietario = squadre.filter(s => s.proprietario_id).length;
     const squadreOrfane = squadre.filter(s => s.is_orfana).length;
     const valoreTotale = squadre.reduce((sum, s) => sum + (s.valore_squadra || 0), 0);
     const casseTotali = squadre.reduce((sum, s) => sum + (s.casse_societarie || 0), 0);
@@ -400,6 +413,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
 
     return {
       totalSquadre,
+      squadreConProprietario,
       squadreOrfane,
       valoreTotale,
       casseTotali,
@@ -425,7 +439,17 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
   // Filter teams based on selected tournament
   const filteredSquadre = selectedTournament === 'all' 
     ? squadre 
-    : squadre.filter(squadra => squadra.torneo_id === selectedTournament);
+    : squadre.filter(squadra => {
+        if (selectedTournament === 'na') {
+          // Mostra squadre senza torneo (N/A)
+          return !squadra.tornei || squadra.tornei.length === 0;
+        } else {
+          // Mostra squadre del torneo selezionato
+          return squadra.tornei && squadra.tornei.some(torneo => 
+            torneo.id === parseInt(selectedTournament) || torneo.id === selectedTournament
+          );
+        }
+      });
 
   if (loading) return (
     <Container>
@@ -475,7 +499,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
           </InfoCard>
           <InfoCard>
             <InfoLabel>Squadre</InfoLabel>
-            <InfoValue>{stats.totalSquadre}/{lega.max_squadre || '∞'}</InfoValue>
+            <InfoValue>{stats.squadreConProprietario}/{stats.totalSquadre}</InfoValue>
           </InfoCard>
           <InfoCard>
             <InfoLabel>Admin</InfoLabel>
@@ -484,10 +508,10 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
         </LeagueInfo>
 
         <LeagueFeatures>
-          {lega.roster_ab && <FeatureTag active>Roster A/B</FeatureTag>}
-          {lega.cantera && <FeatureTag active>Cantera</FeatureTag>}
-          {lega.contratti && <FeatureTag active>Contratti</FeatureTag>}
-          {lega.triggers && <FeatureTag active>Triggers</FeatureTag>}
+          {lega.roster_ab && <FeatureTag $active>Roster A/B</FeatureTag>}
+          {lega.cantera && <FeatureTag $active>Cantera</FeatureTag>}
+          {lega.contratti && <FeatureTag $active>Contratti</FeatureTag>}
+          {lega.triggers && <FeatureTag $active>Triggers</FeatureTag>}
         </LeagueFeatures>
       </Header>
 
@@ -542,18 +566,47 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
               {filteredSquadre.map(squadra => (
                 <tr key={squadra.id}>
                   <TableCell>
-                    <TeamLogo>
-                      {squadra.nome.charAt(0).toUpperCase()}
-                    </TeamLogo>
+                    {squadra.logo_url ? (
+                      <img 
+                        src={`http://localhost:3001/uploads/${squadra.logo_url}`} 
+                        alt="logo" 
+                        style={{ 
+                          width: 40, 
+                          height: 40, 
+                          borderRadius: '50%', 
+                          objectFit: 'cover', 
+                          background: '#eee' 
+                        }} 
+                      />
+                    ) : (
+                      <TeamLogo>
+                        {squadra.nome.charAt(0).toUpperCase()}
+                      </TeamLogo>
+                    )}
                   </TableCell>
                   <TableCell>
                     <ViewButton to={`/squadra/${squadra.id}`}>
                       {squadra.nome}
                     </ViewButton>
                   </TableCell>
-                  <TableCell>{squadra.proprietario || "Non Assegnato"}</TableCell>
+                  <TableCell>
+                    {squadra.proprietario_username ? (
+                      <span style={{ color: '#28a745', fontWeight: '600' }}>
+                        {squadra.proprietario_username}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#dc3545', fontStyle: 'italic' }}>
+                        N/A
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>{squadra.club_level || 1}</TableCell>
-                  <TableCell>{squadra.torneo || "Serie A"}</TableCell>
+                  <TableCell>
+                    {squadra.tornei && squadra.tornei.length > 0 
+                      ? squadra.tornei.map(torneo => torneo.nome).join(', ')
+                      : "N/A"
+                    }
+                  </TableCell>
                   <TableCell>
                     <MoneyValue>{formatMoney(squadra.valore_squadra)}</MoneyValue>
                   </TableCell>
@@ -561,7 +614,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
                     <MoneyValue>{formatMoney(squadra.casse_societarie)}</MoneyValue>
                   </TableCell>
                   <TableCell>
-                    <CostValue>{formatMoney(squadra.costo_salariale_annuale)}</CostValue>
+                    <CostValue>{formatMoney(squadra.valore_attuale_qa || 0)}</CostValue>
                   </TableCell>
                   <TableCell>{squadra.giocatori?.length || 0}</TableCell>
                 </tr>

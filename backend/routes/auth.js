@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createUtente, getUtenteByEmail, getUtenteByUsername, getUtenteById } from '../models/utente.js';
-import { generateToken } from '../middleware/auth.js';
+import { generateToken, requireSuperAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -158,6 +158,95 @@ router.post('/check-user', async (req, res) => {
       });
     });
   } catch (e) {
+    res.status(500).json({ error: 'Errore interno del server', details: e.message });
+  }
+});
+
+// Ricerca utenti per autocomplete (solo SuperAdmin)
+router.get('/search-users', requireSuperAdmin, async (req, res) => {
+  try {
+    const { query, legaId } = req.query;
+    if (!query || query.length < 2) {
+      return res.json([]);
+    }
+    
+    const db = req.app.locals.db;
+    if (!db) {
+      return res.status(500).json({ error: 'Database non disponibile' });
+    }
+    
+    // Cerca utenti per username, nome o cognome
+    const searchQuery = `
+      SELECT id, username, nome, cognome, email, ruolo, created_at
+      FROM users 
+      WHERE (username LIKE ? OR nome LIKE ? OR cognome LIKE ?)
+      ORDER BY username ASC
+      LIMIT 50
+    `;
+    
+    const searchTerm = `%${query}%`;
+    
+    db.all(searchQuery, [searchTerm, searchTerm, searchTerm], async (err, users) => {
+      if (err) {
+        console.error('Errore ricerca utenti:', err);
+        return res.status(500).json({ error: 'Errore DB', details: err.message });
+      }
+      
+      // Se è specificata una lega, filtra gli utenti che sono già in quella lega
+      if (legaId) {
+        const filteredUsers = [];
+        
+        for (const user of users) {
+          const hasTeamInLeague = await new Promise((resolve) => {
+            db.get(
+              'SELECT id FROM squadre WHERE lega_id = ? AND proprietario_id = ?',
+              [legaId, user.id],
+              (err, squadra) => {
+                resolve(!!squadra); // true se l'utente ha già una squadra
+              }
+            );
+          });
+          
+          if (!hasTeamInLeague) {
+            filteredUsers.push(user);
+          }
+        }
+        
+        res.json(filteredUsers);
+      } else {
+        res.json(users);
+      }
+    });
+  } catch (e) {
+    console.error('Errore ricerca utenti:', e);
+    res.status(500).json({ error: 'Errore interno del server', details: e.message });
+  }
+});
+
+// Ottieni tutti gli utenti (solo SuperAdmin)
+router.get('/all-users', requireSuperAdmin, async (req, res) => {
+  try {
+    const db = req.app.locals.db;
+    if (!db) {
+      return res.status(500).json({ error: 'Database non disponibile' });
+    }
+    
+    const query = `
+      SELECT id, username, email, ruolo, created_at
+      FROM users 
+      ORDER BY created_at DESC
+    `;
+    
+    db.all(query, [], (err, users) => {
+      if (err) {
+        console.error('Errore caricamento utenti:', err);
+        return res.status(500).json({ error: 'Errore DB', details: err.message });
+      }
+      
+      res.json(users);
+    });
+  } catch (e) {
+    console.error('Errore caricamento utenti:', e);
     res.status(500).json({ error: 'Errore interno del server', details: e.message });
   }
 });

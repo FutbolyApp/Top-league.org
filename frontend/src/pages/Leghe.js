@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { getLeghe, getRichiesteUtente } from '../api/leghe';
 import { getSquadreByUtente } from '../api/squadre';
-import RichiestaForm from '../components/RichiestaForm';
+import JoinLeagueForm from '../components/JoinLeagueForm';
 import AdminTeamSelector from '../components/AdminTeamSelector';
 
 const Container = styled.div`
@@ -441,8 +441,8 @@ const SwitchOption = styled.button`
   border: none;
   outline: none;
   cursor: pointer;
-  background: ${props => props.active ? (props.color === 'green' ? 'linear-gradient(90deg, #28a745 0%, #20c997 100%)' : 'linear-gradient(90deg, #FFA94D 0%, #FF8C42 100%)') : 'transparent'};
-  color: ${props => props.active ? 'white' : '#666'};
+  background: ${props => props.$active ? '#d4edda' : '#f8f9fa'};
+  color: ${props => props.$active ? '#155724' : '#666'};
   transition: background 0.2s, color 0.2s;
 `;
 
@@ -454,7 +454,7 @@ const Leghe = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [showRichiestaForm, setShowRichiestaForm] = useState(false);
+  const [showJoinForm, setShowJoinForm] = useState(false);
   const [selectedLega, setSelectedLega] = useState(null);
   const [showAdminSelector, setShowAdminSelector] = useState(false);
   const [squadre, setSquadre] = useState([]);
@@ -470,22 +470,22 @@ const Leghe = () => {
     stato: 'tutti',
     squadreMin: '',
     squadreMax: '',
-    soloMieLeghe: false
+    soloMieLeghe: true
   });
 
   // Assicurati che i popup siano sempre chiusi all'inizio
   useEffect(() => {
-    setShowRichiestaForm(false);
+    setShowJoinForm(false);
     setShowAdminSelector(false);
     setSelectedLega(null);
   }, []);
 
   // Debug: monitora quando il popup si apre
   useEffect(() => {
-    if (showRichiestaForm) {
-      console.log('🚨 POPUP RICHIESTA APERTO - showRichiestaForm:', showRichiestaForm, 'selectedLega:', selectedLega?.nome);
+    if (showJoinForm) {
+      console.log('🚨 POPUP JOIN APERTO - showJoinForm:', showJoinForm, 'selectedLega:', selectedLega?.nome);
     }
-  }, [showRichiestaForm, selectedLega]);
+  }, [showJoinForm, selectedLega]);
 
   useEffect(() => {
     async function fetchData() {
@@ -660,7 +660,7 @@ const Leghe = () => {
     
     console.log('✅ Utente può richiedere, apro form richiesta');
     setSelectedLega(lega);
-    setShowRichiestaForm(true);
+    setShowJoinForm(true);
   };
 
   const handleRichiestaSuccess = async (message) => {
@@ -680,8 +680,8 @@ const Leghe = () => {
     }
   };
 
-  const handleCloseRichiestaForm = () => {
-    setShowRichiestaForm(false);
+  const handleCloseJoinForm = () => {
+    setShowJoinForm(false);
     setSelectedLega(null);
   };
 
@@ -697,13 +697,20 @@ const Leghe = () => {
     }));
   };
 
+  const handleSwitchToggle = (showMyLeagues) => {
+    setFilters(prev => ({
+      ...prev,
+      soloMieLeghe: showMyLeagues
+    }));
+  };
+
   const clearFilters = () => {
     setFilters({
       tipo: 'tutti',
       stato: 'tutti',
       squadreMin: '',
       squadreMax: '',
-      soloMieLeghe: false
+      soloMieLeghe: true
     });
   };
 
@@ -812,21 +819,17 @@ const Leghe = () => {
         </FilterActions>
         <FilterSwitchWrapper>
           <FilterSwitch>
-            <SwitchOption
-              type="button"
-              active={!filters.soloMieLeghe}
-              color="green"
-              onClick={() => setFilters(f => ({ ...f, soloMieLeghe: false }))}
-            >
-              Leghe Disponibili
-            </SwitchOption>
-            <SwitchOption
-              type="button"
-              active={filters.soloMieLeghe}
-              color="orange"
-              onClick={() => setFilters(f => ({ ...f, soloMieLeghe: true }))}
+            <SwitchOption 
+              $active={filters.soloMieLeghe}
+              onClick={() => handleSwitchToggle(true)}
             >
               Le tue Leghe
+            </SwitchOption>
+            <SwitchOption 
+              $active={!filters.soloMieLeghe}
+              onClick={() => handleSwitchToggle(false)}
+            >
+              Leghe Disponibili
             </SwitchOption>
           </FilterSwitch>
         </FilterSwitchWrapper>
@@ -886,7 +889,7 @@ const Leghe = () => {
                 >
                   Disponibili
                 </Th>
-                <Th>Caratteristiche</Th>
+
                 <Th>Azioni</Th>
               </tr>
             </thead>
@@ -916,12 +919,7 @@ const Leghe = () => {
                       </Td>
                       <Td>{lega.squadre_assegnate || 0}/{lega.numero_squadre_totali || 0}</Td>
                       <Td>{lega.squadre_disponibili || 0}</Td>
-                      <Td>
-                        {lega.roster_ab && <FeatureTag active>Roster A/B</FeatureTag>}
-                        {lega.cantera && <FeatureTag active>Cantera</FeatureTag>}
-                        {lega.contratti && <FeatureTag active>Contratti</FeatureTag>}
-                        {lega.triggers && <FeatureTag active>Triggers</FeatureTag>}
-                      </Td>
+
                       <Td>
                         {isAdmin ? (
                           hasTeam ? (
@@ -953,7 +951,7 @@ const Leghe = () => {
                     </tr>
                     {isExpanded && teamInLega && (
                       <ExpandedRow>
-                        <ExpandedCell colSpan="8">
+                        <ExpandedCell colSpan="7">
                           <ExpandedContent>
                             <TeamStats>
                               <StatItem>
@@ -996,12 +994,11 @@ const Leghe = () => {
         </LeaguesTable>
       )}
 
-      {/* Popup Richiesta Form */}
-      {showRichiestaForm && selectedLega && (
-        <RichiestaForm
+      {/* Popup Join League Form */}
+      {showJoinForm && selectedLega && (
+        <JoinLeagueForm
           lega={selectedLega}
-          isOpen={showRichiestaForm}
-          onClose={handleCloseRichiestaForm}
+          onClose={handleCloseJoinForm}
           onSuccess={handleRichiestaSuccess}
         />
       )}

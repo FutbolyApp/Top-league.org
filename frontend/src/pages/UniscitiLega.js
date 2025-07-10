@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { getLeghe, getRichiesteUtente } from '../api/leghe';
 import { getSquadreByUtente } from '../api/squadre';
-import RichiestaForm from '../components/RichiestaForm';
+import JoinLeagueForm from '../components/JoinLeagueForm';
 import AdminTeamSelector from '../components/AdminTeamSelector';
 
 const Container = styled.div`
@@ -247,7 +247,7 @@ const UniscitiLega = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModalita, setSelectedModalita] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [showRichiestaForm, setShowRichiestaForm] = useState(false);
+  const [showJoinForm, setShowJoinForm] = useState(false);
   const [selectedLega, setSelectedLega] = useState(null);
   const [showAdminSelector, setShowAdminSelector] = useState(false);
   const [squadre, setSquadre] = useState([]);
@@ -398,7 +398,7 @@ const UniscitiLega = () => {
     }
     
     setSelectedLega(lega);
-    setShowRichiestaForm(true);
+    setShowJoinForm(true);
   };
 
   const handleRichiestaSuccess = async (message) => {
@@ -419,8 +419,8 @@ const UniscitiLega = () => {
     }
   };
 
-  const handleCloseRichiestaForm = () => {
-    setShowRichiestaForm(false);
+  const handleCloseJoinForm = () => {
+    setShowJoinForm(false);
     setSelectedLega(null);
   };
 
@@ -607,13 +607,14 @@ const UniscitiLega = () => {
         </LeaguesTable>
       )}
 
-      {/* Popup Richiesta Form */}
-      <RichiestaForm
-        lega={selectedLega}
-        isOpen={showRichiestaForm}
-        onClose={handleCloseRichiestaForm}
-        onSuccess={handleRichiestaSuccess}
-      />
+      {/* Popup Join League Form */}
+      {showJoinForm && selectedLega && (
+        <JoinLeagueForm
+          lega={selectedLega}
+          onClose={handleCloseJoinForm}
+          onSuccess={handleRichiestaSuccess}
+        />
+      )}
 
       {/* Popup Selettore Squadre */}
       {showAdminSelector && selectedLega && (

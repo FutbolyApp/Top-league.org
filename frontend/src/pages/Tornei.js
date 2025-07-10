@@ -47,15 +47,15 @@ const Tab = styled.button`
   flex: 1;
   padding: 1rem;
   border: none;
-  background: ${props => props.active ? 'linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%)' : 'transparent'};
-  color: ${props => props.active ? 'white' : '#666'};
+  background: ${props => props.$active ? 'linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%)' : 'transparent'};
+  color: ${props => props.$active ? 'white' : '#666'};
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   
   &:hover {
-    background: ${props => props.active ? 'linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%)' : '#f8f9fa'};
+    background: ${props => props.$active ? 'linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%)' : '#f8f9fa'};
   }
 `;
 
@@ -430,22 +430,13 @@ const Tornei = () => {
       </Header>
 
       <TabsContainer>
-        <Tab 
-          active={activeTab === 'classifica'} 
-          onClick={() => setActiveTab('classifica')}
-        >
+        <Tab $active={activeTab === 'classifica'} onClick={() => setActiveTab('classifica')}>
           📊 Classifica
         </Tab>
-        <Tab 
-          active={activeTab === 'calendario'} 
-          onClick={() => setActiveTab('calendario')}
-        >
+        <Tab $active={activeTab === 'calendario'} onClick={() => setActiveTab('calendario')}>
           📅 Calendario
         </Tab>
-        <Tab 
-          active={activeTab === 'risultati'} 
-          onClick={() => setActiveTab('risultati')}
-        >
+        <Tab $active={activeTab === 'risultati'} onClick={() => setActiveTab('risultati')}>
           ⚽ Risultati
         </Tab>
       </TabsContainer>

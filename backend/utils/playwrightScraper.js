@@ -88,22 +88,13 @@ class PlaywrightScraper {
     }
 
     async takeScreenshot(stepName) {
-        try {
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const screenshotPath = path.join(this.screenshotDir, `playwright_${stepName}_${timestamp}.png`);
-            await this.page.screenshot({ path: screenshotPath, fullPage: true });
-            console.log(`📸 Screenshot '${stepName}' salvato: ${screenshotPath}`);
-            return screenshotPath;
-        } catch (error) {
-            console.log(`❌ Errore screenshot '${stepName}': ${error.message}`);
-            return null;
-        }
+        // Completamente disabilitato
+        return;
     }
 
     async acceptAllPrivacyPopups() {
         try {
             console.log('🍪 Gestione popup privacy/cookie...');
-            await this.takeScreenshot('before_cookie');
             
             // Prima gestione: cerca e clicca bottoni con testo specifico
             const keywords = [
@@ -179,7 +170,7 @@ class PlaywrightScraper {
                 
                 // Se non abbiamo fatto nulla, probabilmente non ci sono più popup
                 if (!clickedSomething) {
-                    popupHandled = true;
+                                popupHandled = true;
                     console.log('✅ Nessun popup trovato o tutti gestiti');
                 } else {
                     // Aspetta un po' e ricontrolla
@@ -187,7 +178,6 @@ class PlaywrightScraper {
                 }
             }
             
-            await this.takeScreenshot('after_cookie');
             console.log('✅ Gestione popup privacy/cookie completata');
         } catch (error) {
             console.log('⚠️ Errore gestione popup privacy/cookie:', error.message);
@@ -209,7 +199,7 @@ class PlaywrightScraper {
             // Vai direttamente alla pagina di login
             console.log(`🌐 Navigazione alla pagina di login: ${loginUrl}`);
             await this.page.goto(loginUrl, {
-                waitUntil: 'domcontentloaded',
+                waitUntil: 'networkidle',
                 timeout: 30000
             });
             
@@ -218,10 +208,47 @@ class PlaywrightScraper {
             // Gestisci popup privacy/cookie
             await this.acceptAllPrivacyPopups();
             
+            // Aspetta un po' per assicurarsi che la pagina sia completamente caricata
+            await this.page.waitForTimeout(2000);
+
             console.log('📝 Inserimento credenziali...');
             
-            // Cerca i campi username e password
-            const usernameField = await this.page.$('input[name="username"], input[name="email"], input[type="email"], input[placeholder="Username"], input[id*="username"], input[id*="email"]');
+            // Cerca i campi username e password con selettori più ampi
+            const usernameSelectors = [
+                'input[name="username"]',
+                'input[name="email"]', 
+                'input[type="email"]',
+                'input[placeholder*="Username"]',
+                'input[placeholder*="Email"]',
+                'input[id*="username"]',
+                'input[id*="email"]',
+                'input[type="text"]',
+                'input:not([type="password"]):not([type="submit"]):not([type="button"])'
+            ];
+            
+            const passwordSelectors = [
+                'input[name="password"]',
+                'input[type="password"]',
+                'input[placeholder*="Password"]',
+                'input[id*="password"]'
+            ];
+            
+            let usernameField = null;
+            let passwordField = null;
+            
+            // Prova tutti i selettori per username
+            for (const selector of usernameSelectors) {
+                try {
+                    usernameField = await this.page.$(selector);
+                    if (usernameField) {
+                        console.log(`✅ Campo username trovato con selector: ${selector}`);
+                        break;
+                    }
+                } catch (e) {
+                    // Continua con il prossimo selector
+                }
+            }
+            
             if (!usernameField) {
                 console.log('❌ Campo username non trovato');
                 // Debug: log tutti i campi input presenti
@@ -235,12 +262,28 @@ class PlaywrightScraper {
                     const placeholder = await this.page.evaluate(el => el.placeholder, input);
                     console.log(`  Input ${i + 1}: type=${type}, name=${name}, id=${id}, placeholder=${placeholder}`);
                 }
+                
+                // Prova a fare uno screenshot per debug
+                await this.takeScreenshot('login_debug_no_username');
                 return false;
             }
 
-            const passwordField = await this.page.$('input[name="password"], input[type="password"], input[placeholder="Password"], input[id*="password"]');
+            // Prova tutti i selettori per password
+            for (const selector of passwordSelectors) {
+                try {
+                    passwordField = await this.page.$(selector);
+                    if (passwordField) {
+                        console.log(`✅ Campo password trovato con selector: ${selector}`);
+                        break;
+                    }
+                } catch (e) {
+                    // Continua con il prossimo selector
+                }
+            }
+            
             if (!passwordField) {
                 console.log('❌ Campo password non trovato');
+                await this.takeScreenshot('login_debug_no_password');
                 return false;
             }
             
@@ -255,11 +298,39 @@ class PlaywrightScraper {
             
             // Cerca e clicca il bottone di login
             console.log('🖱️ Cerca bottone login...');
-            const loginButton = await this.page.$('button[type="submit"], input[type="submit"], button:has-text("accedi"), button:has-text("login"), button:has-text("entra")');
+            const loginButtonSelectors = [
+                'button[type="submit"]',
+                'input[type="submit"]',
+                'button:has-text("accedi")',
+                'button:has-text("login")',
+                'button:has-text("entra")',
+                'button:has-text("Accedi")',
+                'button:has-text("Login")',
+                'button:has-text("Entra")',
+                '.btn-primary',
+                '.btn-login',
+                'button'
+            ];
+            
+            let loginButton = null;
+            for (const selector of loginButtonSelectors) {
+                try {
+                    loginButton = await this.page.$(selector);
+                    if (loginButton) {
+                        const buttonText = await this.page.evaluate(el => el.textContent || el.value || '', loginButton);
+                        console.log(`✅ Bottone login trovato con selector: ${selector}, testo: "${buttonText}"`);
+                        break;
+                    }
+                } catch (e) {
+                    // Continua con il prossimo selector
+                }
+            }
+            
             if (loginButton) {
                 await loginButton.click();
             } else {
                 // Fallback: premi Enter
+                console.log('⚠️ Bottone login non trovato, uso Enter');
                 await this.page.keyboard.press('Enter');
             }
             
@@ -294,12 +365,53 @@ class PlaywrightScraper {
                     }
                 }
                 
-                        return true;
+                return true;
             } else {
                 console.log('❌ Login fallito - ancora nella pagina di login');
+                
+                // Debug: controlla se ci sono messaggi di errore
+                try {
+                    const errorMessages = await this.page.evaluate(() => {
+                        const errors = [];
+                        // Cerca messaggi di errore comuni
+                        const errorSelectors = [
+                            '.alert-danger',
+                            '.error-message',
+                            '.login-error',
+                            '.alert',
+                            '[class*="error"]',
+                            '[class*="alert"]'
+                        ];
+                        
+                        errorSelectors.forEach(selector => {
+                            const elements = document.querySelectorAll(selector);
+                            elements.forEach(el => {
+                                const text = el.textContent?.trim();
+                                if (text && text.length > 0) {
+                                    errors.push(text);
+                                }
+                            });
+                        });
+                        
+                        return errors;
+                    });
+                    
+                    if (errorMessages.length > 0) {
+                        console.log('❌ Messaggi di errore trovati:');
+                        errorMessages.forEach(msg => console.log(`  - ${msg}`));
+                    } else {
+                        console.log('ℹ️ Nessun messaggio di errore trovato');
+                    }
+                } catch (e) {
+                    console.log('⚠️ Errore nel controllo messaggi di errore:', e.message);
+                }
+                
+                // Prova a fare uno screenshot per debug
+                await this.takeScreenshot('login_failed_debug');
+                
                 return false;
             }
-            
+
         } catch (error) {
             console.error('❌ Errore durante il login:', error);
             return false;
@@ -394,7 +506,7 @@ class PlaywrightScraper {
             }
             
             console.log('❌ Errore controllo login:', error.message);
-            return false;
+                return false;
         }
     }
 
@@ -705,108 +817,368 @@ class PlaywrightScraper {
             
             await this.page.goto(url, {
                 waitUntil: 'domcontentloaded',
-                timeout: 30000
+                timeout: 15000
             });
             
             await this.acceptAllPrivacyPopups();
-                    await this.page.waitForTimeout(3000);
-            
-            await this.takeScreenshot('classifica_page');
+            await this.page.waitForTimeout(3000);
             
             const classificaData = await this.page.evaluate(() => {
                 const posizioni = [];
                 
                 console.log('Analisi pagina classifica...');
                 
-                // Debug: mostra tutte le tabelle presenti
+                // Funzione per pulire i dati dal codice ASP.NET
+                function pulisciDatiASPNet(dato) {
+                    if (dato) return dato.split('\n')[0].trim();
+                    return dato;
+                }
+                
+                // Funzione per estrarre numero da stringa
+                function extractNumber(text) {
+                    if (!text) return 0;
+                    const match = text.toString().match(/\d+/);
+                    return match ? parseInt(match[0]) : 0;
+                }
+                
+                // Funzione per estrarre nome squadra da cella combinata
+                function extractTeamName(cellText) {
+                    if (!cellText) return '';
+                    // Rimuovi numeri e caratteri speciali, mantieni solo il nome
+                    return cellText.replace(/\d+/g, '').replace(/[^\w\s]/g, '').trim();
+                }
+                
+                // Metodo 1: Analisi specifica per la struttura Fantacalcio
+                console.log('🔍 Metodo 1: Analisi specifica struttura Fantacalcio...');
                 const allTables = document.querySelectorAll('table');
                 console.log(`Trovate ${allTables.length} tabelle nella pagina`);
                 
-                allTables.forEach((table, index) => {
-                    const className = table.className;
-                    const id = table.id;
-                    const rows = table.querySelectorAll('tr').length;
-                    console.log(`Tabella ${index}: class="${className}", id="${id}", righe=${rows}`);
-                });
-                
-                // Cerca la tabella della classifica con selettori più flessibili
-                let table = null;
-                const selectors = [
-                    '.widget-body.smart-table.table.table-striped',
-                    'table.table',
-                    'table[class*="classifica"]',
-                    'table[class*="ranking"]',
-                    'table[class*="table"]',
-                    'table'
-                ];
-                
-                for (const selector of selectors) {
-                    table = document.querySelector(selector);
-                    if (table) {
-                        console.log(`✅ Tabella trovata con selettore: ${selector}`);
-                        break;
-                    }
-                }
-                
-                if (!table) {
-                    console.log('❌ Nessuna tabella trovata per la classifica');
-                    return posizioni;
-                }
-                
-                console.log('Tabella classifica trovata');
-                
-                // Analizza le righe della tabella
-                const rows = table.querySelectorAll('tr');
-                console.log(`Analizzando ${rows.length} righe della classifica`);
-                
-                rows.forEach((row, rowIndex) => {
-                    const cells = row.querySelectorAll('td');
+                for (let i = 0; i < allTables.length; i++) {
+                    const table = allTables[i];
+                    const rows = table.querySelectorAll('tr');
                     
-                    // Salta le righe vuote o header
-                    if (cells.length < 10) return;
+                    if (rows.length < 3) continue; // Salta tabelle troppo piccole
                     
-                    // Estrai i dati della posizione
-                    const posizione = cells[0]?.textContent?.trim();
-                    const squadra = cells[2]?.textContent?.trim();
-                    const partiteGiocate = cells[3]?.textContent?.trim();
-                    const vittorie = cells[4]?.textContent?.trim();
-                    const pareggi = cells[5]?.textContent?.trim();
-                    const sconfitte = cells[6]?.textContent?.trim();
-                    const golFatti = cells[7]?.textContent?.trim();
-                    const golSubiti = cells[8]?.textContent?.trim();
-                    const differenzaReti = cells[9]?.textContent?.trim();
-                    const punti = cells[10]?.textContent?.trim();
-                    const puntiTotali = cells[11]?.textContent?.trim();
+                    console.log(`Analizzando tabella ${i} con ${rows.length} righe...`);
                     
-                    // Verifica che sia una posizione valida
-                    if (posizione && squadra && !posizione.includes('Gruppo')) {
-                        // Pulisci il nome della squadra rimuovendo il codice ASP.NET
-                        const cleanSquadra = squadra.split('\n')[0].trim();
+                    // Controlla se la prima riga contiene header di classifica
+                    const firstRow = rows[0];
+                    const firstRowCells = firstRow.querySelectorAll('td, th');
+                    const firstRowText = Array.from(firstRowCells).map(cell => cell.textContent?.trim().toLowerCase()).join(' ');
+                    
+                    console.log(`Header tabella ${i}: "${firstRowText}"`);
+                    
+                    // Verifica se sembra una tabella di classifica
+                    if (firstRowText.includes('g') && firstRowText.includes('v') && firstRowText.includes('n') && 
+                        firstRowText.includes('p') && firstRowText.includes('g+') && firstRowText.includes('g-') && 
+                        firstRowText.includes('dr') && firstRowText.includes('pt')) {
                         
-                        if (cleanSquadra && cleanSquadra.length > 0) {
-                            console.log(`Posizione ${posizione}: ${cleanSquadra} - ${punti} punti`);
+                        console.log(`✅ Tabella ${i} sembra essere una classifica Fantacalcio`);
+                        
+                        // Analizza le righe dati (dalla seconda in poi)
+                        for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+                            const row = rows[rowIndex];
+                            const cells = row.querySelectorAll('td');
                             
-                            posizioni.push({
-                                posizione: parseInt(posizione) || rowIndex + 1,
-                                squadra: cleanSquadra,
-                                partite: parseInt(partiteGiocate) || 0,
-                                vittorie: parseInt(vittorie) || 0,
-                                pareggi: parseInt(pareggi) || 0,
-                                sconfitte: parseInt(sconfitte) || 0,
-                                golFatti: parseInt(golFatti) || 0,
-                                golSubiti: parseInt(golSubiti) || 0,
-                                differenzaReti: parseInt(differenzaReti) || 0,
-                                punti: parseInt(punti) || 0,
-                                puntiTotali: parseFloat(puntiTotali) || 0
-                            });
+                            if (cells.length < 10) continue; // Salta righe con troppe poche celle
+                            
+                            const cellTexts = Array.from(cells).map(cell => cell.textContent?.trim() || '');
+                            console.log(`Riga ${rowIndex} celle: [${cellTexts.join(' | ')}]`);
+                            
+                            // Estrai posizione dalla prima cella
+                            const posizioneText = cellTexts[0];
+                            if (!posizioneText || isNaN(parseInt(posizioneText))) continue;
+                            
+                            const posizione = parseInt(posizioneText);
+                            
+                            // Estrai nome squadra dalla terza cella (che contiene "Bolzano 0" o "Viterbo 0")
+                            const squadraCompleta = cellTexts[2] || '';
+                            const squadra = extractTeamName(squadraCompleta);
+                            
+                            if (!squadra) continue;
+                            
+                            // Estrai i dati numerici dalle altre celle
+                            const rowData = {
+                                posizione: posizione,
+                                squadra: pulisciDatiASPNet(squadra),
+                                punti: 0,
+                                partite: 0,
+                                vittorie: 0,
+                                pareggi: 0,
+                                sconfitte: 0,
+                                golFatti: 0,
+                                golSubiti: 0,
+                                differenzaReti: 0,
+                                puntiTotali: 0
+                            };
+                            
+                            // Mappa le colonne in base alla struttura vista
+                            // [pos |  | squadra | g | v | n | p | g+ | g- | dr | pt | pt totali |  | ]
+                            if (cellTexts.length >= 12) {
+                                rowData.partite = parseInt(cellTexts[3]) || 0;      // g
+                                rowData.vittorie = parseInt(cellTexts[4]) || 0;     // v
+                                rowData.pareggi = parseInt(cellTexts[5]) || 0;      // n
+                                rowData.sconfitte = parseInt(cellTexts[6]) || 0;    // p
+                                rowData.golFatti = parseInt(cellTexts[7]) || 0;     // g+
+                                rowData.golSubiti = parseInt(cellTexts[8]) || 0;    // g-
+                                rowData.differenzaReti = parseInt(cellTexts[9]) || 0; // dr
+                                rowData.punti = parseInt(cellTexts[10]) || 0;       // pt
+                                rowData.puntiTotali = parseFloat(cellTexts[11]) || 0; // pt totali
+                            }
+                            
+                            console.log(`✅ Posizione ${rowData.posizione}: ${rowData.squadra} - ${rowData.punti} punti (${rowData.partite} partite)`);
+                            posizioni.push(rowData);
+                        }
+                        
+                        // Se abbiamo trovato dati in questa tabella, usiamoli
+                        if (posizioni.length > 0) {
+                            console.log(`✅ Metodo 1: Trovate ${posizioni.length} posizioni nella tabella ${i}`);
+                            break;
                         }
                     }
-                });
+                }
+                
+                // Metodo 2: Cerca tabelle con posizioni numerate progressive (fallback)
+                if (posizioni.length === 0) {
+                    console.log('🔍 Metodo 2: Cerca tabelle con posizioni numerate progressive...');
+                    
+                    for (let i = 0; i < allTables.length; i++) {
+                        const table = allTables[i];
+                        const rows = table.querySelectorAll('tr');
+                        
+                        if (rows.length < 3) continue; // Salta tabelle troppo piccole
+                        
+                        console.log(`Analizzando tabella ${i} con ${rows.length} righe...`);
+                        
+                        // Conta quante righe hanno un numero progressivo nella prima colonna
+                        let posizioniNumerate = 0;
+                        let righeValide = [];
+                        
+                        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+                            const row = rows[rowIndex];
+                            const cells = row.querySelectorAll('td');
+                            
+                            if (cells.length >= 2) {
+                                const firstCellText = cells[0]?.textContent?.trim();
+                                const secondCellText = cells[1]?.textContent?.trim();
+                                
+                                // Se la prima cella è un numero e la seconda è testo (nome squadra)
+                                if (firstCellText && !isNaN(parseInt(firstCellText)) && 
+                                    secondCellText && secondCellText.length > 2 && isNaN(parseInt(secondCellText))) {
+                                    posizioniNumerate++;
+                                    righeValide.push({
+                                        rowIndex,
+                                        posizione: parseInt(firstCellText),
+                                        squadra: secondCellText,
+                                        cells: cells
+                                    });
+                                }
+                            }
+                        }
+                        
+                        console.log(`Tabella ${i}: ${posizioniNumerate} righe con posizioni numerate`);
+                        
+                        // Se abbiamo almeno 3 posizioni numerate, probabilmente è una classifica
+                        if (posizioniNumerate >= 3) {
+                            console.log(`✅ Tabella ${i} sembra essere una classifica con ${posizioniNumerate} posizioni`);
+                            
+                            // Estrai i dati da ogni riga valida
+                            righeValide.forEach((riga, index) => {
+                                const rowData = {
+                                    posizione: riga.posizione,
+                                    squadra: pulisciDatiASPNet(riga.squadra),
+                                    punti: 0,
+                                    partite: 0,
+                                    vittorie: 0,
+                                    pareggi: 0,
+                                    sconfitte: 0,
+                                    golFatti: 0,
+                                    golSubiti: 0,
+                                    differenzaReti: 0,
+                                    puntiTotali: 0
+                                };
+                                
+                                // Analizza le altre celle per estrarre dati numerici
+                                riga.cells.forEach((cell, cellIndex) => {
+                                    if (cellIndex < 2) return; // Salta posizione e squadra
+                                    
+                                    const cellText = cell.textContent?.trim();
+                                    if (!cellText) return;
+                                    
+                                    // Se è un numero, prova a mapparlo
+                                    if (!isNaN(parseFloat(cellText))) {
+                                        const numValue = parseFloat(cellText);
+                                        
+                                        // Basandosi sulla posizione della cella, assegna il valore
+                                        switch (cellIndex) {
+                                            case 2: // Terza colonna: spesso punti
+                                                rowData.punti = numValue;
+                                                break;
+                                            case 3: // Quarta colonna: spesso partite
+                                                rowData.partite = numValue;
+                                                break;
+                                            case 4: // Quinta colonna: spesso vittorie
+                                                rowData.vittorie = numValue;
+                                                break;
+                                            case 5: // Sesta colonna: spesso pareggi
+                                                rowData.pareggi = numValue;
+                                                break;
+                                            case 6: // Settima colonna: spesso sconfitte
+                                                rowData.sconfitte = numValue;
+                                                break;
+                                            case 7: // Ottava colonna: spesso gol fatti
+                                                rowData.golFatti = numValue;
+                                                break;
+                                            case 8: // Nona colonna: spesso gol subiti
+                                                rowData.golSubiti = numValue;
+                                                break;
+                                            case 9: // Decima colonna: spesso differenza
+                                                rowData.differenzaReti = numValue;
+                                                break;
+                                            default:
+                                                // Salva come campo generico
+                                                rowData[`colonna_${cellIndex}`] = cellText;
+                                        }
+                                    }
+                                });
+                                
+                                console.log(`✅ Posizione ${rowData.posizione}: ${rowData.squadra} - ${rowData.punti} punti`);
+                                posizioni.push(rowData);
+                            });
+                            
+                            // Se abbiamo trovato dati in questa tabella, usiamoli
+                            if (posizioni.length > 0) {
+                                console.log(`✅ Metodo 2: Trovate ${posizioni.length} posizioni nella tabella ${i}`);
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Metodo 3: Analisi completa della tabella classifica (fallback finale)
+                if (posizioni.length === 0) {
+                    console.log('🔍 Metodo 3: Analisi completa tabella classifica...');
+                    
+                    for (let i = 0; i < allTables.length; i++) {
+                        const table = allTables[i];
+                        const tableText = table.textContent?.toLowerCase() || '';
+                        
+                        // Cerca tabelle che potrebbero contenere una classifica
+                        if (tableText.includes('posizione') || tableText.includes('punti') || 
+                            tableText.includes('partite') || tableText.includes('vittorie') ||
+                            tableText.includes('pareggi') || tableText.includes('sconfitte') ||
+                            tableText.includes('gol fatti') || tableText.includes('gol subiti') ||
+                            tableText.includes('diff') || tableText.includes('differenza')) {
+                            
+                            console.log(`Analizzando tabella ${i} per classifica...`);
+                            const rows = table.querySelectorAll('tr');
+                            console.log(`Tabella ${i} ha ${rows.length} righe`);
+                            
+                            // Analizza l'header per capire le colonne
+                            let headers = [];
+                            if (rows.length > 0) {
+                                const headerRow = rows[0];
+                                const headerCells = headerRow.querySelectorAll('th, td');
+                                headers = Array.from(headerCells).map(cell => 
+                                    cell.textContent?.trim().toLowerCase() || ''
+                                );
+                                console.log(`Header tabella ${i}:`, headers);
+                            }
+                            
+                            // Analizza ogni riga dati
+                            for (let rowIndex = 1; rowIndex < rows.length; rowIndex++) {
+                                const row = rows[rowIndex];
+                                const cells = row.querySelectorAll('td');
+                                
+                                // Salta righe con troppe poche celle
+                                if (cells.length < 2) continue;
+                                
+                                // Estrai tutti i dati dalle celle
+                                const rowData = {};
+                                
+                                cells.forEach((cell, cellIndex) => {
+                                    const cellText = cell.textContent?.trim() || '';
+                                    const header = headers[cellIndex] || `colonna_${cellIndex}`;
+                                    
+                                    // Mappa i dati in base alla posizione e al contenuto
+                                    if (cellIndex === 0 && !isNaN(parseInt(cellText))) {
+                                        rowData.posizione = parseInt(cellText);
+                                    } else if (cellText && cellText.length > 2 && !isNaN(parseInt(cellText))) {
+                                        // Potrebbe essere punti, partite, vittorie, etc.
+                                        if (header.includes('punti totali') || header.includes('pt totali') || header.includes('pttotali') || header.includes('pt') && cellText.includes('.')) {
+                                            rowData.puntiTotali = parseFloat(cellText.replace(',', '.'));
+                                        } else if (header.includes('punti') || header.includes('points')) {
+                                            rowData.punti = parseInt(cellText);
+                                        } else if (header.includes('partite') || header.includes('giocate') || header.includes('played')) {
+                                            rowData.partite = parseInt(cellText);
+                                        } else if (header.includes('vittorie') || header.includes('win')) {
+                                            rowData.vittorie = parseInt(cellText);
+                                        } else if (header.includes('pareggi') || header.includes('draw')) {
+                                            rowData.pareggi = parseInt(cellText);
+                                        } else if (header.includes('sconfitte') || header.includes('loss')) {
+                                            rowData.sconfitte = parseInt(cellText);
+                                        } else if (header.includes('gol fatti') || header.includes('gf') || header.includes('for')) {
+                                            rowData.golFatti = parseInt(cellText);
+                                        } else if (header.includes('gol subiti') || header.includes('gs') || header.includes('against')) {
+                                            rowData.golSubiti = parseInt(cellText);
+                                        } else if (header.includes('diff') || header.includes('differenza')) {
+                                            rowData.differenzaReti = parseInt(cellText);
+                                        } else {
+                                            // Salva come campo generico
+                                            rowData[`campo_${cellIndex}`] = cellText;
+                                        }
+                                    } else if (cellText && cellText.length > 2) {
+                                        // Potrebbe essere il nome della squadra
+                                        if (!rowData.squadra && !isNaN(parseInt(cellText))) {
+                                            // Non è una squadra se è un numero
+                                        } else if (!rowData.squadra) {
+                                            rowData.squadra = pulisciDatiASPNet(cellText);
+                                        } else {
+                                            // Salva come campo generico
+                                            rowData[`campo_${cellIndex}`] = cellText;
+                                        }
+                                    }
+                                });
+                                
+                                // Verifica che sia una posizione valida
+                                if (rowData.posizione && rowData.squadra && !isNaN(rowData.posizione)) {
+                                    console.log(`✅ Tabella ${i}, Riga ${rowIndex}:`, rowData);
+                                    
+                                    posizioni.push({
+                                        posizione: rowData.posizione,
+                                        squadra: rowData.squadra,
+                                        punti: rowData.punti || 0,
+                                        partite: rowData.partite || 0,
+                                        vittorie: rowData.vittorie || 0,
+                                        pareggi: rowData.pareggi || 0,
+                                        sconfitte: rowData.sconfitte || 0,
+                                        golFatti: rowData.golFatti || 0,
+                                        golSubiti: rowData.golSubiti || 0,
+                                        differenzaReti: rowData.differenzaReti || 0,
+                                        puntiTotali: rowData.puntiTotali || 0,
+                                        // Aggiungi tutti gli altri campi trovati
+                                        ...Object.fromEntries(
+                                            Object.entries(rowData)
+                                                .filter(([key]) => key.startsWith('campo_'))
+                                                .map(([key, value]) => [key.replace('campo_', 'colonna_'), value])
+                                        )
+                                    });
+                                }
+                            }
+                            
+                            // Se abbiamo trovato dati in questa tabella, usiamoli
+                            if (posizioni.length > 0) {
+                                console.log(`✅ Metodo 3: Trovate ${posizioni.length} posizioni nella tabella ${i}`);
+                                break;
+                            }
+                        }
+                    }
+                }
                 
                 console.log(`Classifica estratta: ${posizioni.length} posizioni trovate`);
                 
-                // Debug: mostra le prime 5 posizioni estratte
-                posizioni.slice(0, 5).forEach((pos, index) => {
+                // Debug: mostra le prime 3 posizioni estratte con tutti i campi
+                posizioni.slice(0, 3).forEach((pos, index) => {
                     console.log(`Debug posizione ${index + 1}:`, pos);
                 });
                 
@@ -816,8 +1188,14 @@ class PlaywrightScraper {
             console.log(`Classifica estratta: ${classificaData.length} posizioni trovate`);
             
             // Debug: log dettagliato dei risultati
-            classificaData.slice(0, 5).forEach((posizione, index) => {
+            classificaData.slice(0, 3).forEach((posizione, index) => {
                 console.log(`${posizione.posizione}. ${posizione.squadra} - ${posizione.punti} punti (${posizione.partite} partite)`);
+                if (posizione.vittorie !== undefined) {
+                    console.log(`  Vittorie: ${posizione.vittorie}, Pareggi: ${posizione.pareggi}, Sconfitte: ${posizione.sconfitte}`);
+                }
+                if (posizione.golFatti !== undefined) {
+                    console.log(`  Gol: ${posizione.golFatti} fatti, ${posizione.golSubiti} subiti, Diff: ${posizione.differenzaReti}`);
+                }
             });
             
             return classificaData;
@@ -830,60 +1208,471 @@ class PlaywrightScraper {
 
     async scrapeFormazioni(formazioniUrl, giornata = null) {
         try {
-            console.log(`⚽ Scraping formazioni da: ${formazioniUrl}${giornata ? '/' + giornata : ''}`);
+            console.log(`⚽ Scraping formazioni da: ${formazioniUrl}`);
             
-            // Costruisci l'URL completo con la giornata se specificata
-            const urlCompleto = giornata ? `${formazioniUrl}/${giornata}` : formazioniUrl;
+            // Se l'URL già contiene la giornata, usalo così com'è
+            // Altrimenti aggiungi la giornata se specificata
+            const urlCompleto = formazioniUrl.includes('/formazioni/') 
+                ? formazioniUrl 
+                : (giornata ? `${formazioniUrl}/${giornata}` : formazioniUrl);
+            
+            console.log(`🌐 URL completo per scraping: ${urlCompleto}`);
             
             await this.page.goto(urlCompleto, {
-                waitUntil: 'networkidle',
+                waitUntil: 'domcontentloaded',
                 timeout: 30000
             });
-            await this.acceptAllPrivacyPopups();
-            await new Promise(resolve => setTimeout(resolve, 3000));
             
-            const formazioniData = await this.page.evaluate(() => {
+            await this.acceptAllPrivacyPopups();
+            await this.page.waitForTimeout(3000);
+            
+            await this.takeScreenshot('formazioni_page');
+            
+            const formazioniData = await this.page.evaluate((giornata) => {
+                // Mapping delle icone bonus in testo di 3 lettere
+                const bonusMapping = {
+                    'portiereImbattuto.png': 'PIB',
+                    'portiereVittoria.png': 'PVT',
+                    'portiereParata.png': 'PPA',
+                    'portiereRigore.png': 'PRI',
+                    'portiereAutogol.png': 'PAU',
+                    'difensoreGol.png': 'DGO',
+                    'difensoreAssist.png': 'DAS',
+                    'difensoreVittoria.png': 'DVT',
+                    'difensoreParata.png': 'DPA',
+                    'centrocampistaGol.png': 'CGO',
+                    'centrocampistaAssist.png': 'CAS',
+                    'centrocampistaVittoria.png': 'CVT',
+                    'attaccanteGol.png': 'AGO',
+                    'attaccanteAssist.png': 'AAS',
+                    'attaccanteVittoria.png': 'AVT',
+                    'rigoreSegnato.png': 'RSE',
+                    'rigoreSbagliato.png': 'RSB',
+                    'autogol.png': 'AUT',
+                    'ammonizione.png': 'AMM',
+                    'espulsione.png': 'ESP'
+                };
+
                 const formazioni = [];
                 
-                // Cerca le formazioni nella pagina
-                const formazioniElements = document.querySelectorAll('.formazione, .formation, [class*="formazione"], [class*="formation"]');
+                console.log('🔍 Analisi pagina formazioni...');
+                console.log('🔍 DEBUG - CODICE AGGIORNATO IN ESECUZIONE - VERSIONE 2.0');
                 
-                formazioniElements.forEach(formazioneEl => {
-                    const squadra = formazioneEl.querySelector('.squadra, .team, .nome')?.textContent?.trim();
-                    const modulo = formazioneEl.querySelector('.modulo, .module')?.textContent?.trim();
-                    const titolari = [];
-                    const panchinari = [];
+                // Trova il container principale delle formazioni
+                const formazioniContainer = document.querySelector('.tab-content.transfers-tab-content.no-border.loading-box');
+                
+                if (!formazioniContainer) {
+                    console.log('❌ Container formazioni non trovato');
+                    return formazioni;
+                }
+                
+                console.log('✅ Container formazioni trovato');
+                
+                // Trova tutte le squadre (home e away) - migliorato per l'ordine
+                const squadreDivs = formazioniContainer.querySelectorAll('._col-xs-6.col-home, ._col-xs-6.col-away');
+                console.log(`📊 Trovate ${squadreDivs.length} squadre`);
+                
+                // Ordina le squadre: prima home, poi away
+                const squadreOrdinate = Array.from(squadreDivs).sort((a, b) => {
+                    const aIsHome = a.classList.contains('col-home');
+                    const bIsHome = b.classList.contains('col-home');
+                    return bIsHome - aIsHome; // Home prima di Away
+                });
+                
+                // Prima di tutto, raccogliamo tutti i nomi delle squadre dal match-header
+                console.log(`🔍 DEBUG - RACCOLTA NOMI SQUADRE DAL MATCH-HEADER`);
+                const allMatchHeaders = formazioniContainer.querySelectorAll('.match-header');
+                console.log(`🔍 DEBUG - Trovati ${allMatchHeaders.length} match headers`);
+                
+                const teamNamesMap = new Map(); // Map per associare home/away ai nomi
+                
+                allMatchHeaders.forEach((matchHeader, matchIndex) => {
+                    console.log(`🔍 DEBUG - Analizzando match header ${matchIndex + 1}`);
+                    const teamHeaders = matchHeader.querySelectorAll('.team-header .media-body .media-heading.ellipsis');
+                    console.log(`🔍 DEBUG - Team headers in questo match: ${teamHeaders.length}`);
                     
-                    // Cerca titolari e panchinari
-                    const titolariElements = formazioneEl.querySelectorAll('.titolare, .starter');
-                    const panchinariElements = formazioneEl.querySelectorAll('.panchinaro, .substitute');
-                    
-                    titolariElements.forEach(titolareEl => {
-                        const nome = titolareEl.textContent?.trim();
-                        if (nome) titolari.push(nome);
+                    teamHeaders.forEach((teamHeader, teamIndex) => {
+                        const teamName = teamHeader.textContent.trim();
+                        console.log(`🔍 DEBUG - Team ${teamIndex + 1} nel match ${matchIndex + 1}: ${teamName}`);
+                        
+                        if (teamName && teamName.length > 2 && teamName.length < 30 && 
+                            !teamName.includes('vs') && !teamName.includes('Home') && !teamName.includes('Away') &&
+                            !teamName.includes('Titolari') && !teamName.includes('Panchina')) {
+                            
+                            const key = `${matchIndex}-${teamIndex === 0 ? 'home' : 'away'}`;
+                            teamNamesMap.set(key, teamName);
+                            console.log(`🔍 DEBUG - Salvato nome squadra: ${key} = ${teamName}`);
+                        }
                     });
+                });
+                
+                console.log(`🔍 DEBUG - Mappa nomi squadre:`, Array.from(teamNamesMap.entries()));
+                
+                squadreOrdinate.forEach((squadraDiv, index) => {
+                    console.log(`🔍 Analisi squadra ${index + 1}...`);
+                    console.log(`🔍 DEBUG - INIZIO ANALISI SQUADRA ${index + 1} - Codice aggiornato`);
                     
-                    panchinariElements.forEach(panchinaroEl => {
-                        const nome = panchinaroEl.textContent?.trim();
-                        if (nome) panchinari.push(nome);
-                    });
+                    // Determina se questa squadra è home o away
+                    const isHome = squadraDiv.classList.contains('col-home');
+                    console.log(`🔍 DEBUG - Squadra ${index + 1} è home: ${isHome}`);
                     
-                    if (squadra) {
-                        formazioni.push({
-                            squadra,
-                            modulo: modulo || 'N/A',
-                            titolari,
-                            panchinari
-                        });
+                    // Trova il match index per questa squadra
+                    let matchIndex = 0;
+                    let currentElement = squadraDiv;
+                    
+                    // Risali fino a trovare il match-details
+                    for (let i = 0; i < 10 && currentElement; i++) {
+                        if (currentElement.classList.contains('match-details')) {
+                            const dataIndex = currentElement.getAttribute('data-index');
+                            matchIndex = dataIndex ? parseInt(dataIndex) : 0;
+                            console.log(`🔍 DEBUG - Match index trovato: ${matchIndex}`);
+                            break;
+                        }
+                        currentElement = currentElement.parentElement;
                     }
+                    
+                    // Cerca il nome squadra nella mappa
+                    const teamKey = `${matchIndex}-${isHome ? 'home' : 'away'}`;
+                    let nomeSquadra = teamNamesMap.get(teamKey) || `Squadra ${index + 1}`;
+                    
+                    console.log(`🔍 DEBUG - Chiave squadra: ${teamKey}`);
+                    console.log(`🔍 DEBUG - Nome squadra trovato: ${nomeSquadra}`);
+                    
+                    if (nomeSquadra.match(/^Squadra \d+$/)) {
+                        console.log(`⚠️ Nome squadra non trovato nella mappa, cercando alternative...`);
+                        
+                        // Fallback: cerca nel match-header più vicino
+                        let currentElement = squadraDiv;
+                        let matchHeader = null;
+                        
+                        for (let i = 0; i < 5 && currentElement; i++) {
+                            if (currentElement.classList.contains('match-header')) {
+                                matchHeader = currentElement;
+                                break;
+                            }
+                            currentElement = currentElement.parentElement;
+                        }
+                        
+                        if (matchHeader) {
+                            const teamHeaders = matchHeader.querySelectorAll('.team-header .media-body .media-heading.ellipsis');
+                            const targetIndex = isHome ? 0 : 1;
+                            
+                            if (teamHeaders[targetIndex]) {
+                                const text = teamHeaders[targetIndex].textContent.trim();
+                                if (text && text.length > 2 && text.length < 30 && 
+                                    !text.includes('vs') && !text.includes('Home') && !text.includes('Away') &&
+                                    !text.includes('Titolari') && !text.includes('Panchina')) {
+                                    nomeSquadra = text;
+                                    console.log(`✅ Nome squadra trovato nel fallback: ${nomeSquadra}`);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Estrai modulo formazione - cercando nel match-header
+                    let modulo = 'N/A';
+                    
+                    // Cerca il modulo nel match-header corrispondente
+                    let currentElementForModulo = squadraDiv;
+                    let matchHeaderForModulo = null;
+                    
+                    // Risali fino a trovare il match-header
+                    for (let i = 0; i < 5 && currentElementForModulo; i++) {
+                        if (currentElementForModulo.classList.contains('match-header')) {
+                            matchHeaderForModulo = currentElementForModulo;
+                            break;
+                        }
+                        currentElementForModulo = currentElementForModulo.parentElement;
+                    }
+                    
+                    if (matchHeaderForModulo) {
+                        const teamHeaders = matchHeaderForModulo.querySelectorAll('.team-header .media-body h5');
+                        const targetIndex = isHome ? 0 : 1;
+                        
+                        if (teamHeaders[targetIndex]) {
+                            const moduloText = teamHeaders[targetIndex].textContent.trim();
+                            console.log(`🔍 DEBUG - Testo completo modulo: ${moduloText}`);
+                            
+                            // Estrai solo il modulo (es. "4-3-3") dal testo completo
+                            // Gestisce anche il formato "4-2-3-1 (dopo le sostituzioni 4-2-3-1)"
+                            const moduloMatch = moduloText.match(/(\d+-\d+-\d+(?:-\d+)?)/);
+                            if (moduloMatch) {
+                                modulo = moduloMatch[1];
+                                console.log(`✅ Modulo trovato: ${modulo} (da: ${moduloText})`);
+                            } else {
+                                console.log(`⚠️ Modulo non riconosciuto nel testo: ${moduloText}`);
+                            }
+                        } else {
+                            console.log(`⚠️ Elemento h5 non trovato per questa squadra`);
+                        }
+                    } else {
+                        console.log(`⚠️ Match header non trovato per modulo`);
+                    }
+                    
+                    console.log(`📋 Squadra: ${nomeSquadra}, Modulo: ${modulo}`);
+                    
+                    // Crea oggetto formazione per questa squadra
+                    const formazione = {
+                        squadra: nomeSquadra,
+                        modulo: modulo,
+                        giornata: giornata || 'N/A',
+                        titolari: [],
+                        panchinari: [],
+                        altri_punti: [],
+                        totale: null,
+                        tipo_squadra: squadraDiv.classList.contains('col-home') ? 'home' : 'away'
+                    };
+                    
+                    // Estrai titolari (formationTable)
+                    const titolariTable = squadraDiv.querySelector('#formationTable');
+                    if (titolariTable) {
+                        const titolariRows = Array.from(titolariTable.querySelectorAll('tbody tr'));
+                        formazione.titolari = titolariRows.map(row => {
+                                const cells = Array.from(row.querySelectorAll('td'));
+                            if (cells.length >= 6) {
+                                // Estrai ruolo e nome separatamente - migliorato
+                                const ruoloNomeText = cells[0]?.textContent?.trim() || '';
+                                const nomeText = cells[1]?.textContent?.trim() || '';
+                                
+                                // Separa ruolo e nome se sono nella stessa cella
+                                let ruolo = '';
+                                let nome = '';
+                                
+                                if (ruoloNomeText && !nomeText) {
+                                    // Se c'è solo la prima cella, prova a separare ruolo e nome
+                                    // Cerca pattern come "por\nMartinez Jo." o "dc\nParedes A."
+                                    const lines = ruoloNomeText.split('\n').filter(line => line.trim());
+                                    if (lines.length >= 2) {
+                                        ruolo = lines[0].trim();
+                                        nome = lines.slice(1).join(' ').trim();
+                                    } else {
+                                        // Se non ci sono newline, cerca pattern come "por Martinez Jo."
+                                        const match = ruoloNomeText.match(/^([a-z]+)\s+(.+)$/i);
+                                        if (match) {
+                                            ruolo = match[1].trim();
+                                            nome = match[2].trim();
+                                        } else {
+                                            ruolo = ruoloNomeText;
+                                            nome = '';
+                                        }
+                                    }
+                                } else {
+                                    ruolo = ruoloNomeText;
+                                    nome = nomeText;
+                                }
+                                
+                                // Pulisci il ruolo (rimuovi spazi extra e caratteri strani)
+                                ruolo = ruolo.replace(/\s+/g, '').toLowerCase();
+                                
+                                console.log(`🎯 Ruolo: "${ruolo}", Nome: "${nome}"`);
+                                
+                                // Estrai bonus dall'icona - AGGIORNATO per gestire più bonus per giocatore
+                                const bonusIcons = cells[2]?.querySelectorAll('img.icon.match-icon, img[src*=".png"], img[src*=".jpg"], img[src*=".gif"]');
+                                let bonus = 'N/A';
+                                let bonusImageName = '';
+                                let bonusArray = [];
+                                
+                                if (bonusIcons && bonusIcons.length > 0) {
+                                    bonusArray = Array.from(bonusIcons).map(icon => {
+                                        const bonusSrc = icon.src || '';
+                                        const imageName = bonusSrc.split('/').pop() || '';
+                                        const bonusText = Object.keys(bonusMapping).find(key => bonusSrc.includes(key));
+                                        if (bonusText) {
+                                            return bonusMapping[bonusText];
+                                        } else if (imageName) {
+                                            return imageName.replace(/\.(png|jpg|gif)$/i, '').toUpperCase();
+                                        }
+                                        return 'N/A';
+                                    }).filter(b => b !== 'N/A');
+                                    if (bonusArray.length > 0) {
+                                        bonus = bonusArray.join(',');
+                                        bonusImageName = bonusArray.join(',');
+                                    }
+                                    console.log(`🎯 Bonus trovati: ${bonusArray.length} - ${bonus} (immagini: ${bonusImageName})`);
+                                }
+                                
+                                // Estrai voto
+                                const votoEl = cells[3]?.querySelector('.vote');
+                                const voto = votoEl ? votoEl.textContent.trim() : '';
+                                
+                                // Estrai fantavoto
+                                const fantavotoEl = cells[4]?.querySelector('.total');
+                                const fantavoto = fantavotoEl ? fantavotoEl.textContent.trim() : '';
+                                
+                                // Migliora logica per "In Campo" - solo se ha voto valido
+                                const inCampoEl = cells[5]?.querySelector('.mantra-pos');
+                                const hasVoto = voto && voto !== '-' && voto !== 's.v.' && voto !== '';
+                                const inCampo = hasVoto && inCampoEl ? inCampoEl.getAttribute('data-malus') === '0' : false;
+                                
+                                    return {
+                                    ruolo: ruolo,
+                                    nome: nome,
+                                    bonus: bonus,
+                                    bonus_image: bonusImageName,
+                                    voto: voto,
+                                    fantavoto: fantavoto,
+                                    in_campo: inCampo
+                                };
+                            } else if (cells.length >= 2) {
+                                    return {
+                                    ruolo: cells[0]?.textContent?.trim() || '',
+                                    nome: cells[1]?.textContent?.trim() || '',
+                                    bonus: 'N/A',
+                                        voto: '',
+                                    fantavoto: '',
+                                    in_campo: false
+                                    };
+                                }
+                                return null;
+                            }).filter(Boolean);
+                            
+                        console.log(`✅ Titolari: ${formazione.titolari.length} giocatori`);
+                    }
+                    
+                    // Estrai panchina (releaseTable)
+                    const panchinaTable = squadraDiv.querySelector('#releaseTable');
+                    if (panchinaTable) {
+                        const panchinaRows = Array.from(panchinaTable.querySelectorAll('tbody tr'));
+                        formazione.panchinari = panchinaRows.map(row => {
+                            const cells = Array.from(row.querySelectorAll('td'));
+                            if (cells.length >= 6) {
+                                // Estrai ruolo e nome separatamente
+                                const ruoloNomeText = cells[0]?.textContent?.trim() || '';
+                                const nomeText = cells[1]?.textContent?.trim() || '';
+                                
+                                // Separa ruolo e nome se sono nella stessa cella
+                                let ruolo = '';
+                                let nome = '';
+                                
+                                if (ruoloNomeText && !nomeText) {
+                                    // Se c'è solo la prima cella, prova a separare ruolo e nome
+                                    const parts = ruoloNomeText.split('\\n').filter(p => p.trim());
+                                    if (parts.length >= 2) {
+                                        ruolo = parts[0].trim();
+                                        nome = parts.slice(1).join(' ').trim();
+                                    } else {
+                                        ruolo = ruoloNomeText;
+                                        nome = '';
+                                    }
+                                } else {
+                                    ruolo = ruoloNomeText;
+                                    nome = nomeText;
+                                }
+                                
+                                // Estrai bonus dall'icona - migliorato
+                                const bonusIcon = cells[2]?.querySelector('img.icon.match-icon, img[src*=".png"], img[src*=".jpg"], img[src*=".gif"]');
+                                let bonus = 'N/A';
+                                let bonusImageName = '';
+                                
+                                if (bonusIcon) {
+                                    const bonusSrc = bonusIcon.src || '';
+                                    bonusImageName = bonusSrc.split('/').pop() || '';
+                                    
+                                    const bonusText = Object.keys(bonusMapping).find(key => bonusSrc.includes(key));
+                                    if (bonusText) {
+                                        bonus = bonusMapping[bonusText];
+                                    } else if (bonusImageName) {
+                                        bonus = bonusImageName.replace(/\.(png|jpg|gif)$/i, '').toUpperCase();
+                                    }
+                                    
+                                    console.log(`🎯 Bonus trovato: ${bonus} (immagine: ${bonusImageName})`);
+                                }
+                                
+                                // Estrai voto
+                                const votoEl = cells[3]?.querySelector('.vote');
+                                const voto = votoEl ? votoEl.textContent.trim() : '';
+                                
+                                // Estrai fantavoto
+                                const fantavotoEl = cells[4]?.querySelector('.total');
+                                const fantavoto = fantavotoEl ? fantavotoEl.textContent.trim() : '';
+                                
+                                // Migliora logica per "In Campo" - solo se ha voto valido
+                                const inCampoEl = cells[5]?.querySelector('.mantra-pos');
+                                const hasVoto = voto && voto !== '-' && voto !== 's.v.' && voto !== '';
+                                const inCampo = hasVoto && inCampoEl ? inCampoEl.getAttribute('data-malus') === '0' : false;
+                                
+                                return {
+                                    ruolo: ruolo,
+                                    nome: nome,
+                                    bonus: bonus,
+                                    voto: voto,
+                                    fantavoto: fantavoto,
+                                    in_campo: inCampo
+                                };
+                            } else if (cells.length >= 2) {
+                                return {
+                                    ruolo: cells[0]?.textContent?.trim() || '',
+                                    nome: cells[1]?.textContent?.trim() || '',
+                                    bonus: 'N/A',
+                                    voto: '',
+                                    fantavoto: '',
+                                    in_campo: false
+                                };
+                            }
+                            return null;
+                        }).filter(Boolean);
+                        
+                        console.log(`✅ Panchina: ${formazione.panchinari.length} giocatori`);
+                    }
+                    
+                    // Estrai altri punti (otherScoresTable)
+                    const altriPuntiTable = squadraDiv.querySelector('#otherScoresTable');
+                    if (altriPuntiTable) {
+                        const altriPuntiRows = Array.from(altriPuntiTable.querySelectorAll('tbody tr'));
+                        formazione.altri_punti = altriPuntiRows.map(row => {
+                            const cells = Array.from(row.querySelectorAll('td'));
+                            if (cells.length >= 2) {
+                                return {
+                                    descrizione: cells[0]?.textContent?.trim() || '',
+                                    punti: cells[1]?.textContent?.trim() || ''
+                                };
+                            }
+                            return null;
+                        }).filter(Boolean);
+                        
+                        console.log(`✅ Altri punti: ${formazione.altri_punti.length} elementi`);
+                    }
+                    
+                    // Estrai totale (totalTable)
+                    const totaleTable = squadraDiv.querySelector('#totalTable');
+                    if (totaleTable) {
+                        const totaleRow = totaleTable.querySelector('tbody tr');
+                        if (totaleRow) {
+                            const cells = Array.from(totaleRow.querySelectorAll('td'));
+                            if (cells.length >= 2) {
+                                formazione.totale = {
+                                    descrizione: cells[0]?.textContent?.trim() || '',
+                                    punti: cells[1]?.textContent?.trim() || ''
+                                };
+                            }
+                        }
+                        
+                        console.log(`✅ Totale: ${formazione.totale ? 'trovato' : 'non trovato'}`);
+                    }
+                    
+                    // Aggiungi la formazione solo se ha almeno titolari o panchina
+                    if (formazione.titolari.length > 0 || formazione.panchinari.length > 0) {
+                        formazioni.push(formazione);
+                        console.log(`✅ Formazione aggiunta per ${formazione.squadra}`);
+                    } else {
+                        console.log(`⚠️ Nessun giocatore trovato per ${formazione.squadra}`);
+                    }
+                });
+
+                console.log(`🎯 Formazioni estratte: ${formazioni.length} squadre trovate`);
+                formazioni.forEach((f, i) => {
+                    console.log(`  Squadra ${i + 1}: ${f.squadra} (${f.tipo_squadra}) - ${f.titolari.length} titolari, ${f.panchinari.length} panchina`);
                 });
                 
                 return formazioni;
+            }, giornata);
+            
+            console.log(`✅ Formazioni estratte: ${formazioniData.length} squadre trovate`);
+            formazioniData.forEach((f, i) => {
+                console.log(`  Squadra ${i + 1}: ${f.squadra} (${f.tipo_squadra}) - ${f.titolari.length} titolari, ${f.panchinari.length} panchina`);
             });
             
-            console.log(`✅ Formazioni estratte: ${formazioniData.length} formazioni trovate`);
             return formazioniData;
-            
         } catch (error) {
             console.error('❌ Errore scraping formazioni:', error);
             throw error;
@@ -971,8 +1760,16 @@ class PlaywrightScraper {
                 console.log(`📊 Scraping formazioni: ${scrapingUrls.formazioni}`);
                 try {
                     // Estrai la giornata dall'URL se presente
-                    const giornata = scrapingUrls.formazioni.match(/\/(\d+)$/)?.[1] || null;
-                    results.formazioni = await this.scrapeFormazioni(scrapingUrls.formazioni, giornata);
+                    const giornata = scrapingUrls.formazioni.match(/\/formazioni\/(\d+)/)?.[1] || null;
+                    
+                    // Costruisci l'URL corretto se abbiamo torneo e giornata
+                    let formazioniUrl = scrapingUrls.formazioni;
+                    if (giornata && selectedTournament) {
+                        formazioniUrl = `${this.leagueUrl}/formazioni/${giornata}?id=${selectedTournament}`;
+                        console.log(`🌐 URL formazioni aggiornato: ${formazioniUrl}`);
+                    }
+                    
+                    results.formazioni = await this.scrapeFormazioni(formazioniUrl, giornata);
                     console.log('✅ Formazioni completate');
                 } catch (error) {
                     console.error('❌ Errore scraping formazioni:', error.message);
@@ -1109,6 +1906,10 @@ class PlaywrightScraper {
             }
             
             console.log(`✅ Database scraping aggiornato: ${squadreSalvate} squadre, ${giocatoriSalvati} giocatori`);
+            
+            // Sincronizza QA/QI nella tabella principale
+            await this.syncQAQIGiocatoriMainTable(legaId, roseData);
+            
                 return {
                 success: true,
                 squadre_salvate: squadreSalvate,
@@ -1187,11 +1988,11 @@ class PlaywrightScraper {
                 fvMp: giocatore.fvMp
             });
             
-            // Corretto: squadra_reale = giocatore.quotazione (nome squadra reale), quotazione = parseFloat(giocatore.squadra) (valore numerico)
-            const squadraReale = giocatore.quotazione;
-            const quotazione = parseFloat(giocatore.squadra) || 1.0;
-            const qi = parseFloat(giocatore.qi) || 0;
-            const fvMp = giocatore.fvMp || '0';
+            // Mapping corretto dei dati
+            const squadraReale = giocatore.squadra; // squadra reale
+            const quotazione = parseFloat(giocatore.quotazione) || 1.0; // quotazione (QA)
+            const qi = parseFloat(giocatore.qi) || 0; // QI
+            const fvMp = giocatore.fvMp || '0'; // FV MP
             
             // Debug dei dati processati
             console.log('🔍 DEBUG dati processati:', {
@@ -1346,8 +2147,21 @@ class PlaywrightScraper {
                         
                         classificaData.forEach((posizione, index) => {
                             db.run(
-                                'INSERT INTO classifica_scraping (lega_id, posizione, squadra, punti, partite, data_scraping, fonte_scraping) VALUES (?, ?, ?, ?, ?, datetime("now"), "playwright")',
-                                [legaId, posizione.posizione, posizione.squadra, posizione.punti, posizione.partite],
+                                'INSERT INTO classifica_scraping (lega_id, posizione, squadra, punti, partite, vittorie, pareggi, sconfitte, gol_fatti, gol_subiti, differenza_reti, punti_totali, data_scraping, fonte_scraping) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime("now"), "playwright")',
+                                [
+                                    legaId, 
+                                    posizione.posizione, 
+                                    posizione.squadra, 
+                                    posizione.punti || 0, 
+                                    posizione.partite || 0,
+                                    posizione.vittorie || 0,
+                                    posizione.pareggi || 0,
+                                    posizione.sconfitte || 0,
+                                    posizione.golFatti || 0,
+                                    posizione.golSubiti || 0,
+                                    posizione.differenzaReti || 0,
+                                    posizione.puntiTotali || 0
+                                ],
                                 function(err) {
                                     if (err) {
                                         console.error('❌ Errore inserimento posizione:', err);
@@ -1410,12 +2224,15 @@ class PlaywrightScraper {
                         }
                         
                         formazioniData.forEach((formazione, index) => {
-                            const titolari = formazione.titolari ? formazione.titolari.join(', ') : '';
-                            const panchinari = formazione.panchinari ? formazione.panchinari.join(', ') : '';
+                            // Salva tutti i dati dei titolari (oggetti completi con ruolo, nome, bonus, voto, fantavoto, in_campo)
+                            const titolari = JSON.stringify(formazione.titolari || []);
+                            
+                            // Salva tutti i dati della panchina (oggetti completi con ruolo, nome, bonus, voto, fantavoto, in_campo)
+                            const panchinari = JSON.stringify(formazione.panchinari || []);
                             
                             db.run(
-                                'INSERT INTO formazioni_scraping (lega_id, squadra, modulo, titolari, panchinari, giornata, data_scraping, fonte_scraping) VALUES (?, ?, ?, ?, ?, ?, datetime("now"), "playwright")',
-                                [legaId, formazione.squadra, formazione.modulo, titolari, panchinari, formazione.giornata || 1],
+                                'INSERT INTO formazioni_scraping (lega_id, squadra, modulo, titolari, panchinari, giornata, tipo_squadra, data_scraping, fonte_scraping) VALUES (?, ?, ?, ?, ?, ?, ?, datetime("now"), "playwright")',
+                                [legaId, formazione.squadra, formazione.modulo, titolari, panchinari, formazione.giornata || 1, formazione.tipo_squadra],
                                 function(err) {
                                     if (err) {
                                         console.error('❌ Errore inserimento formazione:', err);
@@ -1619,226 +2436,271 @@ class PlaywrightScraper {
     async getAvailableTournaments() {
         try {
             console.log('🔍 Recupero tornei disponibili...');
-            console.log('🔍 leagueUrl corrente:', this.leagueUrl);
-            console.log('🔍 tipoLega corrente:', this.tipoLega);
             
             if (!this.leagueUrl) {
-                console.error('❌ leagueUrl non impostata!');
                 throw new Error('leagueUrl non impostata');
+            }
+            
+            // Per Serie A Classic, naviga alla pagina delle competizioni
+            if (this.tipoLega === 'serie_a') {
+                console.log('🏆 Serie A Classic rilevata, navigo alla pagina delle competizioni...');
+                
+                const competitionsUrl = `${this.leagueUrl}/lista-competizioni`;
+                console.log(`📍 Navigazione a: ${competitionsUrl}`);
+                
+                await this.page.goto(competitionsUrl, {
+                    waitUntil: 'domcontentloaded',
+                    timeout: 15000
+                });
+                
+                // Gestisci popup se necessario
+                try {
+                    await this.acceptAllPrivacyPopups();
+                } catch (error) {
+                    console.log('⚠️ Errore gestione popup:', error.message);
+                }
+                
+                // Attendi un po' per il caricamento
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Estrai i tornei dalla pagina delle competizioni
+                const tournaments = await this.page.evaluate(() => {
+                    console.log('🔍 Inizio estrazione tornei dalle sezioni corrette per Serie A...');
+                    const tournaments = [];
+                    
+                    try {
+                        // Cerca direttamente i link con class="competition-name" che sono i tornei
+                        const competitionLinks = document.querySelectorAll('a.competition-name');
+                        console.log(`🔍 Trovati ${competitionLinks.length} link competition-name`);
+                        
+                        competitionLinks.forEach((link, linkIndex) => {
+                            const text = link.textContent?.trim();
+                            const href = link.getAttribute('href');
+                            const title = link.getAttribute('title');
+                            
+                            console.log(`🔍 Link ${linkIndex}: "${text}" -> ${href} (title: "${title}")`);
+                            
+                            if (text && href && text.length > 2) {
+                                // Estrai ID dall'URL del link
+                                let id = null;
+                                
+                                // Pattern: /dettaglio-competizione/12296?id=12296
+                                const urlMatch = href.match(/\/dettaglio-competizione\/(\d+)/);
+                                if (urlMatch) {
+                                    id = urlMatch[1];
+                                } else {
+                                    // Fallback: cerca parametro id
+                                    const idMatch = href.match(/[?&]id=(\d+)/);
+                                    if (idMatch) {
+                                        id = idMatch[1];
+                                    }
+                                }
+                                
+                                if (id) {
+                                    console.log(`🔍 ✅ ID estratto: ${id} per "${text}"`);
+                                    
+                                    // Verifica che non sia già stato aggiunto
+                                    const alreadyExists = tournaments.find(t => t.id === id);
+                                    if (!alreadyExists) {
+                                        tournaments.push({
+                                            id: id,
+                                            name: text,
+                                            url: href,
+                                            source: 'competition_name_link',
+                                            className: link.className || ''
+                                        });
+                                        console.log(`🔍 ✅ Torneo aggiunto: ${text} (ID: ${id})`);
+                                    } else {
+                                        console.log(`🔍 ⚠️ Torneo già presente: ${text} (ID: ${id})`);
+                                    }
+                                } else {
+                                    console.log(`🔍 ❌ Nessun ID trovato per: "${text}"`);
+                                }
+                            }
+                        });
+                        
+                        // Se non abbiamo trovato link competition-name, prova con il fallback generico
+                        if (tournaments.length === 0) {
+                            console.log('🔍 Nessun link competition-name trovato, uso fallback generico...');
+                            
+                            // Cerca tutti i link che potrebbero essere tornei
+                            const allLinks = document.querySelectorAll('a[href*="dettaglio-competizione"]');
+                            console.log(`🔍 Trovati ${allLinks.length} link con dettaglio-competizione`);
+                            
+                            allLinks.forEach((link, linkIndex) => {
+                                const text = link.textContent?.trim();
+                                const href = link.getAttribute('href');
+                                
+                                console.log(`🔍 Link ${linkIndex}: "${text}" -> ${href}`);
+                                
+                                if (text && href && text.length > 2) {
+                                    // Escludi link che non sono tornei
+                                    const excludePatterns = [
+                                        'impostazioni', 'crea', 'riordina', 'classifica', 
+                                        'formazioni', 'calendario', 'regole', 'dettaglio',
+                                        'visualizza', 'modifica', 'elimina'
+                                    ];
+                                    
+                                    const isExcluded = excludePatterns.some(pattern => 
+                                        text.toLowerCase().includes(pattern) || 
+                                        href.toLowerCase().includes(pattern)
+                                    );
+                                    
+                                    if (!isExcluded) {
+                                        // Estrai ID dall'URL del link
+                                        let id = null;
+                                        
+                                        // Pattern: /dettaglio-competizione/12296?id=12296
+                                        const urlMatch = href.match(/\/dettaglio-competizione\/(\d+)/);
+                                        if (urlMatch) {
+                                            id = urlMatch[1];
+                                        } else {
+                                            // Fallback: cerca parametro id
+                                            const idMatch = href.match(/[?&]id=(\d+)/);
+                                            if (idMatch) {
+                                                id = idMatch[1];
+                                            }
+                                        }
+                                        
+                                        if (id) {
+                                            console.log(`🔍 ✅ ID estratto: ${id} per "${text}"`);
+                                            
+                                            // Verifica che non sia già stato aggiunto
+                                            const alreadyExists = tournaments.find(t => t.id === id);
+                                            if (!alreadyExists) {
+                                                tournaments.push({
+                                                    id: id,
+                                                    name: text,
+                                                    url: href,
+                                                    source: 'dettaglio_competizione_link',
+                                                    className: link.className || ''
+                                                });
+                                                console.log(`🔍 ✅ Torneo aggiunto: ${text} (ID: ${id})`);
+                                            } else {
+                                                console.log(`🔍 ⚠️ Torneo già presente: ${text} (ID: ${id})`);
+                                            }
+                                        } else {
+                                            console.log(`🔍 ❌ Nessun ID trovato per: "${text}"`);
+                                        }
+                                    } else {
+                                        console.log(`🔍 ❌ Link escluso: "${text}" (pattern escluso)`);
+                                    }
+                                }
+                            });
+                        }
+                        
+                        console.log(`🔍 Totale tornei estratti: ${tournaments.length}`);
+                        
+                    } catch (error) {
+                        console.error('❌ Errore durante estrazione tornei:', error);
+                    }
+                    
+                    return tournaments;
+                });
+                
+                console.log(`✅ Tornei estratti da Serie A: ${tournaments.length} trovati`);
+                tournaments.forEach(t => {
+                    console.log(`  - ${t.name} (ID: ${t.id}) [${t.source}]`);
+                });
+                
+                return tournaments;
             }
             
             // Per Euroleghe Mantra, cerca i tornei direttamente nella pagina principale
             if (this.tipoLega === 'euroleghe') {
                 console.log('🏆 Euroleghe Mantra rilevata, cerco tornei nella pagina principale...');
                 
-                // Vai alla pagina principale della lega
+                // Naviga alla pagina principale della lega
                 await this.page.goto(this.leagueUrl, {
-                    waitUntil: 'networkidle',
-                    timeout: 30000
+                    waitUntil: 'domcontentloaded',
+                    timeout: 15000
                 });
                 
-                await this.acceptAllPrivacyPopups();
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                // Gestisci popup se necessario
+                try {
+                    await this.acceptAllPrivacyPopups();
+                } catch (error) {
+                    console.log('⚠️ Errore gestione popup:', error.message);
+                }
                 
+                // Attendi un po' per il caricamento
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Estrai i tornei dalla pagina con logica corretta per le sezioni
                 const tournaments = await this.page.evaluate(() => {
+                    console.log('🔍 Inizio estrazione tornei dalle sezioni corrette per Euroleghe...');
                     const tournaments = [];
                     
-                    console.log('🔍 Analisi pagina principale Euroleghe per tornei...');
-                    
-                    // Cerca dropdown o menu delle competizioni nella pagina principale
-                    const selectors = [
-                        '.competition-list',
-                        '.tournament-select',
-                        '.league-select',
-                        'select[name*="competition"]',
-                        'select[name*="tournament"]',
-                        'select[name*="league"]',
-                        '.dropdown-menu',
-                        '.competition-dropdown',
-                        '[data-toggle="dropdown"]'
-                    ];
-                    
-                    let competitionElement = null;
-                    for (const selector of selectors) {
-                        competitionElement = document.querySelector(selector);
-                        if (competitionElement) {
-                            console.log(`✅ Trovato elemento competizioni con selector: ${selector}`);
-                            break;
-                        }
-                    }
-                    
-                    if (!competitionElement) {
-                        console.log('❌ Nessun dropdown competizioni trovato nella pagina principale');
-                        
-                        // Prova a cercare link che potrebbero essere tornei
-                        const allLinks = document.querySelectorAll('a');
-                        allLinks.forEach(link => {
-                            const href = link.href;
-                            const text = link.textContent?.trim();
-                            
-                            if (href && text && text.length > 2 && text.length < 50) {
-                                // Se il link sembra essere un torneo
-                                if (href.includes('id=') || href.includes('tournament') || href.includes('competition')) {
-                                    console.log(`🔍 Link potenziale torneo: ${text} -> ${href}`);
-                                    // Estrai ID dal link se possibile
-                                    const urlParams = new URLSearchParams(href.split('?')[1] || '');
-                                    const id = urlParams.get('id') || 'unknown';
-                                    
-                                    tournaments.push({
-                                        id: id,
-                                        name: text,
-                                        url: href
-                                    });
+                    try {
+                        // Cerca la sezione competition-list che contiene i tornei
+                        const competitionList = document.querySelector('.competition-list');
+                        if (competitionList) {
+                            console.log('🔍 ✅ Sezione competition-list trovata');
+                            // Prendi solo i link figli di <li class="dropdown-item">
+                            const items = competitionList.querySelectorAll('li.dropdown-item > a');
+                            console.log(`🔍 Trovati ${items.length} link in dropdown-item`);
+                            items.forEach((link, index) => {
+                                const text = link.textContent?.trim();
+                                const href = link.getAttribute('href');
+                                const className = link.className || '';
+                                const dataId = link.getAttribute('data-id');
+                                
+                                // Escludi elementi che non sono tornei
+                                const excludeTexts = [
+                                    'topleague', 'archivio', 'nemeneme', 'classic', 'mantra', 
+                                    'impostazioni', 'crea', 'riordina', 'admin', 'settings'
+                                ];
+                                
+                                const isExcluded = excludeTexts.some(excludeText => 
+                                    text && text.toLowerCase().includes(excludeText)
+                                );
+                                
+                                // Prendi solo link con href="#" e data-id numerico e non esclusi
+                                if (href === '#' && dataId && /^\d+$/.test(dataId) && !isExcluded) {
+                                    // Verifica che non sia già stato aggiunto
+                                    const alreadyExists = tournaments.find(t => t.id === dataId);
+                                    if (!alreadyExists) {
+                                        tournaments.push({
+                                            id: dataId,
+                                            name: text,
+                                            url: href,
+                                            source: 'competition_list_euroleghe',
+                                            className: className
+                                        });
+                                        console.log(`�� ✅ Torneo aggiunto: ${text} (ID: ${dataId})`);
+                                    }
+                                } else {
+                                    console.log(`🔍 ❌ Link escluso: "${text}" href="${href}" data-id="${dataId}" excluded=${isExcluded}`);
                                 }
-                            }
-                        });
+                            });
+                        } else {
+                            console.log('🔍 ❌ Sezione competition-list non trovata');
+                        }
                         
-                        return tournaments;
+                        console.log(`🔍 Totale tornei estratti: ${tournaments.length}`);
+                        
+                    } catch (error) {
+                        console.error('❌ Errore durante estrazione tornei:', error);
                     }
                     
-                    // Analizza il dropdown trovato
-                    const dropdownItems = competitionElement.querySelectorAll('option, .dropdown-item, li');
-                    console.log(`📋 Trovati ${dropdownItems.length} elementi nel dropdown`);
-                    
-                    dropdownItems.forEach((item, index) => {
-                        const value = item.value || item.getAttribute('data-id');
-                        const text = item.textContent?.trim();
-                        const href = item.href || item.getAttribute('href');
-                        
-                        console.log(`🔍 Elemento ${index}: Value=${value}, Text="${text}", Href="${href}"`);
-                        
-                        // Filtra elementi che non sono competizioni reali
-                        if (!text || text.length < 2) {
-                            console.log(`⚠️ Elemento ${index}: testo mancante, saltato`);
-                            return;
-                        }
-                        
-                        // Escludi elementi di amministrazione e creazione
-                        const isAdminElement = text.toLowerCase().includes('impostazioni') ||
-                                             text.toLowerCase().includes('crea') ||
-                                             text.toLowerCase().includes('riordina') ||
-                                             text.toLowerCase().includes('seleziona');
-                        
-                        if (isAdminElement) {
-                            console.log(`⚠️ Elemento ${index}: elemento amministrativo, saltato`);
-                            return;
-                        }
-                        
-                        // Usa value come ID se disponibile, altrimenti genera un ID
-                        const tournamentId = value || `tournament_${index}`;
-                        
-                        console.log(`✅ Torneo valido trovato: ${text} (ID: ${tournamentId})`);
-                        tournaments.push({
-                            id: tournamentId,
-                            name: text,
-                            url: href || '#'
-                        });
-                    });
-                    
-                    console.log(`✅ Totale tornei trovati: ${tournaments.length}`);
                     return tournaments;
                 });
                 
                 console.log(`✅ Tornei estratti da Euroleghe: ${tournaments.length} trovati`);
                 tournaments.forEach(t => {
-                    console.log(`  - ${t.name} (ID: ${t.id})`);
+                    console.log(`  - ${t.name} (ID: ${t.id}) [${t.source}]`);
                 });
                 
                 return tournaments;
             }
             
-            // Per Serie A Classic, usa il metodo originale
-            console.log('🏆 Serie A Classic rilevata, uso metodo originale...');
-            
-            // Costruisci l'URL delle competizioni
-            const competitionsUrl = this.leagueUrl.replace(/\/[^\/]*$/, '/lista-competizioni');
-            console.log(`📍 Navigazione a: ${competitionsUrl}`);
-            
-            await this.page.goto(competitionsUrl, {
-                waitUntil: 'networkidle',
-                timeout: 30000
-            });
-            
-            await this.acceptAllPrivacyPopups();
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            
-            const tournaments = await this.page.evaluate(() => {
-                const tournaments = [];
-                
-                console.log('🔍 Analisi dropdown competizioni...');
-                
-                // Cerca il dropdown delle competizioni
-                const competitionDropdown = document.querySelector('.competition-list');
-                if (!competitionDropdown) {
-                    console.log('❌ Dropdown competizioni non trovato');
-                    return tournaments;
-                }
-                
-                console.log('✅ Dropdown competizioni trovato');
-                
-                // Analizza tutti gli elementi del dropdown
-                const dropdownItems = competitionDropdown.querySelectorAll('.dropdown-item');
-                console.log(`📋 Trovati ${dropdownItems.length} elementi nel dropdown`);
-                
-                dropdownItems.forEach((item, index) => {
-                    const link = item.querySelector('a');
-                    if (!link) {
-                        console.log(`⚠️ Elemento ${index}: link non trovato`);
-                        return;
-                    }
-                    
-                    const tournamentId = link.getAttribute('data-id');
-                    const tournamentName = link.textContent?.trim();
-                    const href = link.getAttribute('href');
-                    
-                    console.log(`🔍 Elemento ${index}: ID=${tournamentId}, Nome="${tournamentName}", Href="${href}"`);
-                    
-                    // Filtra elementi che non sono competizioni reali
-                    if (!tournamentId || !tournamentName) {
-                        console.log(`⚠️ Elemento ${index}: dati mancanti, saltato`);
-                        return;
-                    }
-                    
-                    // Escludi elementi di amministrazione e creazione
-                    const isAdminElement = link.classList.contains('no-competition') || 
-                                         tournamentName.toLowerCase().includes('impostazioni') ||
-                                         tournamentName.toLowerCase().includes('crea') ||
-                                         tournamentName.toLowerCase().includes('riordina');
-                    
-                    if (isAdminElement) {
-                        console.log(`⚠️ Elemento ${index}: elemento amministrativo, saltato`);
-                        return;
-                    }
-                    
-                    // Verifica che sia un ID numerico valido
-                    const numericId = parseInt(tournamentId);
-                    if (isNaN(numericId)) {
-                        console.log(`⚠️ Elemento ${index}: ID non numerico (${tournamentId}), saltato`);
-                        return;
-                    }
-                    
-                    console.log(`✅ Torneo valido trovato: ${tournamentName} (ID: ${tournamentId})`);
-                    tournaments.push({
-                        id: tournamentId,
-                        name: tournamentName,
-                        url: href || '#'
-                    });
-                });
-                
-                console.log(`✅ Totale tornei trovati: ${tournaments.length}`);
-                return tournaments;
-            });
-            
-            console.log(`✅ Tornei estratti da Serie A: ${tournaments.length} trovati`);
-            tournaments.forEach(t => {
-                console.log(`  - ${t.name} (ID: ${t.id})`);
-            });
-            
-            return tournaments;
+            // Fallback: logica generica per altri tipi di lega
+            console.log('⚠️ Tipo lega non riconosciuto, uso logica generica...');
+            return [];
             
         } catch (error) {
-            console.error('❌ Errore recupero tornei:', error);
-            throw error;
+            console.error('❌ Errore nel recupero tornei:', error);
+            return [];
         }
     }
 
@@ -1887,6 +2749,89 @@ class PlaywrightScraper {
         
         console.log('🔧 Stato finale - leagueUrl:', this.leagueUrl, 'tipoLega:', this.tipoLega);
         return this.tipoLega;
+    }
+
+    // Funzione per raccogliere tutte le immagini dei bonus
+    async collectBonusImages(formazioniUrl, giornata = null) {
+        try {
+            console.log(`🔍 Raccolta immagini bonus da: ${formazioniUrl}`);
+            
+            const urlCompleto = formazioniUrl.includes('/formazioni/') 
+                ? formazioniUrl 
+                : (giornata ? `${formazioniUrl}/${giornata}` : formazioniUrl);
+            
+            await this.page.goto(urlCompleto, {
+                waitUntil: 'domcontentloaded',
+                timeout: 30000
+            });
+            
+            await this.acceptAllPrivacyPopups();
+            await this.page.waitForTimeout(3000);
+            
+            const bonusImages = await this.page.evaluate(() => {
+                const bonusData = [];
+                
+                // Cerca tutte le immagini nei contenitori delle formazioni
+                const formazioniContainer = document.querySelector('.tab-content.transfers-tab-content.no-border.loading-box');
+                if (formazioniContainer) {
+                    // Cerca tutte le immagini che potrebbero essere bonus
+                    const allImages = formazioniContainer.querySelectorAll('img[src*=".png"], img[src*=".jpg"], img[src*=".gif"]');
+                    
+                    allImages.forEach(img => {
+                        const src = img.src;
+                        const alt = img.alt || '';
+                        const title = img.title || '';
+                        const className = img.className || '';
+                        
+                        if (src) {
+                            const imageName = src.split('/').pop();
+                            const imageUrl = src;
+                            
+                            // Estrai informazioni dal nome del file o attributi
+                            let bonusName = '';
+                            if (alt) bonusName = alt;
+                            else if (title) bonusName = title;
+                            else if (imageName) {
+                                // Prova a estrarre il nome dal nome del file
+                                const nameWithoutExt = imageName.replace(/\.[^/.]+$/, '');
+                                bonusName = nameWithoutExt.replace(/[_-]/g, ' ').toUpperCase();
+                            }
+                            
+                            // Filtra solo immagini che sembrano essere bonus (piccole, con nomi specifici)
+                            if (imageName && (imageName.includes('bonus') || imageName.includes('gol') || 
+                                imageName.includes('assist') || imageName.includes('amm') || 
+                                imageName.includes('esp') || imageName.includes('aut') ||
+                                imageName.includes('par') || imageName.includes('vit') ||
+                                alt.toLowerCase().includes('bonus') || title.toLowerCase().includes('bonus'))) {
+                                
+                                bonusData.push({
+                                    name: bonusName || imageName,
+                                    image_url: imageUrl,
+                                    file_name: imageName,
+                                    alt: alt,
+                                    title: title,
+                                    class: className
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                // Rimuovi duplicati basati sull'URL
+                const uniqueBonus = bonusData.filter((bonus, index, self) => 
+                    index === self.findIndex(b => b.image_url === bonus.image_url)
+                );
+                
+                return uniqueBonus;
+            });
+            
+            console.log('🎯 Bonus images trovate:', bonusImages);
+            return bonusImages;
+            
+        } catch (error) {
+            console.error('❌ Errore raccolta immagini bonus:', error);
+            throw error;
+        }
     }
 }
 

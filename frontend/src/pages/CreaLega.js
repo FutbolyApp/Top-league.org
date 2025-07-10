@@ -338,7 +338,14 @@ const CreaLega = () => {
         navigate('/area-admin');
       }, 2000);
     } catch (err) {
-      setError(err.message);
+      // Gestione specifica per nome duplicato
+      if (err.message && err.message.includes('Nome lega duplicato')) {
+        setError('Esiste già una lega con questo nome. Scegli un nome diverso.');
+      } else if (err.message && err.message.includes('Esiste già una lega con questo nome')) {
+        setError('Esiste già una lega con questo nome. Scegli un nome diverso.');
+      } else {
+        setError(err.message || 'Errore durante la creazione della lega');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -469,7 +476,7 @@ const CreaLega = () => {
         <FormGroup>
           <Label>🔗 Configurazione Scraping Automatico (Opzionale)</Label>
           <small style={{ color: '#666', marginBottom: '1rem', display: 'block' }}>
-            Configura l'importazione automatica dei dati da Fantacalcio.it
+            Configura l'importazione automatica dei dati da una piattaforma esterna
           </small>
           
           <FormGroup>
@@ -477,12 +484,12 @@ const CreaLega = () => {
             <Input
               name="fantacalcio_url"
               type="url"
-              placeholder="https://www.fantacalcio.it/lega/..."
+              placeholder="https://esempio-url-piattaforma/lega/..."
               value={form.fantacalcio_url}
               onChange={handleChange}
             />
             <small style={{ color: '#666', marginTop: '0.5rem', display: 'block' }}>
-              L'URL della tua lega su Fantacalcio.it
+              L'URL della tua lega sulla piattaforma esterna
             </small>
           </FormGroup>
           
@@ -491,7 +498,7 @@ const CreaLega = () => {
             <Input
               name="fantacalcio_username"
               type="text"
-              placeholder="Il tuo username su Fantacalcio.it"
+              placeholder="Il tuo username sulla piattaforma esterna"
               value={form.fantacalcio_username}
               onChange={handleChange}
             />
@@ -502,7 +509,7 @@ const CreaLega = () => {
             <Input
               name="fantacalcio_password"
               type="password"
-              placeholder="La tua password su Fantacalcio.it"
+              placeholder="La tua password sulla piattaforma esterna"
               value={form.fantacalcio_password}
               onChange={handleChange}
             />

@@ -336,9 +336,9 @@ class FantacalcioScraper {
                         const giocatoreName = cells[1]?.textContent?.trim();
                         const giocatoreRuolo = cells[0]?.textContent?.trim();
                         const fvMp = cells[2]?.textContent?.trim();
-                        const giocatoreSquadra = cells[3]?.textContent?.trim();
-                        const qi = cells[cells.length-2]?.textContent?.trim(); // Penultima colonna
-                        const giocatoreQuotazione = cells[cells.length-1]?.textContent?.trim(); // Ultima colonna
+                        const giocatoreSquadra = cells[3]?.textContent?.trim(); // Squadra reale (colonna 3)
+                        const qi = cells[4]?.textContent?.trim(); // Q.acq. (colonna 4)
+                        const giocatoreQuotazione = cells[5]?.textContent?.trim(); // Q.att. (colonna 5)
                         
                         if (giocatoreName && giocatoreName.length > 2 && giocatoreName.length < 50) {
                             // Verifica che non sia un header o un nome di squadra
@@ -495,7 +495,7 @@ class FantacalcioScraper {
             
             console.log(`✅ Voti estratti: ${votiData.length} voti trovati`);
             return votiData;
-            
+
         } catch (error) {
             console.error('❌ Errore scraping voti:', error);
             throw error;
@@ -700,8 +700,8 @@ class FantacalcioScraper {
             const loginSuccess = await this.login(username, password);
             
             await this.close();
-            
-            return {
+                
+                return {
                 success: loginSuccess,
                 message: loginSuccess ? 
                     '✅ Login riuscito con Puppeteer' : 
@@ -1057,11 +1057,11 @@ class FantacalcioScraper {
             console.log(`🔍 DEBUG: Analisi struttura pagina ${url}`);
             
             await this.page.goto(url, {
-                waitUntil: 'networkidle2',
+                    waitUntil: 'networkidle2', 
                 timeout: 30000
-            });
+                });
             
-            await new Promise(resolve => setTimeout(resolve, 5000));
+                await new Promise(resolve => setTimeout(resolve, 5000));
             
             const pageStructure = await this.page.evaluate(() => {
                 const structure = {
@@ -1156,7 +1156,7 @@ class FantacalcioScraper {
             // Controlla se siamo ancora loggati cercando elementi che indicano login
             const loginStatus = await this.page.evaluate(() => {
                 try {
-                    const currentUrl = window.location.href;
+                const currentUrl = window.location.href;
                     
                     // Se siamo su leghe.fantacalcio.it, controlla elementi specifici
                     if (currentUrl.includes('leghe.fantacalcio.it')) {
@@ -1239,7 +1239,7 @@ class FantacalcioScraper {
             }
             
             console.log('❌ Errore controllo login:', error.message);
-            return false;
+                    return false;
         }
     }
 
@@ -1260,7 +1260,7 @@ class FantacalcioScraper {
             if (this.sessionCookies && this.sessionCookies.length > 0) {
                 await this.page.setCookie(...this.sessionCookies);
                 console.log(`🔄 Ripristinati ${this.sessionCookies.length} cookie di sessione`);
-                return true;
+                    return true;
             }
             return false;
         } catch (error) {
@@ -1276,9 +1276,9 @@ class FantacalcioScraper {
             // Controlla se siamo ancora loggati
             if (await this.isStillLoggedIn()) {
                 console.log('✅ Ancora loggato, continuo...');
-                return true;
-            }
-            
+                    return true;
+                }
+                
             console.log('❌ Non più loggato, rifaccio login...');
             
             // Ripristina i cookie salvati
@@ -1304,7 +1304,7 @@ class FantacalcioScraper {
                 console.log('❌ Login fallito');
                 return false;
             }
-            
+
         } catch (error) {
             console.error('❌ Errore ensureLoggedIn:', error);
             return false;
@@ -1406,7 +1406,7 @@ class FantacalcioScraper {
                 waitUntil: 'networkidle2',
                 timeout: 30000
             });
-            
+
             console.log('📄 Pagina della lega aperta, attendo login manuale...');
             
             // Attendi che l'utente faccia login
@@ -1534,7 +1534,7 @@ class FantacalcioScraper {
                         () => this.scrapeRose(scrapingUrls.rose, tournamentId)
                     );
                     console.log('✅ Rose completate');
-                } catch (error) {
+        } catch (error) {
                     console.error('❌ Errore scraping rose:', error.message);
                     results.rose = { error: error.message };
                 }
@@ -1720,7 +1720,7 @@ class FantacalcioScraper {
             });
             
             return tournaments;
-            
+
         } catch (error) {
             console.error('❌ Errore recupero tornei:', error);
             throw error;
@@ -1739,6 +1739,10 @@ class FantacalcioScraper {
             let updates = 0;
             let errors = 0;
             let historyLogs = 0;
+            let completedQueries = 0;
+            const totalQueries = roseData.reduce((total, squadra) => total + squadra.giocatori.length, 0);
+            
+            console.log(`[SYNC QA/QI] Inizio sincronizzazione per ${totalQueries} giocatori...`);
             
             for (const squadra of roseData) {
                 for (const giocatore of squadra.giocatori) {
@@ -1746,31 +1750,37 @@ class FantacalcioScraper {
                     const qa = parseFloat(giocatore.quotazione) || null;
                     const qi = giocatore.qi !== undefined ? parseFloat(giocatore.qi) : null;
                     
+                    console.log(`[SYNC QA/QI] Processando ${giocatore.nome}: QA=${qa}, QI=${qi}`);
+                    
                     // Prima ottieni il giocatore_id dalla tabella principale
                     db.get(
-                        'SELECT id, qa FROM giocatori WHERE lega_id = ? AND nome = ? AND squadra_reale = ?',
-                        [legaId, giocatore.nome, giocatore.squadra],
+                        'SELECT id, qa FROM giocatori WHERE lega_id = ? AND nome = ?',
+                        [legaId, giocatore.nome],
                         (err, row) => {
                             if (err) {
                                 errors++;
                                 console.error(`[SYNC QA/QI] Errore query per ${giocatore.nome}:`, err.message);
+                                completedQueries++;
+                                checkCompletion();
                                 return;
                             }
                             
                             if (row) {
+                                console.log(`[SYNC QA/QI] Giocatore trovato: ${giocatore.nome} (ID: ${row.id}), QA attuale: ${row.qa}`);
+                                
                                 // Aggiorna QA/QI nella tabella principale
                                 db.run(
                                     `UPDATE giocatori SET qa = ?, qi = ? WHERE id = ?`,
                                     [qa, qi, row.id],
-                                    function(err) {
-                                        if (err) {
-                                            errors++;
-                                            console.error(`[SYNC QA/QI] Errore aggiornamento per ${giocatore.nome}:`, err.message);
-                                        } else if (this.changes > 0) {
+                                    (err) => {
+                                        if (err) reject(err);
+                                        else {
                                             updates++;
+                                            console.log(`[SYNC QA/QI] ✅ ${giocatore.nome} aggiornato: QA=${qa}, QI=${qi}`);
                                             
                                             // Log storico QA se il valore è cambiato
                                             if (qa !== null && row.qa !== qa) {
+                                                console.log(`[SYNC QA/QI] 📈 QA cambiata per ${giocatore.nome}: ${row.qa} → ${qa}`);
                                                 db.run(
                                                     'INSERT INTO qa_history (giocatore_id, qa_value, fonte) VALUES (?, ?, ?)',
                                                     [row.id, qa, 'scraping'],
@@ -1779,24 +1789,32 @@ class FantacalcioScraper {
                                                             console.error(`[QA HISTORY] Errore logging per ${giocatore.nome}:`, err.message);
                                                         } else {
                                                             historyLogs++;
+                                                            console.log(`[QA HISTORY] ✅ Storico salvato per ${giocatore.nome}`);
                                                         }
                                                     }
                                                 );
                                             }
                                         }
+                                        completedQueries++;
+                                        checkCompletion();
                                     }
                                 );
+                            } else {
+                                console.log(`[SYNC QA/QI] ⚠️ Giocatore non trovato: ${giocatore.nome} (${giocatore.squadra})`);
+                                completedQueries++;
+                                checkCompletion();
                             }
                         }
                     );
                 }
             }
             
-            // Attendi un attimo per completare tutte le query
-            setTimeout(() => {
-                console.log(`[SYNC QA/QI] Aggiornati ${updates} giocatori, errori: ${errors}, log storici: ${historyLogs}`);
-                resolve({ updates, errors, historyLogs });
-            }, 1000);
+            function checkCompletion() {
+                if (completedQueries >= totalQueries) {
+                    console.log(`[SYNC QA/QI] ✅ Completato: ${updates} aggiornati, ${errors} errori, ${historyLogs} log storici`);
+                    resolve({ updates, errors, historyLogs });
+                }
+            }
         });
     }
 }

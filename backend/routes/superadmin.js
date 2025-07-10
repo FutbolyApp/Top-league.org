@@ -2,7 +2,7 @@ import express from 'express';
 import { getDb } from '../db/config.js';
 import { authenticateToken, generateToken, requireSuperAdmin } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
-import { getAllUtenti, updateUtente, deleteUtente } from '../models/utente.js';
+import { getAllUtenti, updateUtente, updateUtenteRole, deleteUtente } from '../models/utente.js';
 import { getAllLeghe, deleteLega } from '../models/lega.js';
 import { getAllSquadre, deleteSquadra } from '../models/squadra.js';
 import { getAllGiocatori, deleteGiocatore } from '../models/giocatore.js';
@@ -88,7 +88,7 @@ router.put('/users/:userId/role', authenticateToken, requireSuperAdmin, async (r
       return res.status(400).json({ error: 'Ruolo non valido' });
     }
     
-    updateUtente(userId, { ruolo }, (err, result) => {
+    updateUtenteRole(userId, ruolo, (err, result) => {
       if (err) return res.status(500).json({ error: 'Errore nell\'aggiornamento ruolo', details: err.message });
       res.json({ success: true, message: 'Ruolo aggiornato con successo' });
     });

@@ -5,9 +5,9 @@ import { useAuth } from '../components/AuthContext';
 import { getGiocatoreById, getQAHistory } from '../api/giocatori';
 import { getSquadraById } from '../api/squadre';
 import { getSquadreByLega } from '../api/leghe';
-import { creaOfferta } from '../api/offerte';
+import { creaOfferta, getLogGiocatore } from '../api/offerte';
 import { splitRoles, getRoleClass } from '../utils/roleUtils';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -33,16 +33,16 @@ const BackButton = styled.button`
 
 const Header = styled.div`
   background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 `;
 
 const PlayerTitle = styled.h1`
   color: #333;
-  margin: 0 0 1rem 0;
-  font-size: 2.5rem;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
   background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -51,29 +51,29 @@ const PlayerTitle = styled.h1`
 
 const PlayerInfo = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 `;
 
 const InfoCard = styled.div`
   background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 6px;
+  padding: 0.5rem;
   text-align: center;
 `;
 
 const InfoLabel = styled.div`
   color: #666;
-  font-size: 0.9rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 `;
 
 const InfoValue = styled.div`
   color: #333;
-  font-size: 1.5rem;
+  font-size: 0.9rem;
   font-weight: 700;
 `;
 
@@ -209,126 +209,129 @@ const PlayerRole = styled.span`
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 `;
 
 const StatCard = styled.div`
   background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  border-left: 4px solid ${props => props.color || '#667eea'};
+  padding: 0.5rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  text-align: center;
 `;
 
-const StatTitle = styled.h3`
-  margin: 0 0 0.5rem 0;
-  color: #666;
-  font-size: 0.9rem;
+const StatTitle = styled.div`
+  font-size: 0.6rem;
+  color: #86868b;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 `;
 
 const StatValue = styled.div`
-  font-size: 2rem;
-  font-weight: 700;
-  color: #333;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1d1d1f;
 `;
 
 const ContractSection = styled.div`
   background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  margin-bottom: 2rem;
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 0.5rem;
 `;
 
 const SectionTitle = styled.h2`
   color: #333;
-  margin: 0 0 2rem 0;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
 `;
 
 const ContractGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.5rem;
 `;
 
 const ContractCard = styled.div`
   background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: 6px;
+  padding: 0.5rem;
   text-align: center;
 `;
 
 const ContractLabel = styled.div`
   color: #666;
-  font-size: 0.9rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 `;
 
 const ContractValue = styled.div`
   color: #333;
-  font-size: 1.2rem;
+  font-size: 0.8rem;
   font-weight: 600;
 `;
 
 const OfferSection = styled.div`
   background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 `;
 
 const OfferForm = styled.form`
   background: #f8f9fa;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-top: 1rem;
+  border-radius: 6px;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
 `;
 
 const FormGroup = styled.div`
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 `;
 
 const Label = styled.label`
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
   color: #333;
   font-weight: 600;
+  font-size: 0.7rem;
 `;
 
 const Select = styled.select`
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.25rem;
   border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
   background: white;
 `;
 
 const Input = styled.input`
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.25rem;
   border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
 `;
 
 const SubmitButton = styled.button`
   background: linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%);
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.7rem;
   cursor: pointer;
   transition: transform 0.2s;
   
@@ -347,13 +350,13 @@ const ToggleButton = styled.button`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.7rem;
   cursor: pointer;
   transition: transform 0.2s;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   
   &:hover {
     transform: translateY(-1px);
@@ -361,54 +364,80 @@ const ToggleButton = styled.button`
 `;
 
 const Message = styled.div`
-  padding: 1rem;
-  border-radius: 8px;
-  margin-top: 1rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
   font-weight: 600;
+  font-size: 0.7rem;
   background: ${props => props.success ? '#d4edda' : '#f8d7da'};
   color: ${props => props.success ? '#155724' : '#721c24'};
+`;
+
+const QAHistorySection = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+`;
+
+const ChartContainer = styled.div`
+  height: 200px;
+  margin-top: 0.5rem;
+`;
+
+const NoDataMessage = styled.div`
+  text-align: center;
+  padding: 1rem;
+  color: #666;
+  font-style: italic;
+  font-size: 0.7rem;
 `;
 
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 400px;
-  font-size: 1.2rem;
-  color: #666;
+  padding: 2rem;
 `;
 
 const ErrorContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 400px;
-  font-size: 1.2rem;
+  min-height: 100px;
+  font-size: 0.8rem;
   color: #dc3545;
 `;
 
-const QAHistorySection = styled.div`
+const LogSection = styled.div`
   background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 `;
 
-const ChartContainer = styled.div`
-  height: 400px;
-  margin-top: 1rem;
-`;
-
-const NoDataMessage = styled.div`
-  text-align: center;
-  padding: 2rem;
-  color: #666;
-  font-style: italic;
-`;
+// Helper function per i colori delle operazioni
+const getOperationColor = (tipo) => {
+  switch (tipo) {
+    case 'trasferimento':
+      return '#28a745';
+    case 'prestito':
+      return '#ffc107';
+    case 'scambio':
+      return '#17a2b8';
+    case 'rinnovo':
+      return '#6f42c1';
+    case 'pagamento':
+      return '#fd7e14';
+    default:
+      return '#6c757d';
+  }
+};
 
 const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [giocatore, setGiocatore] = useState(null);
@@ -416,16 +445,22 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
   const [squadre, setSquadre] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [qaHistory, setQAHistory] = useState([]);
+  const [qaHistoryLoading, setQAHistoryLoading] = useState(false);
   const [showOfferta, setShowOfferta] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [offertaMsg, setOffertaMsg] = useState('');
   const [form, setForm] = useState({ 
     squadra_destinatario_id: '', 
     tipo: 'trasferimento', 
-    valore: '' 
+    valore: '',
+    richiesta_fm: '',
+    giocatore_scambio_id: ''
   });
-  const [offertaMsg, setOffertaMsg] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [qaHistory, setQaHistory] = useState([]);
-  const [qaHistoryLoading, setQaHistoryLoading] = useState(false);
+  const [logOperazioni, setLogOperazioni] = useState([]);
+  const [logLoading, setLogLoading] = useState(false);
+  const [userTeam, setUserTeam] = useState(null);
+  const [userTeamPlayers, setUserTeamPlayers] = useState([]);
 
   useEffect(() => {
     async function fetchGiocatore() {
@@ -435,44 +470,121 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
         const res = await getGiocatoreById(id, token);
         setGiocatore(res.giocatore);
         
+        // Carica la squadra del giocatore
         if (res.giocatore.squadra_id) {
           const squadraRes = await getSquadraById(res.giocatore.squadra_id, token);
           setSquadra(squadraRes.squadra);
-          if (setCurrentTeam) setCurrentTeam(squadraRes.squadra);
-        }
-        
-        const squadreRes = await getSquadreByLega(res.giocatore.lega_id, token);
+          
+          // Carica tutte le squadre della lega per le offerte
+          if (squadraRes.squadra.lega_id) {
+            const squadreRes = await getSquadreByLega(squadraRes.squadra.lega_id, token);
         setSquadre(squadreRes.squadre);
-        
-        // Recupera la cronologia QA
-        await fetchQAHistory();
+          }
+        }
       } catch (err) {
         setError(err.message);
       }
       setLoading(false);
     }
     if (token) fetchGiocatore();
-  }, [id, token, setCurrentTeam]);
+  }, [id, token]);
+
+  // useEffect separato per caricare la cronologia QA dopo che giocatore è stato caricato
+  useEffect(() => {
+    if (giocatore && token) {
+      fetchQAHistory();
+      fetchLogOperazioni();
+      fetchUserTeam();
+    }
+  }, [giocatore, token]);
 
   const fetchQAHistory = async () => {
-    setQaHistoryLoading(true);
+    setQAHistoryLoading(true);
     try {
       const history = await getQAHistory(id, token);
-      // Formatta i dati per il grafico
-      const formattedHistory = history.map(item => ({
-        ...item,
-        data: new Date(item.data_registrazione).toLocaleDateString('it-IT'),
-        qa_value: parseFloat(item.qa_value)
-      })).reverse(); // Inverti per mostrare cronologicamente
-      setQaHistory(formattedHistory);
+      
+      // Crea la cronologia della quotazione
+      const quotazioneHistory = [];
+      
+      // Aggiungi QI come primo punto (se disponibile)
+      if (giocatore.qi) {
+        quotazioneHistory.push({
+          data: 'QI Iniziale',
+          qa_value: parseFloat(giocatore.qi),
+          tipo: 'QI'
+        });
+      }
+      
+      // Aggiungi i dati storici QA, ma solo se sono diversi dal valore precedente
+      let lastValue = giocatore.qi ? parseFloat(giocatore.qi) : null;
+      
+      history.forEach(item => {
+        const currentValue = parseFloat(item.qa_value);
+        
+        // Aggiungi solo se il valore è cambiato rispetto al precedente
+        if (lastValue === null || currentValue !== lastValue) {
+          quotazioneHistory.push({
+            data: new Date(item.data_registrazione).toLocaleDateString('it-IT'),
+            qa_value: currentValue,
+            tipo: 'QA'
+          });
+          lastValue = currentValue;
+        }
+      });
+      
+      // Aggiungi QA attuale se è diverso dall'ultimo valore storico
+      if (giocatore.qa && quotazioneHistory.length > 0) {
+        const currentQA = parseFloat(giocatore.qa);
+        const lastHistoricalValue = quotazioneHistory[quotazioneHistory.length - 1].qa_value;
+        
+        if (currentQA !== lastHistoricalValue) {
+          quotazioneHistory.push({
+            data: 'Oggi',
+            qa_value: currentQA,
+            tipo: 'QA Attuale'
+          });
+        }
+      }
+      
+      setQAHistory(quotazioneHistory);
     } catch (err) {
       console.error('Errore nel recupero della cronologia QA:', err);
+      setQAHistory([]);
     }
-    setQaHistoryLoading(false);
+    setQAHistoryLoading(false);
+  };
+
+  const fetchLogOperazioni = async () => {
+    setLogLoading(true);
+    try {
+      const log = await getLogGiocatore(id, token);
+      setLogOperazioni(log);
+    } catch (err) {
+      console.error('Errore nel recupero del log operazioni:', err);
+      setLogOperazioni([]);
+    }
+    setLogLoading(false);
+  };
+
+  const fetchUserTeam = async () => {
+    try {
+      // Ottieni la squadra dell'utente nella lega del giocatore
+      const userTeamRes = await fetch(`http://localhost:3001/api/squadre/my-team/${giocatore.lega_id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (userTeamRes.ok) {
+        const userTeamData = await userTeamRes.json();
+        setUserTeam(userTeamData.squadra);
+        setUserTeamPlayers(userTeamData.giocatori || []);
+      }
+    } catch (err) {
+      console.error('Errore nel recupero della squadra utente:', err);
+    }
   };
 
   const formatMoney = (value) => {
-    if (!value) return 'FM 0';
+    if (!value || value === 'N/A') return 'FM 0';
+    if (typeof value === 'string') return `FM ${value}`;
     return `FM ${value.toLocaleString()}`;
   };
 
@@ -483,15 +595,20 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
     
     try {
       await creaOfferta({
-        lega_id: giocatore.lega_id,
-        squadra_mittente_id: giocatore.squadra_id,
-        squadra_destinatario_id: form.squadra_destinatario_id,
         giocatore_id: giocatore.id,
         tipo: form.tipo,
-        valore: form.valore
+        valore_offerta: parseInt(form.valore) || 0,
+        richiesta_fm: parseInt(form.richiesta_fm) || 0,
+        giocatore_scambio_id: form.giocatore_scambio_id || null
       }, token);
       setOffertaMsg('Offerta inviata con successo!');
-      setForm({ squadra_destinatario_id: '', tipo: 'trasferimento', valore: '' });
+      setForm({ 
+        squadra_destinatario_id: '', 
+        tipo: 'trasferimento', 
+        valore: '',
+        richiesta_fm: '',
+        giocatore_scambio_id: ''
+      });
       setShowOfferta(false);
     } catch (err) {
       setOffertaMsg(err.message);
@@ -504,22 +621,25 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
   }
 
   if (loading) return (
-    <Container>
-      <LoadingContainer>Caricamento giocatore...</LoadingContainer>
-    </Container>
+    <div style={{ padding: '20px', textAlign: 'center' }}>
+      Caricamento giocatore...
+    </div>
   );
 
   if (error) return (
-    <Container>
-      <ErrorContainer>Errore: {error}</ErrorContainer>
-    </Container>
+    <div style={{ padding: '20px', textAlign: 'center', color: '#dc3545' }}>
+      Errore: {error}
+    </div>
   );
 
   if (!giocatore) return (
-    <Container>
-      <ErrorContainer>Giocatore non trovato</ErrorContainer>
-    </Container>
+    <div style={{ padding: '20px', textAlign: 'center', color: '#dc3545' }}>
+      Giocatore non trovato
+    </div>
   );
+
+  // Helper per mostrare solo stringhe/numero
+  const safeText = (val) => (typeof val === 'string' || typeof val === 'number') ? val : 'N/A';
 
   return (
     <Container>
@@ -528,65 +648,78 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
       </BackButton>
       
       <Header>
-        <PlayerTitle>{giocatore.nome} {giocatore.cognome}</PlayerTitle>
+        <PlayerTitle>{safeText(giocatore.nome)} {giocatore.cognome ? safeText(giocatore.cognome) : ''}</PlayerTitle>
         
         <PlayerInfo>
           <InfoCard>
             <InfoLabel>Ruolo</InfoLabel>
             <InfoValue>
               <PlayerRole>
-                {splitRoles(giocatore.ruolo).map((ruolo, index) => (
-                  <span key={index} className={`ruolo-badge ${getRoleClass(ruolo)}`}>{ruolo}</span>
-                ))}
+                {Array.isArray(splitRoles(giocatore.ruolo)) && splitRoles(giocatore.ruolo).length > 0
+                  ? splitRoles(giocatore.ruolo).map((ruolo, index) => (
+                      <span key={index} className={`ruolo-badge ${getRoleClass(safeText(ruolo))}`}>{safeText(ruolo)}</span>
+                    ))
+                  : 'N/A'}
               </PlayerRole>
             </InfoValue>
           </InfoCard>
           <InfoCard>
             <InfoLabel>Squadra Reale</InfoLabel>
             <InfoValue>
-              <span
-                style={{ color: '#ff9500', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
-                onClick={() => navigate(`/squadra/${giocatore.squadra_id}`)}
-              >
-                {giocatore.squadra_nome}
-              </span>
+              {safeText(giocatore.squadra_reale) !== 'N/A' && giocatore.squadra_id ? (
+                <span
+                  style={{ color: '#E67E22', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
+                  onClick={() => navigate(`/squadra/${giocatore.squadra_id}`)}
+                >
+                  {safeText(giocatore.squadra_reale)}
+                </span>
+              ) : 'N/A'}
             </InfoValue>
           </InfoCard>
-          <InfoCard>
-            <InfoLabel>Età</InfoLabel>
-            <InfoValue>{giocatore.eta} anni</InfoValue>
-          </InfoCard>
+
           <InfoCard>
             <InfoLabel>Squadra Fantasy</InfoLabel>
-            <InfoValue>{squadra?.nome || 'N/A'}</InfoValue>
+            <InfoValue>{safeText(squadra?.nome)}</InfoValue>
+          </InfoCard>
+
+          <InfoCard>
+            <InfoLabel>Ingaggio</InfoLabel>
+            <InfoValue>{safeText(formatMoney(giocatore.costo_attuale))}</InfoValue>
+          </InfoCard>
+
+          <InfoCard>
+            <InfoLabel>Cantera</InfoLabel>
+            <InfoValue>
+              {giocatore.cantera ? (
+                <span style={{ color: '#28a745', fontWeight: 'bold' }}>✔ Sì</span>
+              ) : (
+                <span style={{ color: '#6c757d' }}>✗ No</span>
+              )}
+            </InfoValue>
           </InfoCard>
         </PlayerInfo>
       </Header>
 
       <StatsGrid>
-        <StatCard color="#28a745">
+        <StatCard>
           <StatTitle>Quotazione Attuale</StatTitle>
-          <StatValue>{giocatore.quotazione_attuale}</StatValue>
+          <StatValue>{safeText(giocatore.quotazione_attuale)}</StatValue>
         </StatCard>
-        <StatCard color="#dc3545">
-          <StatTitle>Salario</StatTitle>
-          <StatValue>{formatMoney(giocatore.salario)}</StatValue>
+                <StatCard>
+          <StatTitle>Ingaggio</StatTitle>
+            <StatValue>{formatMoney(safeText(giocatore.costo_attuale))}</StatValue>
         </StatCard>
-        <StatCard color="#17a2b8">
-          <StatTitle>Costo Attuale</StatTitle>
-          <StatValue>{formatMoney(giocatore.costo_attuale)}</StatValue>
-        </StatCard>
-        <StatCard color="#6f42c1">
+        <StatCard>
           <StatTitle>Costo Precedente</StatTitle>
-          <StatValue>{formatMoney(giocatore.costo_precedente)}</StatValue>
+          <StatValue>{formatMoney(safeText(giocatore.costo_precedente))}</StatValue>
         </StatCard>
-        <StatCard color="#ffc107">
-          <StatTitle>QA (Scraping)</StatTitle>
-          <StatValue>{giocatore.qa || 'N/A'}</StatValue>
+        <StatCard>
+          <StatTitle>QA</StatTitle>
+          <StatValue>{safeText(giocatore.qa)}</StatValue>
         </StatCard>
-        <StatCard color="#fd7e14">
-          <StatTitle>QI (Scraping)</StatTitle>
-          <StatValue>{giocatore.qi || 'N/A'}</StatValue>
+        <StatCard>
+          <StatTitle>QI</StatTitle>
+          <StatValue>{safeText(giocatore.qi)}</StatValue>
         </StatCard>
       </StatsGrid>
 
@@ -600,7 +733,7 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
           </ContractCard>
           <ContractCard>
             <ContractLabel>Anni Contratto</ContractLabel>
-            <ContractValue>{giocatore.anni_contratto || 0}</ContractValue>
+            <ContractValue>{safeText(giocatore.anni_contratto)}</ContractValue>
           </ContractCard>
           <ContractCard>
             <ContractLabel>Cantera</ContractLabel>
@@ -608,50 +741,51 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
           </ContractCard>
           <ContractCard>
             <ContractLabel>Triggers</ContractLabel>
-            <ContractValue>{giocatore.triggers || 'N/A'}</ContractValue>
+            <ContractValue>{safeText(giocatore.triggers)}</ContractValue>
           </ContractCard>
         </ContractGrid>
       </ContractSection>
 
       <QAHistorySection>
-        <SectionTitle>📈 Cronologia QA</SectionTitle>
+        <SectionTitle>📈 Cronologia Quotazione</SectionTitle>
         
         {qaHistoryLoading ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>Caricamento cronologia...</div>
+          <div style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem' }}>Caricamento cronologia...</div>
         ) : qaHistory.length > 0 ? (
-          <ChartContainer>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={qaHistory}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="data" 
-                  tick={{ fontSize: 12 }}
-                  angle={-45}
-                  textAnchor="end"
-                  height={80}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  domain={['dataMin - 0.1', 'dataMax + 0.1']}
-                />
-                <Tooltip 
-                  formatter={(value) => [`QA: ${value}`, 'Quotazione Attuale']}
-                  labelFormatter={(label) => `Data: ${label}`}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="qa_value" 
-                  stroke="#28a745" 
-                  strokeWidth={3}
-                  dot={{ fill: '#28a745', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: '#28a745', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+          <div style={{ marginTop: '0.5rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.7rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8f9fa' }}>
+                  <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Data</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'center', borderBottom: '1px solid #ddd' }}>Tipo</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'center', borderBottom: '1px solid #ddd' }}>Quotazione</th>
+                </tr>
+              </thead>
+              <tbody>
+                {qaHistory.map((item, index) => (
+                  <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '0.5rem', textAlign: 'left' }}>{item.data}</td>
+                    <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '0.2rem 0.4rem',
+                        borderRadius: '4px',
+                        fontSize: '0.6rem',
+                        fontWeight: 'bold',
+                        backgroundColor: item.tipo === 'QI' ? '#ffc107' : '#28a745',
+                        color: 'white'
+                      }}>
+                        {item.tipo}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.5rem', textAlign: 'center', fontWeight: 'bold' }}>{item.qa_value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <NoDataMessage>
-            Nessun dato storico QA disponibile per questo giocatore.
+            Nessun dato storico della quotazione disponibile per questo giocatore.
           </NoDataMessage>
         )}
       </QAHistorySection>
@@ -659,59 +793,138 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
       <OfferSection>
         <SectionTitle>💰 Proponi Offerta</SectionTitle>
         
-        <ToggleButton onClick={() => setShowOfferta(v => !v)}>
-          {showOfferta ? 'Nascondi Form Offerta' : 'Mostra Form Offerta'}
-        </ToggleButton>
-        
-        {showOfferta && (
-          <OfferForm onSubmit={handleOfferta}>
-            <FormGroup>
-              <Label>Squadra Destinataria</Label>
-              <Select 
-                name="squadra_destinatario_id" 
-                value={form.squadra_destinatario_id} 
-                onChange={handleChange} 
-                required
-              >
-                <option value="">Seleziona squadra destinataria</option>
-                {squadre.filter(sq => sq.id !== giocatore.squadra_id).map(sq => (
-                  <option key={sq.id} value={sq.id}>{sq.nome}</option>
-                ))}
-              </Select>
-            </FormGroup>
+        {/* Mostra il form solo se il giocatore non è nella squadra dell'utente */}
+        {userTeam && giocatore.squadra_id !== userTeam.id ? (
+          <>
+            <ToggleButton onClick={() => setShowOfferta(v => !v)}>
+              {showOfferta ? 'Nascondi Form Offerta' : 'Mostra Form Offerta'}
+            </ToggleButton>
             
-            <FormGroup>
-              <Label>Tipo di Offerta</Label>
-              <Select name="tipo" value={form.tipo} onChange={handleChange}>
-                <option value="trasferimento">Trasferimento</option>
-                <option value="prestito">Prestito</option>
-                <option value="scambio">Scambio</option>
-              </Select>
-            </FormGroup>
-            
-            <FormGroup>
-              <Label>Valore Offerta (FM)</Label>
-              <Input 
-                name="valore" 
-                type="number" 
-                value={form.valore} 
-                onChange={handleChange}
-                placeholder="Inserisci il valore dell'offerta"
-              />
-            </FormGroup>
-            
-            <SubmitButton type="submit" disabled={submitting}>
-              {submitting ? 'Invio in corso...' : 'Invia Offerta'}
-            </SubmitButton>
-            
-            {offertaMsg && (
-              <Message success={offertaMsg.includes('successo')}>
-                {offertaMsg}
-              </Message>
+            {showOfferta && (
+              <OfferForm onSubmit={handleOfferta}>
+                <FormGroup>
+                  <Label>Tipo di Offerta</Label>
+                  <Select name="tipo" value={form.tipo} onChange={handleChange}>
+                    <option value="trasferimento">Trasferimento</option>
+                    <option value="prestito">Prestito</option>
+                    <option value="scambio">Scambio</option>
+                  </Select>
+                </FormGroup>
+                
+                <FormGroup>
+                  <Label>Valore Offerta (FM)</Label>
+                  <Input 
+                    name="valore" 
+                    type="number" 
+                    value={form.valore} 
+                    onChange={handleChange}
+                    placeholder="Inserisci il valore dell'offerta"
+                  />
+                </FormGroup>
+                
+                <FormGroup>
+                  <Label>Richiesta (FM)</Label>
+                  <Input 
+                    name="richiesta_fm" 
+                    type="number" 
+                    value={form.richiesta_fm} 
+                    onChange={handleChange}
+                    placeholder="Inserisci la richiesta (opzionale)"
+                  />
+                </FormGroup>
+                
+                {form.tipo === 'scambio' && (
+                  <FormGroup>
+                    <Label>Giocatore da Scambiare</Label>
+                    <Select 
+                      name="giocatore_scambio_id" 
+                      value={form.giocatore_scambio_id} 
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Seleziona giocatore da scambiare</option>
+                      {userTeamPlayers.map(player => (
+                        <option key={player.id} value={player.id}>
+                          {player.nome} {player.cognome} ({player.ruolo})
+                        </option>
+                      ))}
+                    </Select>
+                  </FormGroup>
+                )}
+                
+                <SubmitButton type="submit" disabled={submitting}>
+                  {submitting ? 'Invio in corso...' : 'Invia Offerta'}
+                </SubmitButton>
+                
+                {offertaMsg && (
+                  <Message success={offertaMsg.includes('successo')}>
+                    {offertaMsg}
+                  </Message>
+                )}
+              </OfferForm>
             )}
-          </OfferForm>
+          </>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '1rem', color: '#666', fontStyle: 'italic' }}>
+            {userTeam && giocatore.squadra_id === userTeam.id 
+              ? 'Questo giocatore appartiene già alla tua squadra'
+              : 'Caricamento...'
+            }
+          </div>
         )}
       </OfferSection>
+
+      <LogSection>
+        <SectionTitle>📋 Log Operazioni</SectionTitle>
+        
+        {logLoading ? (
+          <div style={{ textAlign: 'center', padding: '1rem', fontSize: '0.8rem' }}>Caricamento log...</div>
+        ) : logOperazioni.length > 0 ? (
+          <div style={{ marginTop: '0.5rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.7rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8f9fa' }}>
+                  <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Data</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'center', borderBottom: '1px solid #ddd' }}>Tipo</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'center', borderBottom: '1px solid #ddd' }}>Valore</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'left', borderBottom: '1px solid #ddd' }}>Dettagli</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logOperazioni.map((item, index) => (
+                  <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                    <td style={{ padding: '0.5rem', textAlign: 'left' }}>
+                      {new Date(item.data_operazione).toLocaleDateString('it-IT')}
+                    </td>
+                    <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+                      <span style={{
+                        padding: '0.2rem 0.4rem',
+                        borderRadius: '4px',
+                        fontSize: '0.6rem',
+                        fontWeight: 'bold',
+                        backgroundColor: getOperationColor(item.tipo_operazione),
+                        color: 'white'
+                      }}>
+                        {item.tipo_operazione}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.5rem', textAlign: 'center', fontWeight: 'bold' }}>
+                      {item.valore ? `FM ${item.valore}` : '-'}
+                    </td>
+                    <td style={{ padding: '0.5rem', textAlign: 'left', fontSize: '0.65rem' }}>
+                      {item.dettagli}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <NoDataMessage>
+            Nessuna operazione registrata per questo giocatore.
+          </NoDataMessage>
+        )}
+      </LogSection>
     </Container>
   );
 };

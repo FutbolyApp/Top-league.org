@@ -182,7 +182,7 @@ const NotificheManager = () => {
   const fetchNotifiche = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('/api/notifiche', {
+      const response = await fetch('http://localhost:3001/api/notifiche', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -202,7 +202,7 @@ const NotificheManager = () => {
   const handleAccept = async (notificaId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/notifiche/${notificaId}/accept`, {
+      const response = await fetch(`http://localhost:3001/api/notifiche/${notificaId}/accept`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -221,7 +221,7 @@ const NotificheManager = () => {
   const handleReject = async (notificaId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/notifiche/${notificaId}/reject`, {
+      const response = await fetch(`http://localhost:3001/api/notifiche/${notificaId}/reject`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -239,7 +239,7 @@ const NotificheManager = () => {
   const handleArchive = async (notificaId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/notifiche/${notificaId}/archive`, {
+      const response = await fetch(`http://localhost:3001/api/notifiche/${notificaId}/archive`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -270,6 +270,62 @@ const NotificheManager = () => {
       case 'richiesta_admin': return '👨‍💼';
       case 'rinnovo_contratto': return '📝';
       case 'club_level': return '⭐';
+      default: return '📢';
+    }
+  };
+
+  const getNotificationBackgroundColor = (type) => {
+    switch (type) {
+      case 'trasferimento': return '#d4edda';
+      case 'offerta': return '#d1ecf1';
+      case 'sistema': return '#e2d9f3';
+      case 'richiesta_admin': return '#e3f2fd';
+      case 'richiesta_ingresso': return '#d4edda';
+      case 'risposta_richiesta': return '#e2d9f3';
+      case 'richiesta_unione_squadra': return '#ffeaa7';
+      case 'risposta_richiesta_unione': return '#d1f2eb';
+      default: return '#cce7ff';
+    }
+  };
+
+  const getNotificationBorderColor = (type) => {
+    switch (type) {
+      case 'trasferimento': return '#28a745';
+      case 'offerta': return '#17a2b8';
+      case 'sistema': return '#6f42c1';
+      case 'richiesta_admin': return '#1565c0';
+      case 'richiesta_ingresso': return '#28a745';
+      case 'risposta_richiesta': return '#6f42c1';
+      case 'richiesta_unione_squadra': return '#fd7e14';
+      case 'risposta_richiesta_unione': return '#20c997';
+      default: return '#007bff';
+    }
+  };
+
+  const getNotificationTitle = (type) => {
+    switch (type) {
+      case 'trasferimento': return 'Trasferimento';
+      case 'offerta': return 'Offerta';
+      case 'sistema': return 'Sistema';
+      case 'richiesta_admin': return 'Richiesta Admin';
+      case 'richiesta_ingresso': return 'Richiesta Ingresso';
+      case 'risposta_richiesta': return 'Risposta Richiesta';
+      case 'richiesta_unione_squadra': return 'Richiesta Unione Squadra';
+      case 'risposta_richiesta_unione': return 'Risposta Richiesta Unione';
+      default: return 'Notifica';
+    }
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'trasferimento': return '🔄';
+      case 'offerta': return '💰';
+      case 'sistema': return '⚙️';
+      case 'richiesta_admin': return '👨‍💼';
+      case 'richiesta_ingresso': return '🔐';
+      case 'risposta_richiesta': return '✅';
+      case 'richiesta_unione_squadra': return '👥';
+      case 'risposta_richiesta_unione': return '🎯';
       default: return '📢';
     }
   };
@@ -327,7 +383,7 @@ const NotificheManager = () => {
             <NotificaCard key={notifica.id} tipo={notifica.tipo}>
               <NotificaHeader>
                 <NotificaTipo tipo={notifica.tipo}>
-                  {getTipoIcon(notifica.tipo)} {getTipoLabel(notifica.tipo)}
+                  {getNotificationIcon(notifica.tipo)} {getTipoLabel(notifica.tipo)}
                 </NotificaTipo>
                 <NotificaData>
                   {new Date(notifica.data_creazione).toLocaleString('it-IT')}

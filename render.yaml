@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: topleague-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DB_PATH
+        value: /data/db/topleague.db
+    disk:
+      name: sqlite-data
+      mountPath: /data/db
+      sizeGB: 1 

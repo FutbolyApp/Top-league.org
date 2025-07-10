@@ -133,7 +133,14 @@ export async function getAllLegheAdmin(token) {
 }
 
 export async function updateLega(legaId, data, token) {
-  const res = await fetch(`${API_URL}/${legaId}`, {
+  // Decodifica il token per ottenere il ruolo dell'utente
+  const payload = JSON.parse(atob(token.split('.')[1]));
+  const userRole = payload.ruolo;
+  
+  // Usa la rotta appropriata in base al ruolo
+  const endpoint = userRole === 'admin' ? `${API_URL}/${legaId}/admin` : `${API_URL}/${legaId}`;
+  
+  const res = await fetch(endpoint, {
     method: 'PUT',
     headers: { 
       'Authorization': `Bearer ${token}`,
@@ -211,6 +218,27 @@ export const cancellaRichiesta = async (richiestaId, token) => {
   const res = await fetch(`${API_URL}/richieste/${richiestaId}`, {
     method: 'DELETE',
     headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return handleResponse(res);
+}; 
+
+// Ottieni configurazioni lega
+export const getLeagueConfig = async (legaId, token) => {
+  const res = await fetch(`${API_URL}/${legaId}/config`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return handleResponse(res);
+};
+
+// Aggiorna configurazioni lega
+export const updateLeagueConfig = async (legaId, config, token) => {
+  const res = await fetch(`${API_URL}/${legaId}/config`, {
+    method: 'PUT',
+    headers: { 
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(config)
   });
   return handleResponse(res);
 }; 

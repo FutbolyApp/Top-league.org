@@ -1,0 +1,1184 @@
+[
+  {
+    "squadra": "71.5 Totale",
+    "giornata": "24",
+    "titolari": [
+      {
+        "nome": "p\n                        \n                        Provedel",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Gosens",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Tomori",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5"
+      },
+      {
+        "nome": "d\n                        \n                        Bastoni",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "d\n                        \n                        Walker",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Weah",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Pulisic",
+        "ruolo": "",
+        "voto": "vc",
+        "fv": "7.5"
+      },
+      {
+        "nome": "c\n                        \n                        Miretti",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "a\n                        \n                        Kean",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "a\n                        \n                        Lukaku",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "a\n                        \n                        Dybala",
+        "ruolo": "",
+        "voto": "c",
+        "fv": "7"
+      }
+    ],
+    "panchina": [
+      {
+        "nome": "p\n                        \n                        Mandas",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "d\n                        \n                        Parisi",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "d\n                        \n                        Pongracic",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "c\n                        \n                        Zerbin",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Zaniolo",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Lovric",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Taremi",
+        "ruolo": "",
+        "voto": "",
+        "fv": "s.v."
+      },
+      {
+        "nome": "a\n                        \n                        Kouame'",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Sarr A.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "Nessun calciatore in panchina",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "altri_punti": [
+      {
+        "nome": "Bonus Capitano",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      },
+      {
+        "nome": "Fattore Campo",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "totale_titolari": 11,
+    "totale_panchina": 10
+  },
+  {
+    "squadra": "76 Totale",
+    "giornata": "24",
+    "titolari": [
+      {
+        "nome": "p\n                        \n                        Milinkovic-Savic V.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Rensch",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Bijol",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "d\n                        \n                        Gila",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Zaccagni",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "c\n                        \n                        Ndoye",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Saelemaekers",
+        "ruolo": "",
+        "voto": "vc",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Mckennie",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "a\n                        \n                        Dominguez B.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Castellanos",
+        "ruolo": "",
+        "voto": "",
+        "fv": "8"
+      },
+      {
+        "nome": "a\n                        \n                        Martinez L.",
+        "ruolo": "",
+        "voto": "c",
+        "fv": "6.5"
+      }
+    ],
+    "panchina": [
+      {
+        "nome": "p\n                        \n                        Skorupski",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "a\n                        \n                        Lucca",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Bonny",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "p\n                        \n                        Suzuki",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Soule'",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "c\n                        \n                        Frattesi",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Brescianini",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Hien",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "d\n                        \n                        N'Dicka",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "Nessun calciatore in panchina",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "altri_punti": [
+      {
+        "nome": "Bonus Capitano",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "totale_titolari": 11,
+    "totale_panchina": 10
+  },
+  {
+    "squadra": "82 Totale",
+    "giornata": "24",
+    "titolari": [
+      {
+        "nome": "p\n                        \n                        Di Gregorio",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "d\n                        \n                        Di Lorenzo",
+        "ruolo": "",
+        "voto": "vc",
+        "fv": "6.5"
+      },
+      {
+        "nome": "d\n                        \n                        Darmian",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "d\n                        \n                        Lazaro",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Zambo Anguissa",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Locatelli",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        De Roon",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "c\n                        \n                        Mctominay",
+        "ruolo": "",
+        "voto": "c",
+        "fv": "7"
+      },
+      {
+        "nome": "a\n                        \n                        Vlahovic",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "a\n                        \n                        Kolo Muani",
+        "ruolo": "",
+        "voto": "",
+        "fv": "8"
+      },
+      {
+        "nome": "a\n                        \n                        Thuram",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      }
+    ],
+    "panchina": [
+      {
+        "nome": "p\n                        \n                        Perin",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "a\n                        \n                        Piccoli",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Gudmundsson A.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "s.v."
+      },
+      {
+        "nome": "a\n                        \n                        Esposito Se.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "c\n                        \n                        Fabbian",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Nicolussi Caviglia",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Thuram K.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Viti",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Cacace",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "Nessun calciatore in panchina",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "altri_punti": [
+      {
+        "nome": "Bonus Capitano",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      },
+      {
+        "nome": "Fattore Campo",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "totale_titolari": 11,
+    "totale_panchina": 10
+  },
+  {
+    "squadra": "76.5 Totale",
+    "giornata": "24",
+    "titolari": [
+      {
+        "nome": "p\n                        \n                        Rui Patricio",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "d\n                        \n                        Martin",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Rrahmani",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Zappacosta",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Diao",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "c\n                        \n                        Calhanoglu",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Vlasic",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Politano",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Krstovic",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Dovbyk",
+        "ruolo": "",
+        "voto": "c",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Leao",
+        "ruolo": "",
+        "voto": "vc",
+        "fv": "7"
+      }
+    ],
+    "panchina": [
+      {
+        "nome": "p\n                        \n                        Butez",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5"
+      },
+      {
+        "nome": "a\n                        \n                        Joao Felix",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Djuric",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Thauvin",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Mkhitaryan",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Da Cunha",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Ruggeri",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "d\n                        \n                        Posch",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "d\n                        \n                        Solet",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "Nessun calciatore in panchina",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "altri_punti": [
+      {
+        "nome": "---",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "totale_titolari": 11,
+    "totale_panchina": 10
+  },
+  {
+    "squadra": "72 Totale",
+    "giornata": "24",
+    "titolari": [
+      {
+        "nome": "p\n                        \n                        Caprile",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Delprato",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5"
+      },
+      {
+        "nome": "d\n                        \n                        Dimarco",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "d\n                        \n                        Kyriakopoulos",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Miranda J.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "s.v."
+      },
+      {
+        "nome": "c\n                        \n                        Koopmeiners",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5"
+      },
+      {
+        "nome": "c\n                        \n                        Samardzic",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Paz N.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "a\n                        \n                        Pinamonti",
+        "ruolo": "",
+        "voto": "c",
+        "fv": "7"
+      },
+      {
+        "nome": "a\n                        \n                        Castro S.",
+        "ruolo": "",
+        "voto": "vc",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Isaksen",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      }
+    ],
+    "panchina": [
+      {
+        "nome": "p\n                        \n                        Falcone",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Valeri",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Ondrejka",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "d\n                        \n                        Carlos Augusto",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "d\n                        \n                        Pavard",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Adli",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "a\n                        \n                        Dallinga",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Camarda",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "a\n                        \n                        Douvikas",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "Nessun calciatore in panchina",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "altri_punti": [
+      {
+        "nome": "Bonus Capitano",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      },
+      {
+        "nome": "Fattore Campo",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "totale_titolari": 11,
+    "totale_panchina": 10
+  },
+  {
+    "squadra": "66.5 Totale",
+    "giornata": "24",
+    "titolari": [
+      {
+        "nome": "p\n                        \n                        Maignan",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Angelino",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "d\n                        \n                        Zortea",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "d\n                        \n                        Pavlovic",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Tavares N.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Veiga R.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Oristanio",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Barella",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7"
+      },
+      {
+        "nome": "a\n                        \n                        Yildiz",
+        "ruolo": "",
+        "voto": "c",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Adams C.",
+        "ruolo": "",
+        "voto": "vc",
+        "fv": "5.5"
+      },
+      {
+        "nome": "a\n                        \n                        Pierotti",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      }
+    ],
+    "panchina": [
+      {
+        "nome": "p\n                        \n                        Leali",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "p\n                        \n                        Sportiello",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "d\n                        \n                        Coco",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "d\n                        \n                        Gatti",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Conceicao",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Pasalic",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Suslov",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5"
+      },
+      {
+        "nome": "a\n                        \n                        Gonzalez N.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Sanabria",
+        "ruolo": "",
+        "voto": "",
+        "fv": "s.v."
+      },
+      {
+        "nome": "Nessun calciatore in panchina",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "altri_punti": [
+      {
+        "nome": "---",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "totale_titolari": 11,
+    "totale_panchina": 10
+  },
+  {
+    "squadra": "85.5 Totale",
+    "giornata": "24",
+    "titolari": [
+      {
+        "nome": "p\n                        \n                        Meret",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "d\n                        \n                        Hernandez T.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        De Vrij",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "d\n                        \n                        Bellanova",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "c\n                        \n                        Neres",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "c\n                        \n                        Reijnders",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        El Shaarawy",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Lobotka",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "a\n                        \n                        Retegui",
+        "ruolo": "",
+        "voto": "vc",
+        "fv": "9"
+      },
+      {
+        "nome": "a\n                        \n                        Gimenez",
+        "ruolo": "",
+        "voto": "c",
+        "fv": "7"
+      },
+      {
+        "nome": "a\n                        \n                        Cutrone",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      }
+    ],
+    "panchina": [
+      {
+        "nome": "p\n                        \n                        De Gea",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "p\n                        \n                        Terracciano",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "d\n                        \n                        Kristensen T.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "d\n                        \n                        De Sciglio",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "c\n                        \n                        Pellegrini Lo.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "c\n                        \n                        Lazovic",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "a\n                        \n                        Mota",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5"
+      },
+      {
+        "nome": "a\n                        \n                        Shomurodov",
+        "ruolo": "",
+        "voto": "",
+        "fv": "s.v."
+      },
+      {
+        "nome": "a\n                        \n                        Raspadori",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "Nessun calciatore in panchina",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "altri_punti": [
+      {
+        "nome": "Punti o penalità dall'Admin",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      },
+      {
+        "nome": "Bonus Capitano",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      },
+      {
+        "nome": "Fattore Campo",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "totale_titolari": 11,
+    "totale_panchina": 10
+  },
+  {
+    "squadra": "73 Totale",
+    "giornata": "24",
+    "titolari": [
+      {
+        "nome": "p\n                        \n                        Svilar",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Holm",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Djimsiti",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "d\n                        \n                        Spinazzola",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "c\n                        \n                        Strefezza",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Fofana Y.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "c\n                        \n                        Guendouzi",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6.5"
+      },
+      {
+        "nome": "c\n                        \n                        Ederson D.S.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "7.5"
+      },
+      {
+        "nome": "c\n                        \n                        Colpani",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "a\n                        \n                        De Ketelaere",
+        "ruolo": "",
+        "voto": "c",
+        "fv": "7"
+      },
+      {
+        "nome": "a\n                        \n                        Dia",
+        "ruolo": "",
+        "voto": "vc",
+        "fv": "6"
+      }
+    ],
+    "panchina": [
+      {
+        "nome": "p\n                        \n                        Sommer",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Abraham",
+        "ruolo": "",
+        "voto": "",
+        "fv": "5.5"
+      },
+      {
+        "nome": "c\n                        \n                        Maldini",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "c\n                        \n                        Freuler",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "c\n                        \n                        Ricci S.",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "a\n                        \n                        Mbangula",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Romagnoli",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "d\n                        \n                        Beukema",
+        "ruolo": "",
+        "voto": "",
+        "fv": "-"
+      },
+      {
+        "nome": "c\n                        \n                        Fagioli",
+        "ruolo": "",
+        "voto": "",
+        "fv": "6"
+      },
+      {
+        "nome": "Nessun calciatore in panchina",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "altri_punti": [
+      {
+        "nome": "Bonus Capitano",
+        "ruolo": "",
+        "voto": "",
+        "fv": ""
+      }
+    ],
+    "totale_titolari": 11,
+    "totale_panchina": 10
+  }
+]

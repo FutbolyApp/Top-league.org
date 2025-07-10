@@ -110,6 +110,45 @@ const Select = styled.select`
   }
 `;
 
+const RoleGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+`;
+
+const RoleCheckbox = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 2px solid #e5e5e7;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  background: white;
+  
+  &:hover {
+    border-color: #007AFF;
+    background: #f8f9ff;
+  }
+  
+  input[type="checkbox"] {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+    accent-color: #007AFF;
+  }
+  
+  &.selected {
+    border-color: #007AFF;
+    background: #e3f2fd;
+    color: #007AFF;
+  }
+`;
+
 const TextArea = styled.textarea`
   width: 100%;
   padding: 12px;
@@ -202,6 +241,10 @@ const ErrorContainer = styled.div`
   color: #dc3545;
 `;
 
+const RUOLI_MANTRA = [
+  'Por', 'DC', 'DS', 'DD', 'B', 'E', 'M', 'C', 'W', 'T', 'A', 'PC'
+];
+
 const CreaGiocatore = () => {
   const { token } = useAuth();
   const { id } = useParams();
@@ -214,16 +257,13 @@ const CreaGiocatore = () => {
 
   const [formData, setFormData] = useState({
     nome: '',
-    ruolo: '',
+    ruoli: [],
     squadra_reale: '',
     costo_attuale: 0,
     valore_mercato: 0,
-    eta: 0,
     nazionalita: '',
-    piede: '',
-    altezza: 0,
-    peso: 0,
-    note: ''
+    note: '',
+    cantera: false
   });
 
   useEffect(() => {
@@ -249,6 +289,16 @@ const CreaGiocatore = () => {
     }));
   };
 
+  const handleRoleChange = (ruolo) => {
+    setFormData(prev => {
+      const currentRoles = prev.ruoli || [];
+      const newRoles = currentRoles.includes(ruolo)
+        ? currentRoles.filter(r => r !== ruolo)
+        : [...currentRoles, ruolo];
+      return { ...prev, ruoli: newRoles };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -256,51 +306,37 @@ const CreaGiocatore = () => {
     setSubmitting(true);
 
     try {
-      // Validazioni
       if (!formData.nome.trim()) {
         setError('Il nome del giocatore è obbligatorio');
         setSubmitting(false);
         return;
       }
-
-      if (!formData.ruolo.trim()) {
-        setError('Il ruolo del giocatore è obbligatorio');
+      if (!formData.ruoli || formData.ruoli.length === 0) {
+        setError('Seleziona almeno un ruolo');
         setSubmitting(false);
         return;
       }
-
       if (formData.costo_attuale < 0) {
         setError('Il costo attuale non può essere negativo');
         setSubmitting(false);
         return;
       }
-
       if (formData.valore_mercato < 0) {
         setError('Il valore di mercato non può essere negativo');
         setSubmitting(false);
         return;
       }
 
-      if (formData.eta < 0 || formData.eta > 100) {
-        setError('L\'età deve essere tra 0 e 100');
-        setSubmitting(false);
-        return;
-      }
-
-      // Crea il giocatore
       await createGiocatore({
         ...formData,
+        ruolo: formData.ruoli.join(';'),
         lega_id: squadra.lega_id,
         squadra_id: id
       }, token);
-
       setSuccess('Giocatore creato con successo!');
-      
-      // Redirect dopo 2 secondi
       setTimeout(() => {
         navigate(`/modifica-squadra-completa/${id}`);
       }, 2000);
-      
     } catch (err) {
       setError(err.message);
     } finally {
@@ -350,21 +386,23 @@ const CreaGiocatore = () => {
             />
           </FormGroup>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <FormGroup>
-              <Label>Ruolo *</Label>
-              <Select
-                name="ruolo"
-                value={formData.ruolo}
-                onChange={handleChange}
-                required
+              <Label>Ruoli *</Label>
+              <RoleGrid>
+                {RUOLI_MANTRA.map(ruolo => (
+                  <RoleCheckbox
+                    key={ruolo}
+                    className={formData.ruoli?.includes(ruolo) ? 'selected' : ''}
               >
-                <option value="">Seleziona ruolo</option>
-                <option value="P">Portiere</option>
-                <option value="D">Difensore</option>
-                <option value="C">Centrocampista</option>
-                <option value="A">Attaccante</option>
-              </Select>
+                    <input
+                      type="checkbox"
+                      checked={formData.ruoli?.includes(ruolo) || false}
+                      onChange={() => handleRoleChange(ruolo)}
+                    />
+                    {ruolo}
+                  </RoleCheckbox>
+                ))}
+              </RoleGrid>
             </FormGroup>
             
             <FormGroup>
@@ -376,7 +414,6 @@ const CreaGiocatore = () => {
                 placeholder="Es. Juventus"
               />
             </FormGroup>
-          </div>
         </FormSection>
 
         <FormSection>
@@ -384,7 +421,7 @@ const CreaGiocatore = () => {
           
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <FormGroup>
-              <Label>Costo Attuale (€)</Label>
+              <Label>Costo Attuale (FM)</Label>
               <Input
                 name="costo_attuale"
                 type="number"
@@ -396,7 +433,7 @@ const CreaGiocatore = () => {
             </FormGroup>
             
             <FormGroup>
-              <Label>Valore di Mercato (€)</Label>
+              <Label>Valore di Mercato (FM)</Label>
               <Input
                 name="valore_mercato"
                 type="number"
@@ -412,45 +449,6 @@ const CreaGiocatore = () => {
         <FormSection>
           <SectionTitle>Caratteristiche Fisiche</SectionTitle>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-            <FormGroup>
-              <Label>Età</Label>
-              <Input
-                name="eta"
-                type="number"
-                value={formData.eta}
-                onChange={handleChange}
-                placeholder="0"
-                min="0"
-                max="100"
-              />
-            </FormGroup>
-            
-            <FormGroup>
-              <Label>Altezza (cm)</Label>
-              <Input
-                name="altezza"
-                type="number"
-                value={formData.altezza}
-                onChange={handleChange}
-                placeholder="0"
-                min="0"
-              />
-            </FormGroup>
-            
-            <FormGroup>
-              <Label>Peso (kg)</Label>
-              <Input
-                name="peso"
-                type="number"
-                value={formData.peso}
-                onChange={handleChange}
-                placeholder="0"
-                min="0"
-              />
-            </FormGroup>
-          </div>
-          
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
             <FormGroup>
               <Label>Nazionalità</Label>
@@ -463,17 +461,18 @@ const CreaGiocatore = () => {
             </FormGroup>
             
             <FormGroup>
-              <Label>Piede Preferito</Label>
-              <Select
-                name="piede"
-                value={formData.piede}
-                onChange={handleChange}
-              >
-                <option value="">Seleziona</option>
-                <option value="Destro">Destro</option>
-                <option value="Sinistro">Sinistro</option>
-                <option value="Ambidestro">Ambidestro</option>
-              </Select>
+              <Label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  name="cantera"
+                  checked={formData.cantera}
+                  onChange={(e) => setFormData(prev => ({ ...prev, cantera: e.target.checked }))}
+                />
+                Calciatore Cantera
+              </Label>
+              <small style={{ color: '#6c757d', fontSize: '0.8rem' }}>
+                I calciatori cantera hanno un ingaggio ridotto (quotazione attuale / 2)
+              </small>
             </FormGroup>
           </div>
         </FormSection>

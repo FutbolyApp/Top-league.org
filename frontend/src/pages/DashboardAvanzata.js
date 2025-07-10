@@ -127,7 +127,7 @@ const Td = styled.td`
 
 const Badge = styled.span`
   background: ${props => {
-    switch (props.status) {
+    switch (props.$status) {
       case 'attivo': return '#28a745';
       case 'infortunato': return '#ffc107';
       case 'squalificato': return '#dc3545';
@@ -221,7 +221,6 @@ const DashboardAvanzata = () => {
 
     const stats = {
       totale_valore: giocatori.reduce((sum, g) => sum + (g.valore_mercato || 0), 0),
-      media_eta: giocatori.reduce((sum, g) => sum + (g.eta || 0), 0) / giocatori.length,
       attaccanti: giocatori.filter(g => g.ruolo === 'A').length,
       centrocampisti: giocatori.filter(g => g.ruolo === 'C').length,
       difensori: giocatori.filter(g => g.ruolo === 'D').length,
@@ -297,10 +296,6 @@ const DashboardAvanzata = () => {
             <MetricValue>{formatCurrency(teamStats.totale_valore)}</MetricValue>
           </Metric>
           <Metric>
-            <MetricLabel>Età Media</MetricLabel>
-            <MetricValue>{teamStats.media_eta.toFixed(1)} anni</MetricValue>
-          </Metric>
-          <Metric>
             <MetricLabel>Infortunati</MetricLabel>
             <MetricValue negative={teamStats.infortunati > 0}>{teamStats.infortunati}</MetricValue>
           </Metric>
@@ -371,7 +366,6 @@ const DashboardAvanzata = () => {
             <tr>
               <Th>Nome</Th>
               <Th>Ruolo</Th>
-              <Th>Età</Th>
               <Th>Valore</Th>
               <Th>Stato</Th>
               <Th>Contratto</Th>
@@ -382,10 +376,9 @@ const DashboardAvanzata = () => {
               <tr key={giocatore.id}>
                 <Td>{giocatore.nome}</Td>
                 <Td>{giocatore.ruolo}</Td>
-                <Td>{giocatore.eta}</Td>
                 <Td>{formatCurrency(giocatore.valore_mercato)}</Td>
                 <Td>
-                  <Badge status={giocatore.stato}>{giocatore.stato}</Badge>
+                  <Badge $status={giocatore.stato}>{giocatore.stato}</Badge>
                 </Td>
                 <Td>{giocatore.scadenza_contratto}</Td>
               </tr>

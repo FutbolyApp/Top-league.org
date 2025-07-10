@@ -5,32 +5,29 @@ import { useNotification } from '../components/NotificationSystem';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getLegheAdmin } from '../api/leghe';
 import { 
-  testScraping, 
-  scrapeClassifica, 
-  scrapeRisultati, 
-  scrapeCalciatori,
-  scrapeVoti,
-  updateClassificaFromScraping,
-  updateVotiFromScraping,
-  importCalciatoriFromScraping,
-  scrapingCompleto,
-  testCredentials,
-  debugCredentials,
-  testScrapingUrls,
-  testCredentialsPuppeteer,
   scrapingPlaywright,
   scrapingPlaywrightBatch,
-  testScrapingUrlsPuppeteer,
   getDatiScraping,
   getConfrontoDati,
   updateCredentials,
-  debugPageStructure,
   getAvailableTournaments,
-  cleanupProfiles
+  scrapingClassificaPlaywright,
+  scrapingFormazioniPlaywright,
+  scrapingCompletoPlaywright,
+  scrapingMultiplo,
+  salvaTorneiPreferiti,
+  caricaTorneiPreferiti,
+  rimuoviTorneoPreferito,
+  scrapingClassifica,
+  getTorneiPreferiti,
+  saveTorneiPreferiti,
+  removeTorneoPreferito
 } from '../api/scraping';
 import { splitRoles, getRoleClass } from '../utils/roleUtils';
-// import { updateCredentials } from '../api/auth'; // Commentato perché non esiste
 import './ScrapingManager.css';
+import FormazioniScraping from '../components/FormazioniScraping';
+import * as XLSX from 'xlsx';
+import api from '../api/axiosConfig';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -63,64 +60,6 @@ const Subtitle = styled.p`
   margin: 0;
 `;
 
-const FormCard = styled.div`
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-`;
-
-const FormTitle = styled.h2`
-  color: #333;
-  margin: 0 0 1.5rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  font-weight: 600;
-  color: #333;
-`;
-
-const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  
-  &:focus {
-    outline: none;
-    border-color: #FFA94D;
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 1rem;
-  background: white;
-  
-  &:focus {
-    outline: none;
-    border-color: #FFA94D;
-  }
-`;
-
 const Button = styled.button`
   background: linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%);
   color: white;
@@ -142,33 +81,9 @@ const Button = styled.button`
   }
 `;
 
-const ResultCard = styled.div`
-  background: ${props => props.$success ? '#d4edda' : '#f8d7da'};
-  border: 1px solid ${props => props.$success ? '#c3e6cb' : '#f5c6cb'};
-  color: ${props => props.$success ? '#155724' : '#721c24'};
-  padding: 1rem;
-  border-radius: 8px;
-  margin-top: 1rem;
-`;
-
-const LoadingSpinner = styled.div`
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #FFA94D;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-
 const PlayerRole = styled.span`
   .ruolo-badge {
-    display: inline-block;
+  display: inline-block;
     padding: 4px 8px;
     margin: 2px;
     border-radius: 6px;
@@ -264,15 +179,15 @@ const PlayerRole = styled.span`
   }
   
   .ruolo-t { 
-    background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%); 
+    background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); 
     color: white; 
-    border-color: #1976d2;
+    border-color: #4a148c;
   }
   
   .ruolo-w { 
-    background: linear-gradient(135deg, #64b5f6 0%, #42a5f5 100%); 
+    background: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%); 
     color: white; 
-    border-color: #1e88e5;
+    border-color: #7b1fa2;
   }
   
   /* Attaccanti - Palette di rossi */
@@ -298,12 +213,11 @@ const PlayerRole = styled.span`
 
 const ScrapingManager = () => {
   const { token } = useAuth();
-  const { showErrorModal, showSuccessModal, showConfirmModal } = useNotification();
-  const { legaId } = useParams();
+  const { showSuccessModal, showErrorModal } = useNotification();
   const navigate = useNavigate();
+  const { legaId } = useParams();
   const [selectedLega, setSelectedLega] = useState('');
   const [leghe, setLeghe] = useState([]);
-  const [legaData, setLegaData] = useState(null);
   const [leagueUrl, setLeagueUrl] = useState('');
   const [scrapingUrls, setScrapingUrls] = useState({
     rose: '',
@@ -315,14 +229,12 @@ const ScrapingManager = () => {
     username: '',
     password: ''
   });
-  const [selectedTournament, setSelectedTournament] = useState('');
   const [availableTournaments, setAvailableTournaments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState(null);
-  const [scrapingTestResult, setScrapingTestResult] = useState(null);
   const [datiScraping, setDatiScraping] = useState(null);
   const [confrontoDati, setConfrontoDati] = useState(null);
-  const [activeTab, setActiveTab] = useState('scraping');
+  const [activeTab, setActiveTab] = useState('carica-files');
   const [expandedSections, setExpandedSections] = useState({
     rose: false,
     classifica: false,
@@ -335,6 +247,24 @@ const ScrapingManager = () => {
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
   const [selectedTournaments, setSelectedTournaments] = useState([]);
+  const [scrapingResults, setScrapingResults] = useState({});
+  const [torneiPreferiti, setTorneiPreferiti] = useState([]);
+  const [showPreferiti, setShowPreferiti] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadResult, setUploadResult] = useState(null);
+  const [uploadErrors, setUploadErrors] = useState([]);
+  const [backupData, setBackupData] = useState(null);
+  const [restoring, setRestoring] = useState(false);
+  
+  // Variabili per la sezione statistiche
+  const [statsFile, setStatsFile] = useState(null);
+  const [isUploadingStats, setIsUploadingStats] = useState(false);
+  const [statsUploadResult, setStatsUploadResult] = useState(null);
+  const [statsBackupData, setStatsBackupData] = useState(null);
+  const [restoringStats, setRestoringStats] = useState(false);
+  const [quotazioniLogs, setQuotazioniLogs] = useState([]);
+  const [statisticheLogs, setStatisticheLogs] = useState([]);
 
   // Carica le credenziali salvate dal localStorage
   useEffect(() => {
@@ -352,6 +282,50 @@ const ScrapingManager = () => {
       }
     }
   }, []);
+
+  // Carica i backup salvati dal localStorage
+  useEffect(() => {
+    const savedQuotazioniBackup = localStorage.getItem('quotazioni_backup');
+    const savedStatisticheBackup = localStorage.getItem('statistiche_backup');
+    
+    if (savedQuotazioniBackup) {
+      try {
+        setBackupData(JSON.parse(savedQuotazioniBackup));
+      } catch (error) {
+        console.error('Errore nel caricamento del backup quotazioni:', error);
+      }
+    }
+    
+    if (savedStatisticheBackup) {
+      try {
+        setStatsBackupData(JSON.parse(savedStatisticheBackup));
+      } catch (error) {
+        console.error('Errore nel caricamento del backup statistiche:', error);
+      }
+    }
+  }, []);
+
+  // Funzione per caricare i log
+  const loadLogs = async () => {
+    if (!selectedLega) return;
+    
+    try {
+      // Carica log quotazioni
+      const quotazioniRes = await api.get(`/quotazioni/logs/${selectedLega}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setQuotazioniLogs(quotazioniRes.data.logs || []);
+      
+      // Carica log statistiche
+      const statisticheRes = await api.get(`/quotazioni/logs-stats/${selectedLega}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setStatisticheLogs(statisticheRes.data.logs || []);
+      
+    } catch (error) {
+      console.error('Errore caricamento log:', error);
+    }
+  };
 
   // Salva le credenziali nel localStorage quando cambiano
   useEffect(() => {
@@ -375,7 +349,6 @@ const ScrapingManager = () => {
           const lega = response.leghe?.find(l => l.id.toString() === legaId);
           if (lega) {
             setSelectedLega(lega.id.toString());
-            setLegaData(lega);
             // Pre-compila gli URL se la lega ha dati di scraping
             if (lega.fantacalcio_url) {
               setLeagueUrl(lega.fantacalcio_url);
@@ -412,6 +385,13 @@ const ScrapingManager = () => {
     loadLeghe();
   }, [token, legaId, showErrorModal]);
 
+  // Carica i log quando cambia la lega selezionata
+  useEffect(() => {
+    if (selectedLega) {
+      loadLogs();
+    }
+  }, [selectedLega, token]);
+
   const handleUrlChange = (field, value) => {
     if (field === 'base') {
       setLeagueUrl(value);
@@ -432,235 +412,9 @@ const ScrapingManager = () => {
   };
 
   const handleClearSavedCredentials = () => {
-    localStorage.removeItem('scraping_credentials');
     setCredentials({ username: '', password: '' });
-    showSuccessModal('Credenziali Rimosse', 'Le credenziali salvate sono state rimosse con successo.');
-  };
-
-  const handleTestUrl = async (url) => {
-    if (!url) {
-      showErrorModal('URL Mancante', 'Inserisci un URL da testare.');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const result = await testScraping(url, token);
-      if (result.success) {
-        showSuccessModal('✅ URL Valido', 'L\'URL è raggiungibile e il contenuto è accessibile.');
-      } else {
-        showErrorModal('❌ URL Non Valido', result.error || 'L\'URL non è raggiungibile o il contenuto non è accessibile.');
-      }
-      setScrapingTestResult(result);
-    } catch (error) {
-      showErrorModal('❌ Errore di Test', `Errore durante il test: ${error.message}`);
-      setScrapingTestResult(null);
-    }
-    setLoading(false);
-  };
-
-  const handleUpdateClassifica = async () => {
-    if (!selectedLega || !leagueUrl) {
-      showErrorModal('Configurazione Mancante', 'Seleziona una lega e inserisci l\'URL della classifica.');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const result = await updateClassificaFromScraping(leagueUrl, selectedLega, token);
-      if (result.success) {
-        showSuccessModal('✅ Classifica Aggiornata', 'La classifica è stata aggiornata con successo!');
-      } else {
-        showErrorModal('❌ Errore Aggiornamento', result.error || 'Errore durante l\'aggiornamento della classifica');
-      }
-      setResults(prev => ({ ...prev, classifica: result }));
-    } catch (error) {
-      showErrorModal('❌ Errore di Connessione', `Errore: ${error.message}`);
-      setResults(prev => ({ ...prev, classifica: { success: false, error: error.message } }));
-    }
-    setLoading(false);
-  };
-
-  const handleImportCalciatori = async () => {
-    if (!selectedLega || !leagueUrl) {
-      showErrorModal('Configurazione Mancante', 'Seleziona una lega e inserisci l\'URL dei calciatori.');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const result = await importCalciatoriFromScraping(leagueUrl, selectedLega, token);
-      if (result.success) {
-        showSuccessModal('✅ Calciatori Importati', 'I calciatori sono stati importati con successo!');
-      } else {
-        showErrorModal('❌ Errore Importazione', result.error || 'Errore durante l\'importazione dei calciatori');
-      }
-      setResults(prev => ({ ...prev, calciatori: result }));
-    } catch (error) {
-      showErrorModal('❌ Errore di Connessione', `Errore: ${error.message}`);
-      setResults(prev => ({ ...prev, calciatori: { success: false, error: error.message } }));
-    }
-    setLoading(false);
-  };
-
-  const handleScrapingCompleto = async () => {
-    if (!selectedLega) {
-      showErrorModal('Configurazione Mancante', 'Seleziona una lega per procedere.');
-      return;
-    }
-    
-    showConfirmModal(
-      '🔄 Scraping Completo',
-      'Questo processo importerà tutti i dati disponibili (classifica, voti, calciatori). Vuoi procedere?',
-      async () => {
-        setLoading(true);
-        try {
-          const result = await scrapingCompleto(selectedLega, { classifica: leagueUrl, voti: leagueUrl, calciatori: leagueUrl }, token);
-          if (result.success) {
-            showSuccessModal('✅ Scraping Completato', 'Tutti i dati sono stati importati con successo!');
-          } else {
-            showErrorModal('❌ Errore Scraping', result.error || 'Errore durante lo scraping completo');
-          }
-          setResults(prev => ({ ...prev, completo: result }));
-        } catch (error) {
-          showErrorModal('❌ Errore di Connessione', `Errore: ${error.message}`);
-          setResults(prev => ({ ...prev, completo: { success: false, error: error.message } }));
-        }
-        setLoading(false);
-      }
-    );
-  };
-
-  const handleTestCredentials = async () => {
-    if (!selectedLega || !legaData) {
-      showErrorModal('Configurazione Mancante', 'Seleziona una lega per testare le credenziali.');
-      return;
-    }
-
-    if (!legaData.fantacalcio_username || !legaData.fantacalcio_password) {
-      showErrorModal('Credenziali Mancanti', 'Questa lega non ha configurato le credenziali di scraping.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await testCredentials(
-        selectedLega, 
-        legaData.fantacalcio_username, 
-        legaData.fantacalcio_password, 
-        token
-      );
-      
-      if (result.success) {
-        showSuccessModal('✅ Credenziali Valide', 'Le credenziali sono corrette e il login è riuscito!');
-      } else {
-        showErrorModal('❌ Credenziali Non Valide', result.message || 'Le credenziali non sono corrette o il login è fallito.');
-      }
-      setResults(prev => ({ ...prev, credentials: result }));
-    } catch (error) {
-      showErrorModal('❌ Errore Test Credenziali', `Errore: ${error.message}`);
-      setResults(prev => ({ ...prev, credentials: { success: false, error: error.message } }));
-    }
-    setLoading(false);
-  };
-
-  const handleDebugCredentials = async () => {
-    if (!selectedLega) {
-      showErrorModal('Configurazione Mancante', 'Seleziona una lega per il debug.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await debugCredentials(selectedLega, token);
-      
-      if (result.success) {
-        const debugInfo = result.data;
-        showSuccessModal('🔍 Debug Credenziali', 
-          `Lega: ${debugInfo.leagueName}\n` +
-          `Username: ${debugInfo.username || 'Non impostato'}\n` +
-          `Password: ${debugInfo.hasPassword ? 'Impostata (' + debugInfo.passwordLength + ' caratteri)' : 'Non impostata'}`
-        );
-      } else {
-        showErrorModal('❌ Errore Debug', result.message || 'Errore durante il debug delle credenziali.');
-      }
-      setResults(prev => ({ ...prev, debug: result }));
-    } catch (error) {
-      showErrorModal('❌ Errore Debug', `Errore: ${error.message}`);
-      setResults(prev => ({ ...prev, debug: { success: false, error: error.message } }));
-    }
-    setLoading(false);
-  };
-
-  const handleTestUrls = async () => {
-    if (!leagueUrl) {
-      showErrorModal('URL Mancante', 'Seleziona una lega con URL configurato.');
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const result = await testScrapingUrls(leagueUrl, token);
-      
-      if (result.success) {
-        showSuccessModal('✅ Test URL Completato', 
-          `Test completato!\n\nURL validi trovati: ${result.results.filter(r => r.exists).length}\n\nURL suggeriti:\n• Classifica: ${result.suggestedUrls.classifica}\n• Voti: ${result.suggestedUrls.voti}\n• Calciatori: ${result.suggestedUrls.calciatori}`
-        );
-      } else {
-        showErrorModal('❌ Errore Test URL', result.message || 'Errore durante il test degli URL');
-      }
-    } catch (error) {
-      showErrorModal('❌ Errore di Connessione', `Errore: ${error.message}`);
-    }
-    setLoading(false);
-  };
-
-  const handleTestCredentialsPuppeteer = async () => {
-    if (!selectedLega) {
-      showErrorModal('Lega Mancante', 'Seleziona una lega per testare le credenziali.');
-      return;
-    }
-
-    if (!credentials.username || !credentials.password) {
-      showErrorModal('Credenziali Mancanti', 'Inserisci username e password per testare le credenziali.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await testCredentialsPuppeteer(
-        selectedLega,
-        credentials.username,
-        credentials.password,
-        token
-      );
-      
-      if (result.success) {
-        setScrapingTestResult({
-          success: true,
-          message: '✅ Credenziali valide! Login effettuato con successo.',
-          details: result.data
-        });
-        showSuccessModal('✅ Credenziali Valide', 'Le credenziali sono corrette e il login è stato effettuato con successo!');
-      } else {
-        setScrapingTestResult({
-          success: false,
-          message: '❌ Credenziali non valide o errore di login.',
-          details: result.error
-        });
-        showErrorModal('❌ Credenziali Non Valide', result.error || 'Errore durante il test delle credenziali.');
-      }
-    } catch (error) {
-      console.error('Errore test credenziali Puppeteer:', error);
-      setScrapingTestResult({
-        success: false,
-        message: '❌ Errore durante il test delle credenziali.',
-        details: error.message
-      });
-      showErrorModal('❌ Errore', 'Errore durante il test delle credenziali.');
-    } finally {
-      setLoading(false);
-    }
+    localStorage.removeItem('scrapingCredentials');
+    showSuccessModal('Credenziali Rimosse', 'Le credenziali sono state rimosse dal browser.');
   };
 
   const handleScrapingPlaywright = async () => {
@@ -668,7 +422,7 @@ const ScrapingManager = () => {
       showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
       return;
     }
-
+    
     setLoading(true);
     setShowProgressModal(true);
     setProgress(0);
@@ -721,7 +475,7 @@ const ScrapingManager = () => {
             // Ricarica i dati di scraping
             await loadDatiScraping();
             await loadConfrontoDati();
-          } else {
+      } else {
             showErrorModal('Errore Scraping Batch', response.error || 'Errore durante lo scraping batch');
           }
           
@@ -817,7 +571,241 @@ const ScrapingManager = () => {
       });
       showErrorModal('Errore Scraping', error.message);
     } finally {
-      setLoading(false);
+    setLoading(false);
+      setShowProgressModal(false);
+      setProgress(0);
+      setProgressMessage('');
+    }
+  };
+
+  const handleScrapingClassifica = async () => {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+      showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
+      return;
+    }
+    
+    setLoading(true);
+    setShowProgressModal(true);
+    setProgress(0);
+    setProgressMessage('Inizializzazione scraping classifica...');
+
+    try {
+      console.log('Avvio scraping classifica con Playwright...');
+      console.log('Lega:', selectedLega);
+      console.log('URL:', leagueUrl);
+      console.log('Torneo selezionato:', selectedTournaments[0] || 'nessuno');
+
+      const tournamentId = selectedTournaments.length > 0 ? selectedTournaments[0] : null;
+      
+      setProgress(20);
+      setProgressMessage('Scraping classifica in corso...');
+      
+      // Simula progresso durante l'operazione
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev < 80) {
+            return Math.floor(prev + Math.random() * 3 + 1);
+          }
+          return prev;
+        });
+      }, 1500);
+      
+      const response = await scrapingClassificaPlaywright(
+        selectedLega,
+        leagueUrl,
+        credentials.username,
+        credentials.password,
+        tournamentId,
+        token
+      );
+
+      clearInterval(progressInterval);
+      setResults(response);
+      setProgress(100);
+      setProgressMessage('Scraping classifica completato!');
+
+      if (response.success) {
+        showSuccessModal('Classifica Scrapata', `Trovate ${response.posizioni_trovate} posizioni nella classifica`);
+        // Ricarica i dati di scraping
+        await loadDatiScraping();
+      } else {
+        showErrorModal('Errore Scraping Classifica', response.message || 'Errore durante lo scraping della classifica');
+      }
+
+    } catch (error) {
+      console.error('Errore scraping classifica:', error);
+      setResults({
+        success: false,
+        error: error.message,
+        message: 'Errore durante lo scraping della classifica'
+      });
+      showErrorModal('Errore Scraping Classifica', error.message);
+    } finally {
+    setLoading(false);
+      setShowProgressModal(false);
+      setProgress(0);
+      setProgressMessage('');
+    }
+  };
+
+  const handleScrapingFormazioni = async () => {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+      showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
+      return;
+    }
+
+    // Chiedi la giornata all'utente
+    const giornata = prompt('Inserisci il numero della giornata (es. 1, 2, 3...):');
+    if (!giornata || isNaN(parseInt(giornata))) {
+      showErrorModal('Giornata Non Valida', 'Inserisci un numero valido per la giornata.');
+      return;
+    }
+    
+    setLoading(true);
+    setShowProgressModal(true);
+    setProgress(0);
+    setProgressMessage('Inizializzazione scraping formazioni...');
+
+    try {
+      console.log('Avvio scraping formazioni con Playwright...');
+      console.log('Lega:', selectedLega);
+      console.log('URL:', leagueUrl);
+      console.log('Giornata:', giornata);
+      console.log('Torneo selezionato:', selectedTournaments[0] || 'nessuno');
+
+      const tournamentId = selectedTournaments.length > 0 ? selectedTournaments[0] : null;
+      
+      setProgress(20);
+      setProgressMessage(`Scraping formazioni giornata ${giornata}...`);
+      
+      // Simula progresso durante l'operazione
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev < 80) {
+            return Math.floor(prev + Math.random() * 3 + 1);
+          }
+          return prev;
+        });
+      }, 1500);
+      
+      const response = await scrapingFormazioniPlaywright(
+        selectedLega,
+        leagueUrl,
+        credentials.username,
+        credentials.password,
+        tournamentId,
+        parseInt(giornata),
+        token
+      );
+
+      clearInterval(progressInterval);
+      setResults(response);
+      setProgress(100);
+      setProgressMessage('Scraping formazioni completato!');
+
+      if (response.success) {
+        showSuccessModal('Formazioni Scrapate', `Trovate ${response.formazioni_trovate} formazioni per la giornata ${giornata}`);
+        // Ricarica i dati di scraping
+        await loadDatiScraping();
+      } else {
+        showErrorModal('Errore Scraping Formazioni', response.message || 'Errore durante lo scraping delle formazioni');
+      }
+
+    } catch (error) {
+      console.error('Errore scraping formazioni:', error);
+      setResults({
+        success: false,
+        error: error.message,
+        message: 'Errore durante lo scraping delle formazioni'
+      });
+      showErrorModal('Errore Scraping Formazioni', error.message);
+    } finally {
+    setLoading(false);
+      setShowProgressModal(false);
+      setProgress(0);
+      setProgressMessage('');
+    }
+  };
+
+  // Nuovo metodo per scraping completo (rose + classifica + formazioni)
+  const handleScrapingCompletoPlaywright = async () => {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+      showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
+      return;
+    }
+    
+    // Chiedi la giornata all'utente per le formazioni
+    const giornata = prompt('Inserisci il numero della giornata per le formazioni (es. 1, 2, 3...) o premi OK per saltare:');
+    const giornataNum = giornata && !isNaN(parseInt(giornata)) ? parseInt(giornata) : null;
+
+        setLoading(true);
+    setShowProgressModal(true);
+    setProgress(0);
+    setProgressMessage('Inizializzazione scraping completo...');
+
+    try {
+      console.log('Avvio scraping completo con Playwright...');
+      console.log('Lega:', selectedLega);
+      console.log('URL:', leagueUrl);
+      console.log('Giornata:', giornataNum || 'non specificata');
+      console.log('Torneo selezionato:', selectedTournaments[0] || 'nessuno');
+
+      const tournamentId = selectedTournaments.length > 0 ? selectedTournaments[0] : null;
+      
+      setProgress(10);
+      setProgressMessage('Scraping rose, classifica e formazioni...');
+      
+      // Simula progresso durante l'operazione
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev < 85) {
+            return Math.floor(prev + Math.random() * 2 + 1);
+          }
+          return prev;
+        });
+      }, 2000);
+      
+      const response = await scrapingCompletoPlaywright(
+        selectedLega,
+        leagueUrl,
+        credentials.username,
+        credentials.password,
+        tournamentId,
+        giornataNum,
+        token
+      );
+
+      clearInterval(progressInterval);
+      setResults(response);
+      setProgress(100);
+      setProgressMessage('Scraping completo terminato!');
+
+      if (response.success) {
+        const summary = response.results?.summary || {};
+        showSuccessModal('Scraping Completo', 
+          `Completato con successo!\n` +
+          `• Squadre: ${summary.squadre_trovate || 0}\n` +
+          `• Giocatori: ${summary.giocatori_totali || 0}\n` +
+          `• Posizioni classifica: ${summary.posizioni_classifica || 0}\n` +
+          `• Formazioni: ${summary.formazioni_trovate || 0}`
+        );
+        // Ricarica i dati di scraping
+        await loadDatiScraping();
+        await loadConfrontoDati();
+          } else {
+        showErrorModal('Errore Scraping Completo', response.message || 'Errore durante lo scraping completo');
+          }
+
+        } catch (error) {
+      console.error('Errore scraping completo:', error);
+      setResults({
+        success: false,
+        error: error.message,
+        message: 'Errore durante lo scraping completo'
+      });
+      showErrorModal('Errore Scraping Completo', error.message);
+    } finally {
+        setLoading(false);
       setShowProgressModal(false);
       setProgress(0);
       setProgressMessage('');
@@ -850,88 +838,122 @@ const ScrapingManager = () => {
       console.log('Recupero tornei disponibili...');
       
       const response = await getAvailableTournaments(
-        selectedLega,
+        selectedLega, 
         leagueUrl,
         credentials.username,
         credentials.password,
         token
       );
-
+      
       clearInterval(progressInterval);
 
       if (response.success) {
         setProgress(100);
         setProgressMessage('Tornei recuperati con successo!');
         setAvailableTournaments(response.tournaments || []);
-        console.log('Tornei recuperati:', response.tournaments);
+        console.log('🔍 DEBUG FRONTEND - Tornei ricevuti dal backend:', response.tournaments);
+        console.log('🔍 DEBUG FRONTEND - Numero tornei:', response.tournaments?.length || 0);
+        showSuccessModal('Tornei Recuperati', `Trovati ${response.tournaments?.length || 0} tornei disponibili.`);
       } else {
-        showErrorModal('Errore', response.message || 'Impossibile recuperare i tornei');
-        console.log('Errore recupero tornei:', response.message);
+        setProgress(100);
+        setProgressMessage('Errore nel recupero tornei');
+        showErrorModal('Errore Recupero Tornei', response.message || 'Errore durante il recupero dei tornei');
       }
+
     } catch (error) {
-      clearInterval(progressInterval);
       console.error('Errore recupero tornei:', error);
-      showErrorModal('Errore', error.message || 'Errore di connessione');
+      clearInterval(progressInterval);
+      setProgress(100);
+      setProgressMessage('Errore nel recupero tornei');
+      showErrorModal('Errore Recupero Tornei', error.message);
     } finally {
-      setLoading(false);
+    setLoading(false);
       setShowProgressModal(false);
       setProgress(0);
       setProgressMessage('');
     }
   };
 
-  const handleTestUrlsPuppeteer = async () => {
-    if (!leagueUrl || !credentials.username || !credentials.password) {
-      showErrorModal('Configurazione Mancante', 'Inserisci URL base e credenziali per testare gli URL.');
+  // Carica i tornei preferiti per la lega selezionata
+  const loadTorneiPreferiti = async () => {
+    if (!selectedLega) return;
+    
+    try {
+      const response = await caricaTorneiPreferiti(selectedLega, token);
+      if (response.success) {
+        setTorneiPreferiti(response.tornei || []);
+        console.log('📂 Tornei preferiti caricati:', response.tornei);
+      } else {
+        console.error('Errore caricamento tornei preferiti:', response.message);
+        setTorneiPreferiti([]);
+      }
+    } catch (error) {
+      console.error('Errore caricamento tornei preferiti:', error);
+      setTorneiPreferiti([]);
+    }
+  };
+
+  // Salva i tornei preferiti
+  const saveTorneiPreferiti = async () => {
+    if (!selectedLega || selectedTournaments.length === 0) {
+      showErrorModal('Dati Mancanti', 'Seleziona almeno un torneo da salvare come preferito.');
       return;
     }
 
     setLoading(true);
     try {
-      const result = await testScrapingUrlsPuppeteer(
-        leagueUrl, 
-        scrapingUrls, // Passa tutti gli URL di scraping
-        credentials.username, 
-        credentials.password, 
-        token
-      );
+      // Prepara i dati dei tornei selezionati
+      const torneiDaSalvare = availableTournaments
+        .filter(t => selectedTournaments.includes(t.id))
+        .map(t => ({
+          id: t.id,
+          name: t.name,
+          url: t.url
+        }));
+
+      const response = await salvaTorneiPreferiti(selectedLega, torneiDaSalvare, token);
       
-      if (result.success) {
-        setResults(prev => ({
-          ...prev,
-          testUrls: {
-            success: true,
-            message: '✅ Test URL completato con successo!',
-            data: result.data
-          }
-        }));
-        showSuccessModal('✅ Test URL Completato', 'Gli URL sono accessibili e funzionanti!');
+      if (response.success) {
+        showSuccessModal('✅ Tornei Preferiti Salvati', `Salvati ${response.tornei_salvati} tornei come preferiti.`);
+        // Ricarica i tornei preferiti
+        await loadTorneiPreferiti();
       } else {
-        setResults(prev => ({
-          ...prev,
-          testUrls: {
-            success: false,
-            message: '❌ Errore durante il test degli URL.',
-            error: result.error
-          }
-        }));
-        showErrorModal('❌ Errore Test URL', result.error || 'Errore durante il test degli URL.');
+        showErrorModal('❌ Errore', response.message || 'Errore durante il salvataggio dei tornei preferiti.');
       }
     } catch (error) {
-      console.error('Errore test URL Puppeteer:', error);
-      setResults(prev => ({
-        ...prev,
-        testUrls: {
-          success: false,
-          message: '❌ Errore durante il test degli URL.',
-          error: error.message
-        }
-      }));
-      showErrorModal('❌ Errore', 'Errore durante il test degli URL.');
+      console.error('Errore salvataggio tornei preferiti:', error);
+      showErrorModal('❌ Errore', 'Errore durante il salvataggio dei tornei preferiti.');
     } finally {
-      setLoading(false);
+    setLoading(false);
     }
   };
+
+  // Rimuovi un torneo preferito
+  const removeTorneoPreferito = async (torneoId) => {
+    if (!selectedLega) return;
+
+    try {
+      const response = await rimuoviTorneoPreferito(selectedLega, torneoId, token);
+      
+      if (response.success) {
+        showSuccessModal('✅ Torneo Rimosso', 'Torneo rimosso dai preferiti con successo.');
+        // Ricarica i tornei preferiti
+        await loadTorneiPreferiti();
+      } else {
+        showErrorModal('❌ Errore', response.message || 'Errore durante la rimozione del torneo.');
+      }
+    } catch (error) {
+      console.error('Errore rimozione torneo preferito:', error);
+      showErrorModal('❌ Errore', 'Errore durante la rimozione del torneo.');
+    }
+  };
+
+  // Carica i tornei preferiti quando cambia la lega
+  useEffect(() => {
+    if (selectedLega) {
+      loadTorneiPreferiti();
+    }
+  }, [selectedLega]);
 
   const handleUpdateCredentials = async () => {
     if (!selectedLega || !credentials.username || !credentials.password) {
@@ -953,91 +975,48 @@ const ScrapingManager = () => {
       console.error('Errore aggiornamento credenziali:', error);
       showErrorModal('❌ Errore', 'Errore durante l\'aggiornamento delle credenziali.');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDebugPageStructure = async () => {
-    if (!leagueUrl) {
-      showErrorModal('URL Mancante', 'Inserisci l\'URL base della lega per analizzare la struttura.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const result = await debugPageStructure(
-        scrapingUrls.rose || leagueUrl,
-        credentials.username,
-        credentials.password,
-        token
-      );
-      
-      if (result.success) {
-        setResults(prev => ({
-          ...prev,
-          debugStructure: {
-            success: true,
-            message: '✅ Struttura pagina analizzata con successo!',
-            data: result.data
-          }
-        }));
-        showSuccessModal('✅ Debug Completato', 'La struttura della pagina è stata analizzata. Controlla i log del backend per i dettagli.');
-      } else {
-        setResults(prev => ({
-          ...prev,
-          debugStructure: {
-            success: false,
-            message: '❌ Errore durante l\'analisi della struttura.',
-            error: result.error
-          }
-        }));
-        showErrorModal('❌ Errore Debug', result.error || 'Errore durante l\'analisi della struttura.');
-      }
-    } catch (error) {
-      console.error('Errore debug struttura pagina:', error);
-      setResults(prev => ({
-        ...prev,
-        debugStructure: {
-          success: false,
-          message: '❌ Errore durante l\'analisi della struttura.',
-          error: error.message
-        }
-      }));
-      showErrorModal('❌ Errore', 'Errore durante l\'analisi della struttura.');
-    } finally {
-      setLoading(false);
+    setLoading(false);
     }
   };
 
   const loadDatiScraping = async () => {
     if (!selectedLega) return;
     
-    console.log('Debug: Caricamento dati scraping per lega:', legaId);
-    console.log('Debug: Token disponibile:', !!token);
-    
     try {
       const response = await getDatiScraping(selectedLega, token);
-      if (response.success) {
-        setDatiScraping(response.dati_scraping);
+      console.log('DEBUG: Risposta API dati scraping:', response);
+      
+      // L'API restituisce { success: true, lega: {...}, dati_scraping: {...} }
+      if (response.success && response.dati_scraping) {
+        setDatiScraping({
+          lega_nome: response.lega?.nome || 'Lega',
+          rose: response.dati_scraping.rose || [],
+          classifica: response.dati_scraping.classifica || [],
+          voti: response.dati_scraping.voti || [],
+          formazioni: response.dati_scraping.formazioni || [],
+          mercato: response.dati_scraping.mercato || []
+        });
+      } else {
+        setDatiScraping(null);
       }
+      
+      // Resetta sempre l'ordinamento a quello predefinito (per ruolo)
+      setSortField('default');
+      setSortDirection('desc');
     } catch (error) {
-      console.error('❌ Errore caricamento dati scraping:', error);
-      console.error('❌ Dettagli errore:', error.response?.data || error.message);
+      console.error('Errore caricamento dati scraping:', error);
+      setDatiScraping(null);
     }
   };
 
   const loadConfrontoDati = async () => {
-    if (!selectedLega || !token) return;
+    if (!selectedLega) return;
     
     try {
-      console.log('Debug: Caricamento confronto dati per lega:', legaId);
-      console.log('Debug: Token disponibile:', !!token);
-      
-      const response = await getConfrontoDati(selectedLega, token);
-      setConfrontoDati(response);
+      const data = await getConfrontoDati(selectedLega, token);
+      setConfrontoDati(data);
     } catch (error) {
       console.error('Errore caricamento confronto dati:', error);
-      console.error('Dettagli errore:', error.response?.data || error.message);
     }
   };
 
@@ -1050,9 +1029,15 @@ const ScrapingManager = () => {
 
   // Funzioni di ordinamento
   const handleSort = (field) => {
-    if (sortField === field) {
+    if (field === 'default') {
+      // Reset all'ordinamento predefinito (per ruolo)
+      setSortField('default');
+      setSortDirection('desc');
+    } else if (sortField === field) {
+      // Cambia direzione se è lo stesso campo
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
+      } else {
+      // Nuovo campo di ordinamento
       setSortField(field);
       setSortDirection('asc');
     }
@@ -1061,54 +1046,81 @@ const ScrapingManager = () => {
   const sortGiocatori = (giocatori) => {
     if (!giocatori || giocatori.length === 0) return giocatori;
     
+    // Se non c'è un campo di ordinamento specifico, ordina sempre per ruolo Mantra
+    if (!sortField || sortField === 'default') {
+      // Usa la stessa logica della pagina dettaglio squadra
+      const roleOrder = ['Por', 'Ds', 'Dc', 'Dd', 'B', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc']; // Mantra
+      
+      return [...giocatori].sort((a, b) => {
+        const roleA = a.ruolo || '';
+        const roleB = b.ruolo || '';
+        
+        // Per ruoli multipli, prendi il primo ruolo
+        const firstRoleA = roleA.split(';')[0];
+        const firstRoleB = roleB.split(';')[0];
+        
+        const indexA = roleOrder.indexOf(firstRoleA);
+        const indexB = roleOrder.indexOf(firstRoleB);
+        
+        // Se entrambi i ruoli sono nell'ordine definito, ordina per posizione
+        if (indexA !== -1 && indexB !== -1) {
+          if (indexA === indexB) {
+            // Se hanno lo stesso ruolo base, ordina per il ruolo completo
+            return roleA.localeCompare(roleB);
+          }
+          return indexA - indexB;
+        }
+        
+        // Se solo uno è nell'ordine definito, metti quello definito prima
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        
+        // Se nessuno è nell'ordine definito, ordina alfabeticamente
+        return roleA.localeCompare(roleB);
+      });
+    }
+    
+    // Altrimenti usa l'ordinamento specificato
     return [...giocatori].sort((a, b) => {
-      // Se non è specificato un campo di ordinamento, ordina per ruolo
-      if (!sortField || sortField === 'default') {
-        // Ordine ufficiale Euroleghe Mantra
-        const ruoliMantra = { 
-          'P': 12, 'Dc': 11, 'Dd': 10, 'Ds': 9, 'E': 8, 'M': 7, 'C': 6, 'W': 5, 'T': 4, 'A': 3, 'Pc': 2, 'Sp': 1 
-        };
-        
-        // Ordine Serie A Classic
-        const ruoliClassic = { 'P': 4, 'D': 3, 'C': 2, 'A': 1 };
-        
-        // Determina se è una lega Mantra o Classic basandosi sui ruoli presenti
-        const hasMantraRoles = giocatori.some(g => 
-          g.ruolo && (g.ruolo.includes('Dc') || g.ruolo.includes('Dd') || g.ruolo.includes('Ds') || 
-                     g.ruolo.includes('E') || g.ruolo.includes('M') || g.ruolo.includes('W') || 
-                     g.ruolo.includes('T') || g.ruolo.includes('Pc') || g.ruolo.includes('Sp'))
-        );
-        
-        const ruoli = hasMantraRoles ? ruoliMantra : ruoliClassic;
-        
-        // Per ruoli multipli, usa il primo ruolo per l'ordinamento
-        const ruoloA = a.ruolo ? a.ruolo.split('/')[0].trim() : '';
-        const ruoloB = b.ruolo ? b.ruolo.split('/')[0].trim() : '';
-        
-        const valoreA = ruoli[ruoloA] || 0;
-        const valoreB = ruoli[ruoloB] || 0;
-        
-        return valoreB - valoreA; // Decrescente (P prima, A dopo)
+      let aValue, bValue;
+      
+      switch (sortField) {
+        case 'nome':
+          aValue = a.nome?.toLowerCase() || '';
+          bValue = b.nome?.toLowerCase() || '';
+          break;
+        case 'ruolo':
+          aValue = a.ruolo?.toLowerCase() || '';
+          bValue = b.ruolo?.toLowerCase() || '';
+          break;
+        case 'squadra':
+          aValue = a.squadra?.toLowerCase() || '';
+          bValue = b.squadra?.toLowerCase() || '';
+          break;
+        case 'quotazione':
+          aValue = parseFloat(a.quotazione) || 0;
+          bValue = parseFloat(b.quotazione) || 0;
+          break;
+        case 'qi':
+          aValue = parseFloat(a.qi) || 0;
+          bValue = parseFloat(b.qi) || 0;
+          break;
+        case 'fvMp':
+          aValue = parseFloat(a.fvMp) || 0;
+          bValue = parseFloat(b.fvMp) || 0;
+          break;
+        default:
+          return 0;
       }
       
-      let aValue = a[sortField];
-      let bValue = b[sortField];
-      
-      // Gestisci valori numerici
-      if (sortField === 'quotazione' || sortField === 'fv_mp' || sortField === 'qi') {
-        aValue = parseFloat(aValue) || 0;
-        bValue = parseFloat(bValue) || 0;
-      } else {
-        // Gestisci stringhe
-        aValue = (aValue || '').toString().toLowerCase();
-        bValue = (bValue || '').toString().toLowerCase();
+      if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
       }
       
-      if (sortDirection === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
     });
   };
 
@@ -1127,6 +1139,10 @@ const ScrapingManager = () => {
   };
 
   const renderDatiScraping = () => {
+    console.log('DEBUG renderDatiScraping:', datiScraping);
+    console.log('DEBUG sortField:', sortField);
+    console.log('DEBUG sortDirection:', sortDirection);
+    
     if (!datiScraping) return <p>Nessun dato di scraping disponibile per questa lega</p>;
 
     const toggleSection = (sectionName) => {
@@ -1142,6 +1158,17 @@ const ScrapingManager = () => {
         [squadraId]: !prev[squadraId]
       }));
     };
+
+    // Debug: controlla se ci sono rose
+    console.log('DEBUG rose disponibili:', datiScraping.rose);
+    if (datiScraping.rose && datiScraping.rose.length > 0) {
+      console.log('DEBUG prima squadra:', datiScraping.rose[0]);
+      console.log('DEBUG giocatori prima squadra:', datiScraping.rose[0].giocatori);
+      if (datiScraping.rose[0].giocatori && datiScraping.rose[0].giocatori.length > 0) {
+        console.log('DEBUG primo giocatore:', datiScraping.rose[0].giocatori[0]);
+        console.log('DEBUG giocatori ordinati:', sortGiocatori(datiScraping.rose[0].giocatori));
+      }
+    }
 
     return (
       <div className="dati-scraping-container">
@@ -1286,6 +1313,13 @@ const ScrapingManager = () => {
                       <th>Squadra</th>
                       <th>Punti</th>
                       <th>Partite</th>
+                      <th>V</th>
+                      <th>P</th>
+                      <th>S</th>
+                      <th>GF</th>
+                      <th>GS</th>
+                      <th>DR</th>
+                      <th>PT totali</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1295,6 +1329,13 @@ const ScrapingManager = () => {
                         <td className="squadra">{posizione.squadra}</td>
                         <td className="punti">{posizione.punti}</td>
                         <td className="partite">{posizione.partite}</td>
+                        <td className="vittorie">{posizione.vittorie || 0}</td>
+                        <td className="pareggi">{posizione.pareggi || 0}</td>
+                        <td className="sconfitte">{posizione.sconfitte || 0}</td>
+                        <td className="gol-fatti">{posizione.gol_fatti || 0}</td>
+                        <td className="gol-subiti">{posizione.gol_subiti || 0}</td>
+                        <td className="differenza-reti">{posizione.differenza_reti || 0}</td>
+                        <td className="punti-totali">{posizione.punti_totali !== undefined ? Number(posizione.punti_totali).toFixed(1) : ''}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1319,46 +1360,40 @@ const ScrapingManager = () => {
             
             {expandedSections.formazioni && (
               <div className="section-content">
-                {datiScraping.formazioni.map((formazione, index) => (
-                  <div key={index} className="formazione-card">
-                    <div 
-                      className="formazione-header"
-                      onClick={() => toggleSquadra(`formazione-${index}`)}
-                    >
-                      <h5>{formazione.squadra}</h5>
-                      <span className="modulo">Modulo: {formazione.modulo}</span>
-                      <span className="toggle-icon">
-                        {expandedSquadre[`formazione-${index}`] ? '▼' : '▶'}
-                      </span>
-                    </div>
-                    
-                    {expandedSquadre[`formazione-${index}`] && (
-                      <div className="formazione-details">
-                        <div className="titolari-section">
-                          <h6>👥 Titolari ({formazione.titolari.length})</h6>
-                          <div className="giocatori-grid">
-                            {formazione.titolari.map((giocatore, gIndex) => (
-                              <span key={gIndex} className="giocatore-chip">
-                                {giocatore}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <div className="panchinari-section">
-                          <h6>🪑 Panchinari ({formazione.panchinari.length})</h6>
-                          <div className="giocatori-grid">
-                            {formazione.panchinari.map((giocatore, gIndex) => (
-                              <span key={gIndex} className="giocatore-chip panchinaro">
-                                {giocatore}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                {/* Controlli per formazioni */}
+                <div className="formazioni-controls" style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: '500' }}>Giornata:</label>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    max="40" 
+                    style={{ 
+                      width: '60px', 
+                      padding: '4px 8px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      fontSize: '12px'
+                    }}
+                    placeholder="Giornata"
+                  />
+                  <button 
+                    style={{ 
+                      padding: '4px 12px', 
+                      fontSize: '12px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => alert('Funzionalità in sviluppo')}
+                  >
+                    Scraping Formazioni
+                  </button>
+                </div>
+
+                {/* Usa il componente FormazioniScraping aggiornato */}
+                <FormazioniScraping legaId={selectedLega} />
               </div>
             )}
           </div>
@@ -1453,11 +1488,14 @@ const ScrapingManager = () => {
   };
 
   const toggleTournament = (id) => {
+    console.log('🔍 DEBUG - toggleTournament chiamato con id:', id);
+    console.log('🔍 DEBUG - selectedTournaments prima:', selectedTournaments);
     if (selectedTournaments.includes(id)) {
       setSelectedTournaments(selectedTournaments.filter((i) => i !== id));
     } else {
       setSelectedTournaments([...selectedTournaments, id]);
     }
+    console.log('🔍 DEBUG - selectedTournaments dopo:', selectedTournaments);
   };
 
   const selectAllTournaments = () => {
@@ -1468,11 +1506,191 @@ const ScrapingManager = () => {
     setSelectedTournaments([]);
   };
 
+  const handleScrapingMultiplo = async (tipo) => {
+    if (!selectedTournaments.length) {
+      showErrorModal('Seleziona almeno un torneo');
+      return;
+    }
+    setLoading(true);
+    setShowProgressModal(true);
+    setProgress(0);
+    setProgressMessage('Scraping multiplo in corso...');
+    try {
+      const urls = availableTournaments.filter(t => selectedTournaments.includes(t.id)).map(t => ({
+        torneo_id: t.id,
+        url: t.url,
+        nome: t.name
+      }));
+      const response = await scrapingMultiplo(urls, selectedLega, tipo, token);
+      if (response.success) {
+        setScrapingResults(response.results);
+        setProgressMessage('Scraping completato!');
+        setProgress(100);
+      } else {
+        showErrorModal('Errore scraping', response.error || 'Errore generico');
+      }
+    } catch (error) {
+      showErrorModal('Errore scraping', error.message);
+    } finally {
+      setLoading(false);
+      setShowProgressModal(false);
+      setProgress(0);
+      setProgressMessage('');
+    }
+  };
+
+  // Funzione per upload quotazioni
+  const handleUploadQuotazioni = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !selectedLega) {
+      showErrorModal('Errore', 'Seleziona una lega e un file Excel');
+      return;
+    }
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadResult(null);
+    setUploadErrors([]);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('legaId', selectedLega);
+      const res = await api.post('/quotazioni/upload', formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total));
+          }
+        }
+      });
+      setUploadResult(res.data);
+      setUploadErrors(res.data.errors || []);
+      setBackupData(res.data.backup || null);
+      
+      // Salva il backup nel localStorage
+      if (res.data.backup) {
+        localStorage.setItem('quotazioni_backup', JSON.stringify(res.data.backup));
+      }
+      
+      showSuccessModal('Quotazioni caricate', res.data.message);
+    } catch (err) {
+      setUploadResult(null);
+      setUploadErrors([{ motivo: err.response?.data?.error || err.message }]);
+      showErrorModal('Errore upload', err.response?.data?.error || err.message);
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // Funzione per ripristinare backup
+  const handleRestoreBackup = async () => {
+    if (!selectedLega || !backupData) return;
+    setRestoring(true);
+    try {
+      const res = await api.post('/quotazioni/restore-backup', {
+        legaId: selectedLega,
+        backupData
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      showSuccessModal('Backup ripristinato', res.data.message);
+    } catch (err) {
+      showErrorModal('Errore ripristino', err.response?.data?.error || err.message);
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  // Funzioni per la sezione statistiche
+
+  const handleUploadStats = async (e) => {
+    const file = e ? e.target.files[0] : statsFile;
+    if (!file || !selectedLega) {
+      showErrorModal('Errore', 'Seleziona una lega e un file Excel');
+      return;
+    }
+    
+    setIsUploadingStats(true);
+    setStatsUploadResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('legaId', selectedLega);
+
+      const res = await api.post('/quotazioni/upload-stats', formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log('Progresso upload statistiche:', percentCompleted);
+          }
+        }
+      });
+
+      setStatsUploadResult(res.data);
+      setStatsBackupData(res.data.backup); // Salva i dati del backup
+      
+      // Salva il backup nel localStorage
+      if (res.data.backup) {
+        localStorage.setItem('statistiche_backup', JSON.stringify(res.data.backup));
+      }
+      
+      setStatsFile(null);
+      showSuccessModal('Statistiche caricate', res.data.message);
+      
+      // Reset del file input
+      const fileInput = document.querySelector('input[type="file"]');
+      if (fileInput) fileInput.value = '';
+      
+    } catch (error) {
+      console.error('Errore caricamento statistiche:', error);
+      setStatsUploadResult(null);
+      showErrorModal('Errore', error.response?.data?.error || 'Errore durante il caricamento delle statistiche');
+    } finally {
+      setIsUploadingStats(false);
+    }
+  };
+
+  const handleRestoreStatsBackup = async () => {
+    if (!statsBackupData || !selectedLega) {
+      showErrorModal('Errore', 'Nessun backup disponibile per le statistiche');
+      return;
+    }
+    
+    setRestoringStats(true);
+    try {
+      const res = await api.post('/quotazioni/restore-backup', {
+        legaId: selectedLega,
+        backupData: statsBackupData
+      }, {
+        headers: { 
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      showSuccessModal('Backup ripristinato', res.data.message);
+      setStatsUploadResult(null);
+      setStatsBackupData(null);
+      
+    } catch (error) {
+      console.error('Errore ripristino backup statistiche:', error);
+      showErrorModal('Errore', error.response?.data?.error || 'Errore durante il ripristino del backup');
+    } finally {
+      setRestoringStats(false);
+    }
+  };
+
   return (
     <Container>
       <Header>
-        <Title>🕷️ Gestione Scraping</Title>
-        <Subtitle>Importa dati da siti esterni come leghe.fantacalcio.it</Subtitle>
+        <Title>Sync</Title>
+        <Subtitle>Importa dati da siti esterni</Subtitle>
         <Button 
           onClick={() => navigate('/area-admin')}
           style={{ marginTop: '1rem', background: '#6c757d' }}
@@ -1482,6 +1700,13 @@ const ScrapingManager = () => {
       </Header>
 
       <div className="tabs">
+        <button 
+          className={activeTab === 'carica-files' ? 'active' : ''} 
+          onClick={() => setActiveTab('carica-files')}
+        >
+          Carica Files
+        </button>
+
         <button 
           className={activeTab === 'scraping' ? 'active' : ''} 
           onClick={() => setActiveTab('scraping')}
@@ -1502,11 +1727,10 @@ const ScrapingManager = () => {
         </button>
       </div>
 
-      {activeTab === 'scraping' && (
-        <div className="scraping-section">
+      {activeTab === 'carica-files' && (
+        <div className="carica-files-section">
           <div className="form-section">
-            <h3>Configurazione Scraping</h3>
-            
+            <h3>Carica Files</h3>
             <div className="form-group">
               <label>Seleziona Lega:</label>
               <select 
@@ -1521,6 +1745,239 @@ const ScrapingManager = () => {
                 ))}
               </select>
             </div>
+            <div className="form-group">
+              <label>Carica quotazioni aggiornate:</label>
+              <input type="file" accept=".xlsx,.xls" onChange={handleUploadQuotazioni} disabled={uploading || !selectedLega} />
+              <Button style={{ marginTop: 10 }} disabled={uploading || !selectedLega}>{uploading ? 'Caricamento...' : 'Carica Quotazioni Aggiornate'}</Button>
+              <div style={{ fontSize: '0.95em', color: '#666', marginTop: 8 }}>
+                Carica le quotazioni aggiornate dal sito. Queste aggiorneranno tutte le quotazioni dei calciatori nel sistema.
+              </div>
+              {uploading && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ width: '100%', background: '#eee', borderRadius: 6, height: 10, marginBottom: 4 }}>
+                    <div style={{ width: uploadProgress + '%', background: '#007bff', height: 10, borderRadius: 6 }}></div>
+                  </div>
+                  <div style={{ fontSize: '0.9em', color: '#007bff' }}>{uploadProgress}%</div>
+                </div>
+              )}
+            </div>
+            <div className="form-group">
+              <Button onClick={handleRestoreBackup} disabled={!backupData || restoring} style={{ background: '#ffc107', color: '#333' }}>
+                {restoring ? 'Ripristino...' : 'Backup'}
+              </Button>
+              <div style={{ fontSize: '0.95em', color: '#666', marginTop: 8 }}>
+                Clicca in caso vuoi riassumere l'aggiornamento prima del data che è stato fatto
+                {backupData && backupData.timestamp && (
+                  <span> (Backup: {new Date(backupData.timestamp).toLocaleString()})</span>
+                )}
+              </div>
+            </div>
+            {uploadResult && (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ fontWeight: 600, color: uploadResult.success ? '#28a745' : '#dc3545' }}>{uploadResult.message}</div>
+                <div style={{ fontSize: '0.95em', color: '#666', marginTop: 8 }}>
+                  Giocatori aggiornati: {uploadResult.stats?.updated || 0} / {uploadResult.stats?.totalRows || 0}
+                </div>
+              </div>
+            )}
+            {uploadErrors && uploadErrors.length > 0 && (
+              <div style={{ marginTop: 20 }}>
+                <div style={{ fontWeight: 600, color: '#dc3545' }}>Errori durante l'aggiornamento:</div>
+                <ul style={{ fontSize: '0.95em', color: '#dc3545', maxHeight: 200, overflowY: 'auto', background: '#fff3f3', border: '1px solid #ffd6d6', borderRadius: 6, padding: 10 }}>
+                  {uploadErrors.map((err, idx) => (
+                    <li key={idx}>
+                      {err.nome ? <b>{err.nome}</b> : null} {err.squadra ? `(${err.squadra})` : ''} - {err.motivo || 'Errore'}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div className="form-section" style={{ marginTop: '2rem', padding: '2rem', background: '#f8f9fa', borderRadius: '12px', border: '1px solid #dee2e6' }}>
+            <h3 style={{ color: '#495057', marginBottom: '1.5rem', borderBottom: '2px solid #007bff', paddingBottom: '0.5rem' }}>
+              📊 Carica Statistiche Aggiornate
+            </h3>
+            
+            <div className="form-group">
+              <label style={{ fontWeight: '600', color: '#495057', marginBottom: '0.5rem' }}>
+                File Excel con statistiche:
+              </label>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleUploadStats}
+                style={{ 
+                  width: '100%', 
+                  padding: '0.5rem', 
+                  border: '1px solid #ced4da', 
+                  borderRadius: '6px',
+                  fontSize: '1rem',
+                  marginBottom: '1rem'
+                }}
+                disabled={isUploadingStats || !selectedLega}
+              />
+              
+              <div style={{ fontSize: '0.95em', color: '#666', marginTop: 8 }}>
+                Carica le statistiche aggiornate dal sito. Queste aggiorneranno tutte le statistiche dei calciatori nel sistema.
+              </div>
+              
+              {isUploadingStats && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ width: '100%', background: '#eee', borderRadius: 6, height: 10, marginBottom: 4 }}>
+                    <div style={{ width: '50%', background: '#28a745', height: 10, borderRadius: 6 }}></div>
+                  </div>
+                  <div style={{ fontSize: '0.9em', color: '#28a745' }}>Caricamento in corso...</div>
+                </div>
+              )}
+              
+
+            </div>
+            
+            {statsUploadResult && (
+              <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#d4edda', border: '1px solid #c3e6cb', borderRadius: '6px' }}>
+                <h4 style={{ color: '#155724', marginBottom: '1rem' }}>✅ Risultato Caricamento:</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                  <div style={{ textAlign: 'center', padding: '0.5rem', background: '#fff', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#28a745' }}>{statsUploadResult.stats.totalRows}</div>
+                    <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Righe processate</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '0.5rem', background: '#fff', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#007bff' }}>{statsUploadResult.stats.updated}</div>
+                    <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Giocatori aggiornati</div>
+                  </div>
+                  <div style={{ textAlign: 'center', padding: '0.5rem', background: '#fff', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#dc3545' }}>{statsUploadResult.stats.errors}</div>
+                    <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>Errori</div>
+                  </div>
+                </div>
+                
+                <div style={{ fontSize: '0.9rem', color: '#155724' }}>
+                  <strong>Backup creato:</strong> {new Date(statsUploadResult.backup.timestamp).toLocaleString()}
+                </div>
+                
+                <div style={{ marginTop: '1rem' }}>
+                  <Button 
+                    onClick={handleRestoreStatsBackup} 
+                    disabled={!statsBackupData || restoringStats} 
+                    style={{ background: '#ffc107', color: '#333', marginRight: '1rem' }}
+                  >
+                    {restoringStats ? 'Ripristino...' : 'Backup Statistiche'}
+                  </Button>
+                  <div style={{ fontSize: '0.9em', color: '#666', marginTop: '0.5rem' }}>
+                    Clicca per ripristinare le statistiche precedenti al caricamento
+                  </div>
+                </div>
+                
+                {statsUploadResult.errors && statsUploadResult.errors.length > 0 && (
+                  <div style={{ marginTop: '1rem' }}>
+                    <h5 style={{ color: '#721c24', marginBottom: '0.5rem' }}>⚠️ Giocatori non trovati nel file Excel:</h5>
+                    <div style={{ maxHeight: '200px', overflowY: 'auto', background: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', padding: '0.5rem' }}>
+                      {statsUploadResult.errors.slice(0, 10).map((error, index) => (
+                        <div key={index} style={{ fontSize: '0.85rem', color: '#721c24', marginBottom: '0.25rem' }}>
+                          <strong>{error.nome}</strong> ({error.squadra}) - {error.motivo}
+                        </div>
+                      ))}
+                      {statsUploadResult.errors.length > 10 && (
+                        <div style={{ fontSize: '0.85rem', color: '#721c24', fontStyle: 'italic' }}>
+                          ... e altri {statsUploadResult.errors.length - 10} giocatori
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Sezione Log */}
+          <div className="form-section" style={{ marginTop: '2rem', padding: '2rem', background: '#f8f9fa', borderRadius: '12px', border: '1px solid #dee2e6' }}>
+            <h3 style={{ color: '#495057', marginBottom: '1.5rem', borderBottom: '2px solid #007bff', paddingBottom: '0.5rem' }}>
+              📋 Log Caricamenti
+            </h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+              {/* Log Quotazioni */}
+              <div>
+                <h4 style={{ color: '#007bff', marginBottom: '1rem' }}>📈 Log Quotazioni</h4>
+                <div style={{ maxHeight: '300px', overflowY: 'auto', background: '#fff', border: '1px solid #dee2e6', borderRadius: '6px', padding: '1rem' }}>
+                  {quotazioniLogs.length > 0 ? (
+                    quotazioniLogs.map((log, index) => (
+                      <div key={index} style={{ 
+                        padding: '0.75rem', 
+                        borderBottom: index < quotazioniLogs.length - 1 ? '1px solid #eee' : 'none',
+                        fontSize: '0.9rem'
+                      }}>
+                        <div style={{ fontWeight: '600', color: '#495057' }}>{log.utente_nome}</div>
+                        <div style={{ color: '#6c757d', fontSize: '0.8rem' }}>{log.file_nome}</div>
+                        <div style={{ color: '#28a745', fontSize: '0.8rem' }}>
+                          ✅ {log.giocatori_aggiornati} aggiornati, ❌ {log.errori} errori
+                        </div>
+                        <div style={{ color: '#6c757d', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                          {new Date(log.data_caricamento).toLocaleString()}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ color: '#6c757d', fontStyle: 'italic', textAlign: 'center', padding: '2rem' }}>
+                      Nessun log disponibile
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Log Statistiche */}
+              <div>
+                <h4 style={{ color: '#28a745', marginBottom: '1rem' }}>📊 Log Statistiche</h4>
+                <div style={{ maxHeight: '300px', overflowY: 'auto', background: '#fff', border: '1px solid #dee2e6', borderRadius: '6px', padding: '1rem' }}>
+                  {statisticheLogs.length > 0 ? (
+                    statisticheLogs.map((log, index) => (
+                      <div key={index} style={{ 
+                        padding: '0.75rem', 
+                        borderBottom: index < statisticheLogs.length - 1 ? '1px solid #eee' : 'none',
+                        fontSize: '0.9rem'
+                      }}>
+                        <div style={{ fontWeight: '600', color: '#495057' }}>{log.utente_nome}</div>
+                        <div style={{ color: '#6c757d', fontSize: '0.8rem' }}>{log.file_nome}</div>
+                        <div style={{ color: '#28a745', fontSize: '0.8rem' }}>
+                          ✅ {log.giocatori_aggiornati} aggiornati, ❌ {log.errori} errori
+                        </div>
+                        <div style={{ color: '#6c757d', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                          {new Date(log.data_caricamento).toLocaleString()}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ color: '#6c757d', fontStyle: 'italic', textAlign: 'center', padding: '2rem' }}>
+                      Nessun log disponibile
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'scraping' && (
+        <div className="scraping-section">
+          <div className="form-section">
+            <h3>Configurazione Scraping</h3>
+            
+            <div className="form-group">
+              <label>Seleziona Lega:</label>
+              <select 
+              value={selectedLega} 
+                onChange={(e) => setSelectedLega(e.target.value)}
+            >
+              <option value="">Seleziona una lega</option>
+              {leghe.map(lega => (
+                <option key={lega.id} value={lega.id}>
+                    {lega.nome}
+                </option>
+              ))}
+              </select>
+              </div>
 
             <div className="form-group">
               <label>URL Base Lega Fantacalcio:</label>
@@ -1528,7 +1985,7 @@ const ScrapingManager = () => {
                 type="text"
                 value={leagueUrl}
                 onChange={(e) => handleUrlChange('base', e.target.value)}
-                placeholder="https://leghe.fantacalcio.it/fantaleague-11"
+                placeholder="https://esempio-url-piattaforma"
               />
               <small>Inserisci l'URL base della lega. Gli altri URL verranno generati automaticamente.</small>
             </div>
@@ -1539,7 +1996,7 @@ const ScrapingManager = () => {
                 type="text"
                 value={scrapingUrls.rose}
                 onChange={(e) => handleUrlChange('rose', e.target.value)}
-                placeholder="https://leghe.fantacalcio.it/fantaleague-11/rose"
+                placeholder="https://esempio-url-piattaforma/rose"
               />
             </div>
 
@@ -1549,7 +2006,7 @@ const ScrapingManager = () => {
                 type="text"
                 value={scrapingUrls.classifica}
                 onChange={(e) => handleUrlChange('classifica', e.target.value)}
-                placeholder="https://leghe.fantacalcio.it/fantaleague-11/classifica"
+                placeholder="https://esempio-url-piattaforma/classifica"
               />
             </div>
 
@@ -1559,7 +2016,7 @@ const ScrapingManager = () => {
                 type="text"
                 value={scrapingUrls.formazioni}
                 onChange={(e) => handleUrlChange('formazioni', e.target.value)}
-                placeholder="https://leghe.fantacalcio.it/fantaleague-11/formazioni"
+                placeholder="https://esempio-url-piattaforma/formazioni"
               />
             </div>
 
@@ -1621,7 +2078,7 @@ const ScrapingManager = () => {
                   type="button"
                   className="btn btn-warning"
                   onClick={handleGetTournaments}
-                  disabled={loading}
+                    disabled={loading}
                   style={{ 
                     backgroundColor: '#ebb13d', 
                     borderColor: '#ebb13d', 
@@ -1661,42 +2118,149 @@ const ScrapingManager = () => {
                       </button>
                       <button
                         type="button"
-                        className="btn btn-warning"
+                    className="btn btn-warning"
                         onClick={() => clearTournamentSelection()}
-                      >
+                  >
                         Deseleziona Tutti
                       </button>
-                    </div>
+                </div>
                     <div className="selected-tournaments">
                       <strong>Tornei selezionati:</strong> {selectedTournaments.length > 0 ? selectedTournaments.join(', ') : 'Nessuno'}
-                    </div>
+              </div>
                   </div>
                 )}
               </div>
             </div>
 
+            {/* Sezione Tornei Preferiti */}
+            <div className="form-group">
+              <label>🎯 Tornei Preferiti:</label>
+              <div className="preferiti-controls">
+                <button 
+                  type="button"
+                  className="btn btn-info"
+                  onClick={() => setShowPreferiti(!showPreferiti)}
+                  style={{ 
+                    backgroundColor: '#17a2b8', 
+                    borderColor: '#17a2b8', 
+                    color: 'white',
+                    fontWeight: '600',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    marginRight: '10px'
+                  }}
+                >
+                  {showPreferiti ? '🔽 Nascondi' : '🔼 Mostra'} Preferiti ({torneiPreferiti.length})
+                </button>
+                
+                {selectedTournaments.length > 0 && (
+                  <button 
+                    type="button"
+                    className="btn btn-success"
+                    onClick={saveTorneiPreferiti}
+                    disabled={loading}
+                    style={{ 
+                      backgroundColor: '#28a745', 
+                      borderColor: '#28a745', 
+                      color: 'white',
+                      fontWeight: '600',
+                      padding: '8px 16px',
+                      borderRadius: '6px'
+                    }}
+                  >
+                    {loading ? '💾 Salvando...' : '💾 Salva Selezionati come Preferiti'}
+                  </button>
+                )}
+              </div>
+              
+              {showPreferiti && (
+                <div className="preferiti-section">
+                  {torneiPreferiti.length > 0 ? (
+                    <div className="preferiti-list">
+                      <h5>I tuoi tornei preferiti:</h5>
+                      <div className="preferiti-buttons">
+                        {torneiPreferiti.map((torneo, index) => (
+                          <div key={index} className="preferito-item">
+                            <button
+                              type="button"
+                              className="btn btn-outline-primary preferito-btn"
+                              onClick={() => toggleTournament(torneo.id)}
+                              style={{
+                                backgroundColor: selectedTournaments.includes(torneo.id) ? '#007bff' : 'transparent',
+                                color: selectedTournaments.includes(torneo.id) ? 'white' : '#007bff',
+                                border: '1px solid #007bff',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                margin: '2px',
+                                fontSize: '0.9em',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {torneo.name} (ID: {torneo.id})
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger remove-btn"
+                              onClick={() => removeTorneoPreferito(torneo.id)}
+                              style={{
+                                backgroundColor: 'transparent',
+                                color: '#dc3545',
+                                border: '1px solid #dc3545',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                marginLeft: '5px',
+                                fontSize: '0.8em',
+                                cursor: 'pointer'
+                              }}
+                              title="Rimuovi dai preferiti"
+                            >
+                              ❌
+                            </button>
+        </div>
+                        ))}
+                      </div>
+                      <div className="preferiti-info">
+                        <small style={{ color: '#666', fontStyle: 'italic' }}>
+                          💡 Clicca su un torneo preferito per selezionarlo automaticamente. I tornei preferiti vengono salvati per ogni lega.
+                        </small>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="no-preferiti">
+                      <p style={{ color: '#666', fontStyle: 'italic', margin: '10px 0' }}>
+                        📝 Nessun torneo preferito salvato. Seleziona dei tornei e clicca "Salva Selezionati come Preferiti" per salvarli.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="actions">
-              <button onClick={handleTestCredentialsPuppeteer} disabled={loading}>
-                {loading ? 'Testando...' : 'Test Credenziali'}
-              </button>
-              <button onClick={handleTestUrlsPuppeteer} disabled={loading}>
-                {loading ? 'Testando...' : 'Test URL'}
-              </button>
-              <button onClick={handleDebugPageStructure} disabled={loading}>
-                {loading ? 'Analizzando...' : 'Debug Struttura'}
-              </button>
               <button onClick={handleUpdateCredentials} disabled={loading}>
                 {loading ? 'Aggiornando...' : 'Aggiorna Credenziali'}
               </button>
               <button onClick={handleScrapingPlaywright} disabled={loading} className="primary">
-                {loading ? 'Scraping...' : 'Avvia Scraping'}
+                {loading ? 'Scraping...' : 'Avvia Scraping Rose'}
+              </button>
+              <button onClick={handleScrapingClassifica} disabled={loading} className="primary">
+                {loading ? 'Scraping...' : 'Scraping Classifica'}
+              </button>
+              <button onClick={handleScrapingFormazioni} disabled={loading} className="primary">
+                {loading ? 'Scraping...' : 'Scraping Formazioni'}
+              </button>
+              <button onClick={handleScrapingCompletoPlaywright} disabled={loading} className="primary">
+                {loading ? 'Scraping...' : 'Scraping Completo'}
               </button>
             </div>
           </div>
 
+
+
           {renderResults()}
-        </div>
-      )}
+                  </div>
+                )}
 
       {activeTab === 'dati-scraping' && (
         <div className="dati-scraping-section">
@@ -1716,8 +2280,8 @@ const ScrapingManager = () => {
           </div>
           
           {renderDatiScraping()}
-        </div>
-      )}
+              </div>
+            )}
 
       {activeTab === 'confronto' && (
         <div className="confronto-section">
@@ -1737,10 +2301,50 @@ const ScrapingManager = () => {
           </div>
           
           {renderConfrontoDati()}
-        </div>
-      )}
+                  </div>
+                )}
 
       <ProgressModal />
+
+      {Object.entries(scrapingResults).map(([torneo, dati]) => (
+        <div key={torneo} style={{ margin: '2rem 0' }}>
+          <h3>Classifica {torneo}</h3>
+          <table className="table table-striped">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Squadra</th>
+                <th>Partite</th>
+                <th>V</th>
+                <th>N</th>
+                <th>P</th>
+                <th>GF</th>
+                <th>GS</th>
+                <th>DR</th>
+                <th>Punti</th>
+                <th>Punti Totali</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.isArray(dati) && dati.map((row, idx) => (
+                <tr key={idx}>
+                  <td>{row.posizione}</td>
+                  <td>{row.squadra}</td>
+                  <td>{row.partite}</td>
+                  <td>{row.vittorie}</td>
+                  <td>{row.pareggi}</td>
+                  <td>{row.sconfitte}</td>
+                  <td>{row.golFatti}</td>
+                  <td>{row.golSubiti}</td>
+                  <td>{row.differenzaReti}</td>
+                  <td>{row.punti}</td>
+                  <td>{row.puntiTotali}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+              </div>
+      ))}
     </Container>
   );
 };
@@ -1779,6 +2383,70 @@ const styles = `
     background-color: #f8f9fa;
     border-radius: 5px;
     border: 1px solid #dee2e6;
+  }
+
+  .preferiti-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+  }
+
+  .preferiti-section {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+  }
+
+  .preferiti-list h5 {
+    margin-bottom: 15px;
+    color: #333;
+    font-weight: 600;
+  }
+
+  .preferiti-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+  }
+
+  .preferito-item {
+    display: flex;
+    align-items: center;
+  }
+
+  .preferito-btn {
+    transition: all 0.2s ease;
+  }
+
+  .preferito-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .remove-btn {
+    transition: all 0.2s ease;
+  }
+
+  .remove-btn:hover {
+    background-color: #dc3545 !important;
+    color: white !important;
+    transform: scale(1.1);
+  }
+
+  .preferiti-info {
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+  }
+
+  .no-preferiti {
+    text-align: center;
+    padding: 20px;
   }
 `;
 

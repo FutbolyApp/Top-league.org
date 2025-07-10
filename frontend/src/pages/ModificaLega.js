@@ -222,7 +222,7 @@ const ErrorMessage = styled.div`
 `;
 
 const ModificaLega = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [lega, setLega] = useState(null);
@@ -324,20 +324,35 @@ const ModificaLega = () => {
       await updateLega(id, formData, token);
       setSuccess('Lega aggiornata con successo!');
       
-      // Torna alla dashboard dopo 2 secondi
+      // Torna alla dashboard appropriata dopo 2 secondi
       setTimeout(() => {
-        navigate('/super-admin-dashboard');
+        if (user && user.ruolo === 'admin') {
+          navigate('/area-admin');
+        } else {
+          navigate('/super-admin-dashboard');
+        }
       }, 2000);
       
     } catch (err) {
-      setError(err.message);
+      // Gestione specifica per nome duplicato
+      if (err.message && err.message.includes('Nome lega duplicato')) {
+        setError('Esiste già una lega con questo nome. Scegli un nome diverso.');
+      } else if (err.message && err.message.includes('Esiste già una lega con questo nome')) {
+        setError('Esiste già una lega con questo nome. Scegli un nome diverso.');
+      } else {
+        setError(err.message || 'Errore durante l\'aggiornamento della lega');
+      }
     } finally {
       setSaving(false);
     }
   };
 
   const handleCancel = () => {
-    navigate('/super-admin-dashboard');
+    if (user && user.ruolo === 'admin') {
+      navigate('/area-admin');
+    } else {
+      navigate('/super-admin-dashboard');
+    }
   };
 
   if (loading) return (
@@ -354,7 +369,13 @@ const ModificaLega = () => {
 
   return (
     <Container>
-      <BackButton onClick={() => navigate('/super-admin-dashboard')}>
+      <BackButton onClick={() => {
+        if (user && user.ruolo === 'admin') {
+          navigate('/area-admin');
+        } else {
+          navigate('/super-admin-dashboard');
+        }
+      }}>
         ← Torna alla Dashboard
       </BackButton>
       

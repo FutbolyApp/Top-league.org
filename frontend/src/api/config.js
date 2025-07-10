@@ -2,8 +2,6 @@ const API_BASE_URL = 'http://localhost:3001/api';
 
 async function fetchWithRetry(url, options = {}, retries = 3) {
   try {
-    console.log('Making request to:', `${API_BASE_URL}${url}`, 'with data:', options.body);
-    
     const response = await fetch(`${API_BASE_URL}${url}`, {
       ...options,
       headers: {
@@ -12,31 +10,30 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
       },
     });
     
-    console.log('Response status:', response.status);
-    
     if (!response.ok) {
       let errorMessage = 'Errore del server';
       try {
-        const errorData = await response.json();
+        // Prova a leggere come JSON
+        const errorData = await response.clone().json();
         errorMessage = errorData.error || errorMessage;
       } catch (e) {
-        // Se non riesce a parsare JSON, usa il testo della risposta
-        const text = await response.text();
-        console.log('Error response text:', text);
-        if (text.includes('<!DOCTYPE')) {
-          errorMessage = 'Errore del server: risposta non valida';
-        } else {
-          errorMessage = text || errorMessage;
+        try {
+          // Se non è JSON, prova come testo
+          const text = await response.text();
+          if (text.includes('<!DOCTYPE')) {
+            errorMessage = 'Errore del server: risposta non valida';
+          } else {
+            errorMessage = text || errorMessage;
+          }
+        } catch (e2) {
+          // fallback
         }
       }
       throw new Error(errorMessage);
     }
-    
-    const data = await response.json();
-    console.log('Response data:', data);
-    return data;
+    return response.json();
   } catch (error) {
-    console.log('Request failed:', error);
+    console.error('Request failed:', error);
     if (retries > 0) {
       console.log(`Retrying... ${retries} attempts left`);
       await new Promise(resolve => setTimeout(resolve, 1000));

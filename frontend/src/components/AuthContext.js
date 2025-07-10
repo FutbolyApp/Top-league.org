@@ -40,9 +40,8 @@ export const AuthProvider = ({ children }) => {
             
             // Verifica se i dati sono aggiornati (controlla se mancano leghe_admin)
             if (!userData.leghe_admin || userData.leghe_admin.length === 0) {
-              // Se mancano i dati delle leghe admin, prova a rifare login
-              console.log('User data incomplete, attempting to refresh...');
-              // Nota: questo richiederebbe una password, quindi per ora solo log
+              // Se mancano i dati delle leghe admin, è normale per utenti non admin
+              // Non loggare più questo messaggio per ridurre il rumore
             }
           }
         }

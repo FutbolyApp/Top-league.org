@@ -62,7 +62,7 @@ export const getRoleClass = (ruolo) => {
   if (roleLower === 'c') return 'ruolo-c';
   if (roleLower === 'a') return 'ruolo-a';
   
-  // Ruoli Euroleghe Mantra
+  // Ruoli Serie A Mantra
   if (roleLower === 'por') return 'ruolo-por';
   if (roleLower === 'dc') return 'ruolo-dc';
   if (roleLower === 'dd') return 'ruolo-dd';
@@ -70,8 +70,9 @@ export const getRoleClass = (ruolo) => {
   if (roleLower === 'b') return 'ruolo-b';
   if (roleLower === 'e') return 'ruolo-e';
   if (roleLower === 'm') return 'ruolo-m';
-  if (roleLower === 't') return 'ruolo-t';
+  if (roleLower === 'c') return 'ruolo-c';
   if (roleLower === 'w') return 'ruolo-w';
+  if (roleLower === 't') return 'ruolo-t';
   if (roleLower === 'a') return 'ruolo-a';
   if (roleLower === 'pc') return 'ruolo-pc';
   

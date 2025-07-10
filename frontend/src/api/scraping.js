@@ -1,10 +1,5 @@
 import { apiRequest } from './axiosConfig';
 
-// Test scraping per un URL
-export const testScraping = async (url, token) => {
-  return apiRequest('POST', '/scraping/test', { url }, token);
-};
-
 // Scraping classifica
 export const scrapeClassifica = async (url, lega_id, token) => {
   return apiRequest('POST', '/scraping/classifica', { url, lega_id }, token);
@@ -25,57 +20,15 @@ export const scrapeVoti = async (url, token) => {
   return apiRequest('POST', '/scraping/voti', { url }, token);
 };
 
-// Aggiorna classifica nel database
-export const updateClassificaFromScraping = async (url, lega_id, token) => {
-  return apiRequest('POST', '/scraping/update-classifica', { url, lega_id }, token);
-};
-
 // Aggiorna voti nel database
 export const updateVotiFromScraping = async (url, lega_id, token) => {
   return apiRequest('POST', '/scraping/update-voti', { url, lega_id }, token);
-};
-
-// Importa calciatori nel database
-export const importCalciatoriFromScraping = async (url, lega_id, token) => {
-  return apiRequest('POST', '/scraping/import-calciatori', { url, lega_id }, token);
-};
-
-// Scraping completo per una lega
-export const scrapingCompleto = async (lega_id, urls, token) => {
-  return apiRequest('POST', '/scraping/completo', { 
-    lega_id, 
-    classifica_url: urls.classifica,
-    voti_url: urls.voti,
-    calciatori_url: urls.calciatori
-  }, token);
 };
 
 // Test manuale delle credenziali
 export const testCredentials = async (leagueId, username, password, token) => {
     return apiRequest('POST', '/scraping/test-credentials', {
         leagueId,
-        username,
-        password
-    }, token);
-};
-
-// Debug: ottieni credenziali dal database
-export const debugCredentials = async (leagueId, token) => {
-    return apiRequest('GET', `/scraping/debug-credentials/${leagueId}`, null, token);
-};
-
-// Test URL di scraping
-export const testScrapingUrls = async (leagueUrl, token) => {
-    return apiRequest('POST', '/scraping/test-urls', {
-        leagueUrl
-    }, token);
-};
-
-// Test URL di scraping con Puppeteer (per siti protetti)
-export const testScrapingUrlsPuppeteer = async (leagueUrl, scrapingUrls, username, password, token) => {
-    return apiRequest('POST', '/scraping/test-urls-puppeteer', {
-        leagueUrl,
-        scrapingUrls,
         username,
         password
     }, token);
@@ -142,26 +95,6 @@ export const updateCredentials = async (lega_id, username, password, token) => {
   }, token);
 };
 
-// Debug: analizza struttura pagina
-export const debugPageStructure = async (url, username, password, token) => {
-  return apiRequest('POST', '/scraping/debug-page-structure', {
-    url,
-    username,
-    password
-  }, token);
-};
-
-// NUOVO: Pulizia profili browser
-export const cleanupProfiles = async () => {
-  try {
-    const response = await apiRequest('POST', '/scraping/cleanup-profiles');
-    return response.data;
-  } catch (error) {
-    console.error('Errore pulizia profili:', error);
-    throw error;
-  }
-};
-
 // Ottieni tornei disponibili per una lega
 export const getAvailableTournaments = async (lega_id, leagueUrl, username, password, token) => {
   return apiRequest('POST', '/scraping/tournaments', { 
@@ -170,4 +103,73 @@ export const getAvailableTournaments = async (lega_id, leagueUrl, username, pass
     username,
     password
   }, token);
+};
+
+// NUOVO: Scraping classifica con Playwright
+export const scrapingClassificaPlaywright = async (lega_id, leagueUrl, username, password, tournamentId, token) => {
+  return apiRequest('POST', '/scraping/playwright-classifica', { 
+    lega_id,
+    leagueUrl,
+    username,
+    password,
+    tournamentId
+  }, token);
+};
+
+// NUOVO: Scraping formazioni con Playwright
+export const scrapingFormazioniPlaywright = async (lega_id, leagueUrl, username, password, tournamentId, giornata, token) => {
+  return apiRequest('POST', '/scraping/playwright-formazioni', { 
+    lega_id,
+    leagueUrl,
+    username,
+    password,
+    tournamentId,
+    giornata
+  }, token);
+};
+
+// NUOVO: Scraping completo (rose + classifica + formazioni) con Playwright
+export const scrapingCompletoPlaywright = async (lega_id, leagueUrl, username, password, tournamentId, giornata, token) => {
+  return apiRequest('POST', '/scraping/playwright-completo', { 
+    lega_id,
+    leagueUrl,
+    username,
+    password,
+    tournamentId,
+    giornata
+  }, token);
+};
+
+// NUOVO: Scraping multiplo per più tornei
+export const scrapingMultiplo = async (urls, lega_id, tipo, token) => {
+  return apiRequest('POST', '/scraping/scraping-multiplo', {
+    urls,
+    lega_id,
+    tipo
+  }, token);
+};
+
+// NUOVO: API per i tornei preferiti
+
+// Salva i tornei preferiti
+export const salvaTorneiPreferiti = async (lega_id, tornei, token) => {
+  return apiRequest('POST', '/scraping/preferiti/salva', {
+    lega_id,
+    tornei
+  }, token);
+};
+
+// Carica i tornei preferiti
+export const caricaTorneiPreferiti = async (lega_id, token) => {
+  return apiRequest('GET', `/scraping/preferiti/${lega_id}`, {}, token);
+};
+
+// Rimuovi un torneo preferito
+export const rimuoviTorneoPreferito = async (lega_id, torneo_id, token) => {
+  return apiRequest('DELETE', `/scraping/preferiti/${lega_id}/${torneo_id}`, {}, token);
+};
+
+// NUOVO: Ottieni formazioni di scraping per una lega
+export const getFormazioniScraping = async (lega_id, token) => {
+  return apiRequest('GET', `/scraping/formazioni/${lega_id}`, {}, token);
 }; 

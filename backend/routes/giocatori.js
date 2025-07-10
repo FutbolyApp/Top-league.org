@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { getGiocatoreById, updateGiocatore, createGiocatore, deleteGiocatore } from '../models/giocatore.js';
+import { getGiocatoreById, updateGiocatore, updateGiocatorePartial, createGiocatore, deleteGiocatore } from '../models/giocatore.js';
 import { getLegaById } from '../models/lega.js';
 import { getDb } from '../db/config.js';
 
@@ -13,8 +13,17 @@ router.get('/:giocatoreId', requireAuth, (req, res) => {
   db.get(`
     SELECT g.*, 
            COALESCE(g.qa, 0) as qa_scraping,
-           COALESCE(g.qi, 0) as qi_scraping
+           COALESCE(g.qi, 0) as qi_scraping,
+           s.nome as squadra_nome,
+           l.nome as lega_nome,
+           CASE 
+             WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
+             ELSE u.nome 
+           END as proprietario_nome
     FROM giocatori g 
+    LEFT JOIN squadre s ON g.squadra_id = s.id
+    LEFT JOIN leghe l ON g.lega_id = l.id
+    LEFT JOIN users u ON s.proprietario_id = u.id
     WHERE g.id = ?
   `, [giocatoreId], (err, giocatore) => {
     if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
@@ -28,9 +37,13 @@ router.get('/squadra/:squadraId', requireAuth, (req, res) => {
   const squadraId = req.params.squadraId;
   db.all(`
     SELECT g.*, 
+           COALESCE(g.qa, g.quotazione_attuale) as quotazione_attuale,
+           g.fvm as fv_mp,
            COALESCE(g.qa, 0) as qa_scraping,
-           COALESCE(g.qi, 0) as qi_scraping
+           COALESCE(g.qi, 0) as qi_scraping,
+           sp.nome as squadra_prestito_nome
     FROM giocatori g 
+    LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
     WHERE g.squadra_id = ?
   `, [squadraId], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
@@ -74,7 +87,12 @@ router.post('/batch', requireAuth, (req, res) => {
   const { ids } = req.body;
   if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'Nessun ID fornito' });
   const placeholders = ids.map(() => '?').join(',');
-  db.all(`SELECT * FROM giocatori WHERE id IN (${placeholders})`, ids, (err, rows) => {
+  db.all(`
+    SELECT *, 
+           COALESCE(qa, quotazione_attuale) as quotazione_attuale,
+           qi
+    FROM giocatori WHERE id IN (${placeholders})
+  `, ids, (err, rows) => {
     if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
     res.json({ giocatori: rows });
   });
@@ -85,9 +103,13 @@ router.get('/lega/:legaId', requireAuth, (req, res) => {
   const legaId = req.params.legaId;
   db.all(`
     SELECT g.*, 
+           COALESCE(g.qa, g.quotazione_attuale) as quotazione_attuale,
+           g.fvm as fv_mp,
            COALESCE(g.qa, 0) as qa_scraping,
-           COALESCE(g.qi, 0) as qi_scraping
+           COALESCE(g.qi, 0) as qi_scraping,
+           sp.nome as squadra_prestito_nome
     FROM giocatori g 
+    LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
     WHERE g.lega_id = ?
   `, [legaId], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
@@ -103,14 +125,14 @@ router.post('/', requireAuth, (req, res) => {
 
   // Verifica permessi
   const canCreate = async () => {
-    // Superadmin può creare tutto
-    if (userRole === 'superadmin') return true;
+    // Superadmin può creare tutto (gestisce entrambi i casi)
+    if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
     
     // Subadmin può creare
     if (userRole === 'subadmin') return true;
     
-    // Admin può creare solo nella sua lega
-    if (userRole === 'admin') {
+    // Admin può creare solo nella sua lega (gestisce entrambi i casi)
+    if (userRole === 'admin' || userRole === 'Admin') {
       const lega = await new Promise((resolve, reject) => {
         db.get('SELECT admin_id FROM leghe WHERE id = ?', [giocatoreData.lega_id], (err, lega) => {
           if (err) reject(err);
@@ -155,45 +177,64 @@ router.put('/:id', requireAuth, (req, res) => {
 
   // Verifica permessi
   const canEdit = async () => {
-    // Superadmin può modificare tutto
-    if (userRole === 'superadmin') return true;
+    console.log('canEdit - userRole:', userRole);
+    console.log('canEdit - utenteId:', utenteId);
+    console.log('canEdit - giocatoreId:', giocatoreId);
     
-    // Subadmin può modificare
-    if (userRole === 'subadmin') return true;
-    
-    // Admin può modificare solo i giocatori della sua lega
-    if (userRole === 'admin') {
-      const giocatore = await new Promise((resolve, reject) => {
-        getGiocatoreById(giocatoreId, (err, giocatore) => {
-          if (err) reject(err);
-          else resolve(giocatore);
-        });
-      });
-      
-      if (!giocatore) return false;
-      
-      // Verifica che l'admin sia admin della lega del giocatore
-      const lega = await new Promise((resolve, reject) => {
-        db.get('SELECT admin_id FROM leghe WHERE id = ?', [giocatore.lega_id], (err, lega) => {
-          if (err) reject(err);
-          else resolve(lega);
-        });
-      });
-      
-      return lega && lega.admin_id === utenteId;
+    // Superadmin può modificare tutto (gestisce entrambi i casi)
+    if (userRole === 'superadmin' || userRole === 'SuperAdmin') {
+      console.log('canEdit - Superadmin access granted');
+      return true;
     }
     
+    // Subadmin può modificare
+    if (userRole === 'subadmin') {
+      console.log('canEdit - Subadmin access granted');
+      return true;
+    }
+    
+    // Admin può modificare solo i giocatori della sua lega (gestisce entrambi i casi)
+    if (userRole === 'admin' || userRole === 'Admin') {
+      console.log('canEdit - Checking admin permissions for player:', giocatoreId);
+      
+      const giocatore = await new Promise((resolve, reject) => {
+        db.get('SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = ?', [giocatoreId], (err, result) => {
+          if (err) {
+            console.log('canEdit - DB error:', err);
+            reject(err);
+          } else {
+            console.log('canEdit - DB result:', result);
+            resolve(result);
+          }
+        });
+      });
+      
+      if (!giocatore) {
+        console.log('canEdit - Player not found');
+        return false;
+      }
+      
+      console.log('canEdit - Player league_id:', giocatore.lega_id);
+      console.log('canEdit - League admin_id:', giocatore.admin_id);
+      console.log('canEdit - User is admin of this league:', giocatore.admin_id === utenteId);
+      
+      return giocatore.admin_id === utenteId;
+    }
+    
+    console.log('canEdit - No permissions');
     return false;
   };
 
   canEdit()
     .then(hasPermission => {
+      console.log('PUT /:id - hasPermission:', hasPermission);
       if (!hasPermission) {
+        console.log('PUT /:id - Permission denied');
         return res.status(403).json({ error: 'Non hai i permessi per modificare questo giocatore' });
       }
       
       // Aggiorna il giocatore
-      updateGiocatore(giocatoreId, updateData, (err) => {
+      updateGiocatorePartial(giocatoreId, updateData, (err) => {
         if (err) return res.status(500).json({ error: 'Errore aggiornamento giocatore', details: err.message });
         res.json({ success: true, message: 'Giocatore aggiornato con successo' });
       });
@@ -211,32 +252,24 @@ router.delete('/:id', requireAuth, (req, res) => {
 
   // Verifica permessi
   const canDelete = async () => {
-    // Superadmin può eliminare tutto
-    if (userRole === 'superadmin') return true;
+    // Superadmin può eliminare tutto (gestisce entrambi i casi)
+    if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
     
     // Subadmin può eliminare
     if (userRole === 'subadmin') return true;
     
-    // Admin può eliminare solo i giocatori della sua lega
-    if (userRole === 'admin') {
+    // Admin può eliminare solo i giocatori della sua lega (gestisce entrambi i casi)
+    if (userRole === 'admin' || userRole === 'Admin') {
       const giocatore = await new Promise((resolve, reject) => {
-        getGiocatoreById(giocatoreId, (err, giocatore) => {
+        db.get('SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = ?', [giocatoreId], (err, result) => {
           if (err) reject(err);
-          else resolve(giocatore);
+          else resolve(result);
         });
       });
       
       if (!giocatore) return false;
       
-      // Verifica che l'admin sia admin della lega del giocatore
-      const lega = await new Promise((resolve, reject) => {
-        db.get('SELECT admin_id FROM leghe WHERE id = ?', [giocatore.lega_id], (err, lega) => {
-          if (err) reject(err);
-          else resolve(lega);
-        });
-      });
-      
-      return lega && lega.admin_id === utenteId;
+      return giocatore.admin_id === utenteId;
     }
     
     return false;
@@ -285,32 +318,24 @@ router.post('/:id/transfer', requireAuth, (req, res) => {
 
   // Verifica permessi
   const canTransfer = async () => {
-    // Superadmin può trasferire tutto
-    if (userRole === 'superadmin') return true;
+    // Superadmin può trasferire tutto (gestisce entrambi i casi)
+    if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
     
     // Subadmin può trasferire
     if (userRole === 'subadmin') return true;
     
-    // Admin può trasferire solo nella sua lega
-    if (userRole === 'admin') {
+    // Admin può trasferire solo nella sua lega (gestisce entrambi i casi)
+    if (userRole === 'admin' || userRole === 'Admin') {
       const giocatore = await new Promise((resolve, reject) => {
-        getGiocatoreById(giocatoreId, (err, giocatore) => {
+        db.get('SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = ?', [giocatoreId], (err, result) => {
           if (err) reject(err);
-          else resolve(giocatore);
+          else resolve(result);
         });
       });
       
       if (!giocatore) return false;
       
-      // Verifica che l'admin sia admin della lega del giocatore
-      const lega = await new Promise((resolve, reject) => {
-        db.get('SELECT admin_id FROM leghe WHERE id = ?', [giocatore.lega_id], (err, lega) => {
-          if (err) reject(err);
-          else resolve(lega);
-        });
-      });
-      
-      return lega && lega.admin_id === utenteId;
+      return giocatore.admin_id === utenteId;
     }
     
     return false;
@@ -433,7 +458,7 @@ router.get('/:id/qa-history', requireAuth, (req, res) => {
     }));
     
     res.json({ history });
-  });
+    });
 });
 
 export default router; 

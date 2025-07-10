@@ -51,6 +51,11 @@ export function updateUtente(id, data, callback) {
   ], callback);
 }
 
+export function updateUtenteRole(id, ruolo, callback) {
+  const sql = `UPDATE users SET ruolo=? WHERE id=?`;
+  db.run(sql, [ruolo, id], callback);
+}
+
 export function deleteUtente(id, callback) {
   db.run('DELETE FROM users WHERE id = ?', [id], callback);
 } 

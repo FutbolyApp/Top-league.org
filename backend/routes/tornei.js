@@ -7,7 +7,7 @@ const db = getDb();
 
 // Crea nuovo torneo
 router.post('/', requireAuth, (req, res) => {
-  const { lega_id, nome, tipo, formato, giornate_totali, data_inizio } = req.body;
+  const { lega_id, nome, tipo, formato, giornate_totali, data_inizio, descrizione, squadre_partecipanti, informazioni_utente } = req.body;
   const admin_id = req.user.id;
 
   // Verifica che l'utente sia admin della lega
@@ -16,19 +16,104 @@ router.post('/', requireAuth, (req, res) => {
     if (!lega) return res.status(403).json({ error: 'Non autorizzato' });
 
     db.run(`
-      INSERT INTO tornei (lega_id, nome, tipo, formato, giornate_totali, data_inizio, stato, admin_id)
-      VALUES (?, ?, ?, ?, ?, ?, 'in_corso', ?)
-    `, [lega_id, nome, tipo, formato, giornate_totali, data_inizio, admin_id], function(err) {
+      INSERT INTO tornei (lega_id, nome, tipo, formato, giornate_totali, data_inizio, descrizione, informazioni_utente, stato, admin_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'programmato', ?)
+    `, [lega_id, nome, tipo, formato, giornate_totali, data_inizio, descrizione, informazioni_utente, admin_id], function(err) {
       if (err) return res.status(500).json({ error: 'Errore creazione torneo' });
       
       const torneoId = this.lastID;
       
-      // Genera calendario automatico
-      generateCalendario(torneoId, lega_id, (err) => {
-        if (err) {
-          console.error('Errore generazione calendario:', err);
-        }
+      // Inserisci squadre partecipanti se specificate
+      if (squadre_partecipanti && squadre_partecipanti.length > 0) {
+        let completate = 0;
+        squadre_partecipanti.forEach(squadraId => {
+          db.run(`
+            INSERT INTO tornei_squadre (torneo_id, squadra_id)
+            VALUES (?, ?)
+          `, [torneoId, squadraId], (err) => {
+            if (err) console.error('Errore inserimento squadra:', err);
+            completate++;
+            if (completate === squadre_partecipanti.length) {
+              res.json({ success: true, torneo_id: torneoId });
+            }
+          });
+        });
+      } else {
         res.json({ success: true, torneo_id: torneoId });
+      }
+    });
+  });
+});
+
+// Aggiorna torneo esistente
+router.put('/:torneoId', requireAuth, (req, res) => {
+  const torneoId = req.params.torneoId;
+  const { nome, tipo, formato, giornate_totali, data_inizio, descrizione, squadre_partecipanti, informazioni_utente } = req.body;
+  const admin_id = req.user.id;
+
+  // Verifica autorizzazione
+  db.get('SELECT t.* FROM tornei t JOIN leghe l ON t.lega_id = l.id WHERE t.id = ? AND l.admin_id = ?', 
+    [torneoId, admin_id], (err, torneo) => {
+    if (err) return res.status(500).json({ error: 'Errore DB' });
+    if (!torneo) return res.status(403).json({ error: 'Non autorizzato' });
+
+    // Aggiorna torneo
+    db.run(`
+      UPDATE tornei 
+      SET nome = ?, tipo = ?, formato = ?, giornate_totali = ?, data_inizio = ?, descrizione = ?, informazioni_utente = ?
+      WHERE id = ?
+    `, [nome, tipo, formato, giornate_totali, data_inizio, descrizione, informazioni_utente, torneoId], (err) => {
+      if (err) return res.status(500).json({ error: 'Errore aggiornamento torneo' });
+
+      // Aggiorna squadre partecipanti
+      db.run('DELETE FROM tornei_squadre WHERE torneo_id = ?', [torneoId], (err) => {
+        if (err) return res.status(500).json({ error: 'Errore aggiornamento squadre' });
+
+        if (squadre_partecipanti && squadre_partecipanti.length > 0) {
+          let completate = 0;
+          squadre_partecipanti.forEach(squadraId => {
+            db.run(`
+              INSERT INTO tornei_squadre (torneo_id, squadra_id)
+              VALUES (?, ?)
+            `, [torneoId, squadraId], (err) => {
+              if (err) console.error('Errore inserimento squadra:', err);
+              completate++;
+              if (completate === squadre_partecipanti.length) {
+                res.json({ success: true, message: 'Torneo aggiornato con successo' });
+              }
+            });
+          });
+        } else {
+          res.json({ success: true, message: 'Torneo aggiornato con successo' });
+        }
+      });
+    });
+  });
+});
+
+// Elimina torneo
+router.delete('/:torneoId', requireAuth, (req, res) => {
+  const torneoId = req.params.torneoId;
+  const admin_id = req.user.id;
+
+  // Verifica autorizzazione
+  db.get('SELECT t.* FROM tornei t JOIN leghe l ON t.lega_id = l.id WHERE t.id = ? AND l.admin_id = ?', 
+    [torneoId, admin_id], (err, torneo) => {
+    if (err) return res.status(500).json({ error: 'Errore DB' });
+    if (!torneo) return res.status(403).json({ error: 'Non autorizzato' });
+
+    // Elimina in ordine: partite, squadre partecipanti, torneo
+    db.run('DELETE FROM partite WHERE torneo_id = ?', [torneoId], (err) => {
+      if (err) return res.status(500).json({ error: 'Errore eliminazione partite' });
+      
+      db.run('DELETE FROM tornei_squadre WHERE torneo_id = ?', [torneoId], (err) => {
+        if (err) return res.status(500).json({ error: 'Errore eliminazione squadre partecipanti' });
+        
+        db.run('DELETE FROM tornei WHERE id = ?', [torneoId], (err) => {
+          if (err) return res.status(500).json({ error: 'Errore eliminazione torneo' });
+          
+          res.json({ success: true, message: 'Torneo eliminato con successo' });
+        });
       });
     });
   });
@@ -41,53 +126,116 @@ router.get('/lega/:legaId', requireAuth, (req, res) => {
   db.all(`
     SELECT t.*, 
            COUNT(DISTINCT p.id) as partite_giocate,
-           COUNT(DISTINCT p.id) as partite_totali
+           COUNT(DISTINCT ts.squadra_id) as squadre_partecipanti
     FROM tornei t
     LEFT JOIN partite p ON t.id = p.torneo_id
+    LEFT JOIN tornei_squadre ts ON t.id = ts.torneo_id
     WHERE t.lega_id = ?
     GROUP BY t.id
     ORDER BY t.data_inizio DESC
   `, [legaId], (err, tornei) => {
     if (err) return res.status(500).json({ error: 'Errore DB' });
-    res.json({ tornei });
+    
+    // Per ogni torneo, ottieni le squadre partecipanti
+    let completati = 0;
+    const torneiCompleti = [];
+    
+    if (tornei.length === 0) {
+      return res.json({ tornei: [] });
+    }
+    
+    tornei.forEach(torneo => {
+      db.all(`
+        SELECT s.id, s.nome, s.proprietario_username
+        FROM squadre s
+        JOIN tornei_squadre ts ON s.id = ts.squadra_id
+        WHERE ts.torneo_id = ?
+      `, [torneo.id], (err, squadre) => {
+        if (err) console.error('Errore caricamento squadre:', err);
+        
+        torneiCompleti.push({
+          ...torneo,
+          squadre_partecipanti: squadre || []
+        });
+        
+        completati++;
+        if (completati === tornei.length) {
+          res.json({ tornei: torneiCompleti });
+        }
+      });
+    });
   });
 });
 
 // Ottieni dettagli torneo
 router.get('/:torneoId', requireAuth, (req, res) => {
   const torneoId = req.params.torneoId;
+  console.log(`GET /api/tornei/${torneoId} - User ID: ${req.user.id}`);
   
   db.get('SELECT * FROM tornei WHERE id = ?', [torneoId], (err, torneo) => {
-    if (err) return res.status(500).json({ error: 'Errore DB' });
-    if (!torneo) return res.status(404).json({ error: 'Torneo non trovato' });
+    if (err) {
+      console.error('Errore query torneo:', err);
+      return res.status(500).json({ error: 'Errore DB' });
+    }
+    if (!torneo) {
+      console.log(`Torneo ${torneoId} non trovato`);
+      return res.status(404).json({ error: 'Torneo non trovato' });
+    }
     
-    // Ottieni classifica
+    console.log(`Torneo trovato: ${torneo.nome}, Lega ID: ${torneo.lega_id}`);
+    
+    // Ottieni squadre partecipanti
     db.all(`
-      SELECT s.id, s.nome, s.punti_campionato, s.gol_fatti, s.gol_subiti,
-             (s.gol_fatti - s.gol_subiti) as differenza_reti
+      SELECT s.id, s.nome, s.proprietario_username
       FROM squadre s
-      WHERE s.lega_id = ?
-      ORDER BY s.punti_campionato DESC, differenza_reti DESC
-    `, [torneo.lega_id], (err, classifica) => {
-      if (err) return res.status(500).json({ error: 'Errore DB' });
+      JOIN tornei_squadre ts ON s.id = ts.squadra_id
+      WHERE ts.torneo_id = ?
+    `, [torneoId], (err, squadre) => {
+      if (err) {
+        console.error('Errore query squadre:', err);
+        return res.status(500).json({ error: 'Errore DB' });
+      }
       
-      // Ottieni calendario
+      console.log(`Squadre partecipanti trovate: ${squadre.length}`);
+      
+      // Ottieni classifica - Usa colonne esistenti
       db.all(`
-        SELECT p.*, 
-               s1.nome as squadra_casa_nome,
-               s2.nome as squadra_trasferta_nome
-        FROM partite p
-        JOIN squadre s1 ON p.squadra_casa_id = s1.id
-        JOIN squadre s2 ON p.squadra_trasferta_id = s2.id
-        WHERE p.torneo_id = ?
-        ORDER BY p.giornata, p.data_partita
-      `, [torneoId], (err, calendario) => {
-        if (err) return res.status(500).json({ error: 'Errore DB' });
+        SELECT s.id, s.nome, s.valore_squadra, s.casse_societarie, s.costo_salariale_totale,
+               s.valore_squadra as punti_campionato, 0 as gol_fatti, 0 as gol_subiti, 0 as differenza_reti
+        FROM squadre s
+        WHERE s.lega_id = ?
+        ORDER BY s.valore_squadra DESC
+      `, [torneo.lega_id], (err, classifica) => {
+        if (err) {
+          console.error('Errore query classifica:', err);
+          return res.status(500).json({ error: 'Errore DB' });
+        }
         
-        res.json({ 
-          torneo, 
-          classifica, 
-          calendario 
+        console.log(`Classifica trovata: ${classifica.length} squadre`);
+        
+        // Ottieni calendario - Gestione caso senza partite
+        db.all(`
+          SELECT p.*, 
+                 s1.nome as squadra_casa_nome,
+                 s2.nome as squadra_trasferta_nome
+          FROM partite p
+          LEFT JOIN squadre s1 ON p.squadra_casa_id = s1.id
+          LEFT JOIN squadre s2 ON p.squadra_trasferta_id = s2.id
+          WHERE p.torneo_id = ?
+          ORDER BY p.giornata, p.data_partita
+        `, [torneoId], (err, calendario) => {
+          if (err) {
+            console.error('Errore query calendario:', err);
+            return res.status(500).json({ error: 'Errore DB' });
+          }
+          
+          console.log(`Calendario trovato: ${calendario.length} partite`);
+          
+          res.json({ 
+            torneo: { ...torneo, squadre_partecipanti: squadre },
+            classifica, 
+            calendario 
+          });
         });
       });
     });

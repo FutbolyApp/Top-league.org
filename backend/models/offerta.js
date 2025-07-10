@@ -2,8 +2,8 @@ import { getDb } from '../db/config.js';
 const db = getDb();
 
 export function createOfferta(data, callback) {
-  const sql = `INSERT INTO offerte (lega_id, squadra_mittente_id, squadra_destinatario_id, giocatore_id, tipo, valore, stato, data_accettazione, data_approvazione_admin, data_completamento)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const sql = `INSERT INTO offerte (lega_id, squadra_mittente_id, squadra_destinatario_id, giocatore_id, tipo, valore, stato, cantera, data_accettazione, data_approvazione_admin, data_completamento)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   db.run(sql, [
     data.lega_id,
     data.squadra_mittente_id,
@@ -12,6 +12,7 @@ export function createOfferta(data, callback) {
     data.tipo,
     data.valore,
     data.stato,
+    data.cantera ? 1 : 0,
     data.data_accettazione || null,
     data.data_approvazione_admin || null,
     data.data_completamento || null
@@ -37,7 +38,7 @@ export function getAllOfferte(callback) {
 }
 
 export function updateOfferta(id, data, callback) {
-  const sql = `UPDATE offerte SET lega_id=?, squadra_mittente_id=?, squadra_destinatario_id=?, giocatore_id=?, tipo=?, valore=?, stato=?, data_accettazione=?, data_approvazione_admin=?, data_completamento=? WHERE id=?`;
+  const sql = `UPDATE offerte SET lega_id=?, squadra_mittente_id=?, squadra_destinatario_id=?, giocatore_id=?, tipo=?, valore=?, stato=?, cantera=?, data_accettazione=?, data_approvazione_admin=?, data_completamento=? WHERE id=?`;
   db.run(sql, [
     data.lega_id,
     data.squadra_mittente_id,
@@ -46,6 +47,7 @@ export function updateOfferta(id, data, callback) {
     data.tipo,
     data.valore,
     data.stato,
+    data.cantera ? 1 : 0,
     data.data_accettazione || null,
     data.data_approvazione_admin || null,
     data.data_completamento || null,

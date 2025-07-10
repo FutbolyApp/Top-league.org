@@ -105,7 +105,7 @@ export async function transferGiocatore(id, transferData, token) {
 // Ottieni cronologia QA di un giocatore
 export const getQAHistory = async (giocatoreId, token) => {
   try {
-    const response = await fetch(`/api/giocatori/${giocatoreId}/qa-history`, {
+    const response = await fetch(`${API_URL}/${giocatoreId}/qa-history`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

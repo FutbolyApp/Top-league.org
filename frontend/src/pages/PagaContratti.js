@@ -289,8 +289,8 @@ const TriggerBadge = styled.span`
   border-radius: 12px;
   font-size: 0.8rem;
   font-weight: 500;
-  background: ${props => props.active ? '#d4edda' : '#f8d7da'};
-  color: ${props => props.active ? '#155724' : '#721c24'};
+  background: ${props => props.$active ? '#d4edda' : '#f8d7da'};
+  color: ${props => props.$active ? '#155724' : '#721c24'};
 `;
 
 const ActionButton = styled.button`
@@ -593,7 +593,7 @@ const PagaContratti = () => {
                     <tr key={giocatore.id}>
                       <TableCell>
                         <span
-                          style={{ color: '#ff9500', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
+                          style={{ color: '#E67E22', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
                           onClick={() => navigate(`/giocatore/${giocatore.id}`)}
                         >
                           {giocatore.nome} {giocatore.cognome}
@@ -615,7 +615,7 @@ const PagaContratti = () => {
                       </TableCell>
                       <TableCell>
                         {giocatore.trigger_attivo && (
-                          <TriggerBadge active>Attivo</TriggerBadge>
+                          <TriggerBadge $active>Attivo</TriggerBadge>
                         )}
                       </TableCell>
                       <TableCell>

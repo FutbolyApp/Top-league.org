@@ -1,0 +1,2107 @@
+import React, { useState, useEffect } from 'react';
+import styled from 'styled-components';
+import { useAuth } from '../components/AuthContext';
+import { useNotification } from '../components/NotificationSystem';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getLegheAdmin } from '../api/leghe';
+import { 
+  scrapingPlaywright,
+  scrapingPlaywrightBatch,
+  getDatiScraping,
+  getConfrontoDati,
+  updateCredentials,
+  getAvailableTournaments,
+  scrapingClassificaPlaywright,
+  scrapingFormazioniPlaywright,
+  scrapingCompletoPlaywright,
+  scrapingMultiplo,
+  salvaTorneiPreferiti,
+  caricaTorneiPreferiti,
+  rimuoviTorneoPreferito
+} from '../api/scraping';
+import { splitRoles, getRoleClass } from '../utils/roleUtils';
+import './ScrapingManager.css';
+
+const Container = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+`;
+
+const Header = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  text-align: center;
+`;
+
+const Title = styled.h1`
+  color: #333;
+  margin: 0 0 1rem 0;
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+`;
+
+const Subtitle = styled.p`
+  color: #666;
+  font-size: 1.1rem;
+  margin: 0;
+`;
+
+const Button = styled.button`
+  background: linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const PlayerRole = styled.span`
+  .ruolo-badge {
+  display: inline-block;
+    padding: 4px 8px;
+    margin: 2px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    min-width: 24px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    transition: all 0.2s ease;
+  }
+  
+  .ruolo-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+  
+  .ruolo-badge:last-child {
+    margin-right: 0;
+  }
+  
+  /* Ruoli Serie A Classic */
+  .ruolo-p { 
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); 
+    color: white; 
+    border-color: #e65100;
+  }
+  
+  .ruolo-d { 
+    background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); 
+    color: white; 
+    border-color: #2e7d32;
+  }
+  
+  .ruolo-c { 
+    background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); 
+    color: white; 
+    border-color: #1565c0;
+  }
+  
+  .ruolo-a { 
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); 
+    color: white; 
+    border-color: #c62828;
+  }
+  
+  /* Ruoli Euroleghe Mantra */
+  /* Portieri - Arancione (come P) */
+  .ruolo-por { 
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); 
+    color: white; 
+    border-color: #e65100;
+  }
+  
+  /* Difensori - Palette di verdi */
+  .ruolo-dc { 
+    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%); 
+    color: white; 
+    border-color: #0d4f14;
+  }
+  
+  .ruolo-dd { 
+    background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%); 
+    color: white; 
+    border-color: #1b5e20;
+  }
+  
+  .ruolo-ds { 
+    background: linear-gradient(135deg, #43a047 0%, #388e3c 100%); 
+    color: white; 
+    border-color: #2e7d32;
+  }
+  
+  /* Centrocampisti - Palette di blu */
+  .ruolo-b { 
+    background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); 
+    color: white; 
+    border-color: #002171;
+  }
+  
+  .ruolo-e { 
+    background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); 
+    color: white; 
+    border-color: #0d47a1;
+  }
+  
+  .ruolo-m { 
+    background: linear-gradient(135deg, #1e88e5 0%, #1976d2 100%); 
+    color: white; 
+    border-color: #1565c0;
+  }
+  
+  .ruolo-t { 
+    background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); 
+    color: white; 
+    border-color: #4a148c;
+  }
+  
+  .ruolo-w { 
+    background: linear-gradient(135deg, #ba68c8 0%, #9c27b0 100%); 
+    color: white; 
+    border-color: #7b1fa2;
+  }
+  
+  /* Attaccanti - Palette di rossi */
+  .ruolo-a { 
+    background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%); 
+    color: white; 
+    border-color: #8e0000;
+  }
+  
+  .ruolo-pc { 
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); 
+    color: white; 
+    border-color: #b71c1c;
+  }
+  
+  /* Fallback */
+  .ruolo-default { 
+    background: linear-gradient(135deg, #757575 0%, #616161 100%); 
+    color: white; 
+    border-color: #424242;
+  }
+`;
+
+const ScrapingManager = () => {
+  const { token } = useAuth();
+  const { showSuccessModal, showErrorModal } = useNotification();
+  const navigate = useNavigate();
+  const { legaId } = useParams();
+  const [selectedLega, setSelectedLega] = useState('');
+  const [leghe, setLeghe] = useState([]);
+  const [leagueUrl, setLeagueUrl] = useState('');
+  const [scrapingUrls, setScrapingUrls] = useState({
+    rose: '',
+    classifica: '',
+    formazioni: '',
+  });
+  const [formazioniGiornata, setFormazioniGiornata] = useState('');
+  const [credentials, setCredentials] = useState({
+    username: '',
+    password: ''
+  });
+  const [availableTournaments, setAvailableTournaments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [datiScraping, setDatiScraping] = useState(null);
+  const [confrontoDati, setConfrontoDati] = useState(null);
+  const [activeTab, setActiveTab] = useState('scraping');
+  const [expandedSections, setExpandedSections] = useState({
+    rose: false,
+    classifica: false,
+    formazioni: false
+  });
+  const [expandedSquadre, setExpandedSquadre] = useState({});
+  const [sortField, setSortField] = useState('default');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
+  const [selectedTournaments, setSelectedTournaments] = useState([]);
+  const [scrapingResults, setScrapingResults] = useState({});
+  const [torneiPreferiti, setTorneiPreferiti] = useState([]);
+  const [showPreferiti, setShowPreferiti] = useState(false);
+
+  // Carica le credenziali salvate dal localStorage
+  useEffect(() => {
+    const savedCredentials = localStorage.getItem('scraping_credentials');
+    if (savedCredentials) {
+      try {
+        const parsed = JSON.parse(savedCredentials);
+        setCredentials(prev => ({
+          ...prev,
+          username: parsed.username || '',
+          password: parsed.password || ''
+        }));
+      } catch (error) {
+        console.error('Errore nel caricamento delle credenziali salvate:', error);
+      }
+    }
+  }, []);
+
+  // Salva le credenziali nel localStorage quando cambiano
+  useEffect(() => {
+    if (credentials.username || credentials.password) {
+      localStorage.setItem('scraping_credentials', JSON.stringify({
+        username: credentials.username,
+        password: credentials.password
+      }));
+    }
+  }, [credentials.username, credentials.password]);
+
+  // Carica le leghe dell'admin
+  useEffect(() => {
+    const loadLeghe = async () => {
+      try {
+        const response = await getLegheAdmin(token);
+        setLeghe(response.leghe || []);
+        
+        // Se abbiamo un legaId nell'URL, selezionalo automaticamente
+        if (legaId) {
+          const lega = response.leghe?.find(l => l.id.toString() === legaId);
+          if (lega) {
+            setSelectedLega(lega.id.toString());
+            // Pre-compila gli URL se la lega ha dati di scraping
+            if (lega.fantacalcio_url) {
+              setLeagueUrl(lega.fantacalcio_url);
+              // Pre-compila tutti gli URL di scraping basati sull'URL base
+              const baseUrl = lega.fantacalcio_url.replace(/\/$/, '');
+              setScrapingUrls({
+                rose: `${baseUrl}/rose`,
+                classifica: `${baseUrl}/classifica`,
+                formazioni: `${baseUrl}/formazioni`,
+              });
+            }
+            // Pre-compila le credenziali se la lega le ha configurate
+            if (lega.fantacalcio_username && lega.fantacalcio_password) {
+              // Controlla se ci sono già credenziali salvate dall'utente
+              const savedCredentials = localStorage.getItem('scraping_credentials');
+              if (!savedCredentials) {
+                // Solo se non ci sono credenziali salvate, usa quelle della lega
+                setCredentials({
+                  username: lega.fantacalcio_username,
+                  password: lega.fantacalcio_password
+                });
+              }
+            }
+          } else {
+            showErrorModal('Lega Non Trovata', `La lega con ID ${legaId} non è stata trovata o non hai i permessi per accedervi.`);
+          }
+        }
+      } catch (error) {
+        console.error('Errore caricamento leghe:', error);
+        showErrorModal('Errore di Caricamento', 'Impossibile caricare le leghe. Verifica la connessione e riprova.');
+      }
+    };
+    
+    loadLeghe();
+  }, [token, legaId, showErrorModal]);
+
+  const handleUrlChange = (field, value) => {
+    if (field === 'base') {
+      setLeagueUrl(value);
+      // Aggiorna automaticamente tutti gli URL basati sull'URL base
+      const baseUrl = value.replace(/\/$/, ''); // Rimuove trailing slash
+      setScrapingUrls({
+        rose: `${baseUrl}/rose`,
+        classifica: `${baseUrl}/classifica`,
+        formazioni: `${baseUrl}/formazioni`,
+      });
+    } else {
+      setScrapingUrls(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
+  const handleCredentialsChange = (field, value) => {
+    setCredentials(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleClearSavedCredentials = () => {
+    setCredentials({ username: '', password: '' });
+    localStorage.removeItem('scrapingCredentials');
+    showSuccessModal('Credenziali Rimosse', 'Le credenziali sono state rimosse dal browser.');
+  };
+
+  const handleScrapingPlaywright = async () => {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+      showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
+      return;
+    }
+    
+    setLoading(true);
+    setShowProgressModal(true);
+    setProgress(0);
+    setProgressMessage('Inizializzazione scraping...');
+
+    try {
+      console.log('Avvio scraping con Playwright...');
+      console.log('Lega:', selectedLega);
+      console.log('URL:', leagueUrl);
+      console.log('Tornei selezionati:', selectedTournaments);
+
+      // Se ci sono tornei selezionati, fai scraping per tutti
+      if (selectedTournaments.length > 0) {
+        setProgressMessage(`Scraping di ${selectedTournaments.length} tornei...`);
+        
+        // Se ci sono più tornei, usa il metodo batch
+        if (selectedTournaments.length > 1) {
+          console.log('Usando metodo batch per più tornei...');
+          
+          setProgress(10);
+          setProgressMessage('Inizializzazione scraping batch...');
+          
+          // Simula progresso durante l'operazione
+          const progressInterval = setInterval(() => {
+            setProgress(prev => {
+              if (prev < 90) {
+                return Math.floor(prev + Math.random() * 3 + 1); // Incremento intero tra 1-4%
+              }
+              return prev;
+            });
+          }, 2000); // Aggiorna ogni 2 secondi
+          
+          const response = await scrapingPlaywrightBatch(
+            selectedLega,
+            leagueUrl,
+            scrapingUrls,
+            credentials.username,
+            credentials.password,
+            selectedTournaments,
+            token
+          );
+          
+          clearInterval(progressInterval);
+          setResults(response);
+          setProgress(100);
+          setProgressMessage('Scraping batch completato!');
+          
+          if (response.success) {
+            showSuccessModal('Scraping Batch Completato', response.message);
+            // Ricarica i dati di scraping
+            await loadDatiScraping();
+            await loadConfrontoDati();
+      } else {
+            showErrorModal('Errore Scraping Batch', response.error || 'Errore durante lo scraping batch');
+          }
+          
+        } else {
+          // Singolo torneo - usa il metodo originale
+          const tournamentId = selectedTournaments[0];
+          const tournament = availableTournaments.find(t => t.id === tournamentId);
+          
+          setProgress(15);
+          setProgressMessage(`Scraping torneo: ${tournament?.name || tournamentId}...`);
+          
+          // Simula progresso durante l'operazione
+          const progressInterval = setInterval(() => {
+            setProgress(prev => {
+              if (prev < 85) {
+                return Math.floor(prev + Math.random() * 4 + 2); // Incremento intero tra 2-6%
+              }
+              return prev;
+            });
+          }, 1500); // Aggiorna ogni 1.5 secondi
+          
+          const response = await scrapingPlaywright(
+            selectedLega,
+            leagueUrl,
+            scrapingUrls,
+            credentials.username,
+            credentials.password,
+            token,
+            tournamentId
+          );
+
+          clearInterval(progressInterval);
+          setResults(response);
+          setProgress(100);
+          setProgressMessage('Scraping completato!');
+
+          if (response.success) {
+            showSuccessModal('Scraping Completato', response.message);
+            // Ricarica i dati di scraping
+            await loadDatiScraping();
+            await loadConfrontoDati();
+          } else {
+            showErrorModal('Errore Scraping', response.error || 'Errore durante lo scraping');
+          }
+        }
+
+      } else {
+        // Scraping senza torneo specifico (comportamento originale)
+        setProgress(20);
+        setProgressMessage('Scraping senza selezione torneo...');
+        
+        // Simula progresso durante l'operazione
+        const progressInterval = setInterval(() => {
+          setProgress(prev => {
+            if (prev < 80) {
+              return Math.floor(prev + Math.random() * 3 + 1); // Incremento intero tra 1-4%
+            }
+            return prev;
+          });
+        }, 1800); // Aggiorna ogni 1.8 secondi
+        
+        const response = await scrapingPlaywright(
+          selectedLega,
+          leagueUrl,
+          scrapingUrls,
+          credentials.username,
+          credentials.password,
+          token,
+          null
+        );
+
+        clearInterval(progressInterval);
+        setResults(response);
+        setProgress(100);
+        setProgressMessage('Scraping completato!');
+
+        if (response.success) {
+          showSuccessModal('Scraping Completato', response.message);
+          // Ricarica i dati di scraping
+          await loadDatiScraping();
+          await loadConfrontoDati();
+        } else {
+          showErrorModal('Errore Scraping', response.error || 'Errore durante lo scraping');
+        }
+      }
+
+    } catch (error) {
+      console.error('Errore scraping:', error);
+      setResults({
+        success: false,
+        error: error.message,
+        message: 'Errore durante lo scraping'
+      });
+      showErrorModal('Errore Scraping', error.message);
+    } finally {
+    setLoading(false);
+      setShowProgressModal(false);
+      setProgress(0);
+      setProgressMessage('');
+    }
+  };
+
+  const handleScrapingClassifica = async () => {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+      showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
+      return;
+    }
+    
+    setLoading(true);
+    setShowProgressModal(true);
+    setProgress(0);
+    setProgressMessage('Inizializzazione scraping classifica...');
+
+    try {
+      console.log('Avvio scraping classifica con Playwright...');
+      console.log('Lega:', selectedLega);
+      console.log('URL:', leagueUrl);
+      console.log('Torneo selezionato:', selectedTournaments[0] || 'nessuno');
+
+      const tournamentId = selectedTournaments.length > 0 ? selectedTournaments[0] : null;
+      
+      setProgress(20);
+      setProgressMessage('Scraping classifica in corso...');
+      
+      // Simula progresso durante l'operazione
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev < 80) {
+            return Math.floor(prev + Math.random() * 3 + 1);
+          }
+          return prev;
+        });
+      }, 1500);
+      
+      const response = await scrapingClassificaPlaywright(
+        selectedLega,
+        leagueUrl,
+        credentials.username,
+        credentials.password,
+        tournamentId,
+        token
+      );
+
+      clearInterval(progressInterval);
+      setResults(response);
+      setProgress(100);
+      setProgressMessage('Scraping classifica completato!');
+
+      if (response.success) {
+        showSuccessModal('Classifica Scrapata', `Trovate ${response.posizioni_trovate} posizioni nella classifica`);
+        // Ricarica i dati di scraping
+        await loadDatiScraping();
+      } else {
+        showErrorModal('Errore Scraping Classifica', response.message || 'Errore durante lo scraping della classifica');
+      }
+
+    } catch (error) {
+      console.error('Errore scraping classifica:', error);
+      setResults({
+        success: false,
+        error: error.message,
+        message: 'Errore durante lo scraping della classifica'
+      });
+      showErrorModal('Errore Scraping Classifica', error.message);
+    } finally {
+    setLoading(false);
+      setShowProgressModal(false);
+      setProgress(0);
+      setProgressMessage('');
+    }
+  };
+
+  const handleScrapingFormazioni = async () => {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+      showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
+      return;
+    }
+
+    // Chiedi la giornata all'utente
+    const giornata = prompt('Inserisci il numero della giornata (es. 1, 2, 3...):');
+    if (!giornata || isNaN(parseInt(giornata))) {
+      showErrorModal('Giornata Non Valida', 'Inserisci un numero valido per la giornata.');
+      return;
+    }
+    
+    setLoading(true);
+    setShowProgressModal(true);
+    setProgress(0);
+    setProgressMessage('Inizializzazione scraping formazioni...');
+
+    try {
+      console.log('Avvio scraping formazioni con Playwright...');
+      console.log('Lega:', selectedLega);
+      console.log('URL:', leagueUrl);
+      console.log('Giornata:', giornata);
+      console.log('Torneo selezionato:', selectedTournaments[0] || 'nessuno');
+
+      const tournamentId = selectedTournaments.length > 0 ? selectedTournaments[0] : null;
+      
+      setProgress(20);
+      setProgressMessage(`Scraping formazioni giornata ${giornata}...`);
+      
+      // Simula progresso durante l'operazione
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev < 80) {
+            return Math.floor(prev + Math.random() * 3 + 1);
+          }
+          return prev;
+        });
+      }, 1500);
+      
+      const response = await scrapingFormazioniPlaywright(
+        selectedLega,
+        leagueUrl,
+        credentials.username,
+        credentials.password,
+        tournamentId,
+        parseInt(giornata),
+        token
+      );
+
+      clearInterval(progressInterval);
+      setResults(response);
+      setProgress(100);
+      setProgressMessage('Scraping formazioni completato!');
+
+      if (response.success) {
+        showSuccessModal('Formazioni Scrapate', `Trovate ${response.formazioni_trovate} formazioni per la giornata ${giornata}`);
+        // Ricarica i dati di scraping
+        await loadDatiScraping();
+      } else {
+        showErrorModal('Errore Scraping Formazioni', response.message || 'Errore durante lo scraping delle formazioni');
+      }
+
+    } catch (error) {
+      console.error('Errore scraping formazioni:', error);
+      setResults({
+        success: false,
+        error: error.message,
+        message: 'Errore durante lo scraping delle formazioni'
+      });
+      showErrorModal('Errore Scraping Formazioni', error.message);
+    } finally {
+    setLoading(false);
+      setShowProgressModal(false);
+      setProgress(0);
+      setProgressMessage('');
+    }
+  };
+
+  // Nuovo metodo per scraping completo (rose + classifica + formazioni)
+  const handleScrapingCompletoPlaywright = async () => {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+      showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
+      return;
+    }
+    
+    // Chiedi la giornata all'utente per le formazioni
+    const giornata = prompt('Inserisci il numero della giornata per le formazioni (es. 1, 2, 3...) o premi OK per saltare:');
+    const giornataNum = giornata && !isNaN(parseInt(giornata)) ? parseInt(giornata) : null;
+
+        setLoading(true);
+    setShowProgressModal(true);
+    setProgress(0);
+    setProgressMessage('Inizializzazione scraping completo...');
+
+    try {
+      console.log('Avvio scraping completo con Playwright...');
+      console.log('Lega:', selectedLega);
+      console.log('URL:', leagueUrl);
+      console.log('Giornata:', giornataNum || 'non specificata');
+      console.log('Torneo selezionato:', selectedTournaments[0] || 'nessuno');
+
+      const tournamentId = selectedTournaments.length > 0 ? selectedTournaments[0] : null;
+      
+      setProgress(10);
+      setProgressMessage('Scraping rose, classifica e formazioni...');
+      
+      // Simula progresso durante l'operazione
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev < 85) {
+            return Math.floor(prev + Math.random() * 2 + 1);
+          }
+          return prev;
+        });
+      }, 2000);
+      
+      const response = await scrapingCompletoPlaywright(
+        selectedLega,
+        leagueUrl,
+        credentials.username,
+        credentials.password,
+        tournamentId,
+        giornataNum,
+        token
+      );
+
+      clearInterval(progressInterval);
+      setResults(response);
+      setProgress(100);
+      setProgressMessage('Scraping completo terminato!');
+
+      if (response.success) {
+        const summary = response.results?.summary || {};
+        showSuccessModal('Scraping Completo', 
+          `Completato con successo!\n` +
+          `• Squadre: ${summary.squadre_trovate || 0}\n` +
+          `• Giocatori: ${summary.giocatori_totali || 0}\n` +
+          `• Posizioni classifica: ${summary.posizioni_classifica || 0}\n` +
+          `• Formazioni: ${summary.formazioni_trovate || 0}`
+        );
+        // Ricarica i dati di scraping
+        await loadDatiScraping();
+        await loadConfrontoDati();
+          } else {
+        showErrorModal('Errore Scraping Completo', response.message || 'Errore durante lo scraping completo');
+          }
+
+        } catch (error) {
+      console.error('Errore scraping completo:', error);
+      setResults({
+        success: false,
+        error: error.message,
+        message: 'Errore durante lo scraping completo'
+      });
+      showErrorModal('Errore Scraping Completo', error.message);
+    } finally {
+        setLoading(false);
+      setShowProgressModal(false);
+      setProgress(0);
+      setProgressMessage('');
+    }
+  };
+
+  // Nuovo metodo per recuperare i tornei disponibili
+  const handleGetTournaments = async () => {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+      showErrorModal('Dati Mancanti', 'Inserisci tutti i dati richiesti per recuperare i tornei.');
+      return;
+    }
+
+    setLoading(true);
+    setShowProgressModal(true);
+    setProgress(0);
+    setProgressMessage('Recupero tornei disponibili...');
+
+    // Simula progresso durante l'operazione
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev < 85) {
+          return Math.floor(prev + Math.random() * 4 + 2); // Incremento intero tra 2-6%
+        }
+        return prev;
+      });
+    }, 1500); // Aggiorna ogni 1.5 secondi
+
+    try {
+      console.log('Recupero tornei disponibili...');
+      
+      const response = await getAvailableTournaments(
+        selectedLega, 
+        leagueUrl,
+        credentials.username,
+        credentials.password,
+        token
+      );
+      
+      clearInterval(progressInterval);
+
+      if (response.success) {
+        setProgress(100);
+        setProgressMessage('Tornei recuperati con successo!');
+        setAvailableTournaments(response.tournaments || []);
+        console.log('🔍 DEBUG FRONTEND - Tornei ricevuti dal backend:', response.tournaments);
+        console.log('🔍 DEBUG FRONTEND - Numero tornei:', response.tournaments?.length || 0);
+        showSuccessModal('Tornei Recuperati', `Trovati ${response.tournaments?.length || 0} tornei disponibili.`);
+      } else {
+        setProgress(100);
+        setProgressMessage('Errore nel recupero tornei');
+        showErrorModal('Errore Recupero Tornei', response.message || 'Errore durante il recupero dei tornei');
+      }
+
+    } catch (error) {
+      console.error('Errore recupero tornei:', error);
+      clearInterval(progressInterval);
+      setProgress(100);
+      setProgressMessage('Errore nel recupero tornei');
+      showErrorModal('Errore Recupero Tornei', error.message);
+    } finally {
+    setLoading(false);
+      setShowProgressModal(false);
+      setProgress(0);
+      setProgressMessage('');
+    }
+  };
+
+  // Carica i tornei preferiti per la lega selezionata
+  const loadTorneiPreferiti = async () => {
+    if (!selectedLega) return;
+    
+    try {
+      const response = await caricaTorneiPreferiti(selectedLega, token);
+      if (response.success) {
+        setTorneiPreferiti(response.tornei || []);
+        console.log('📂 Tornei preferiti caricati:', response.tornei);
+      } else {
+        console.error('Errore caricamento tornei preferiti:', response.message);
+        setTorneiPreferiti([]);
+      }
+    } catch (error) {
+      console.error('Errore caricamento tornei preferiti:', error);
+      setTorneiPreferiti([]);
+    }
+  };
+
+  // Salva i tornei preferiti
+  const saveTorneiPreferiti = async () => {
+    if (!selectedLega || selectedTournaments.length === 0) {
+      showErrorModal('Dati Mancanti', 'Seleziona almeno un torneo da salvare come preferito.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Prepara i dati dei tornei selezionati
+      const torneiDaSalvare = availableTournaments
+        .filter(t => selectedTournaments.includes(t.id))
+        .map(t => ({
+          id: t.id,
+          name: t.name,
+          url: t.url
+        }));
+
+      const response = await salvaTorneiPreferiti(selectedLega, torneiDaSalvare, token);
+      
+      if (response.success) {
+        showSuccessModal('✅ Tornei Preferiti Salvati', `Salvati ${response.tornei_salvati} tornei come preferiti.`);
+        // Ricarica i tornei preferiti
+        await loadTorneiPreferiti();
+      } else {
+        showErrorModal('❌ Errore', response.message || 'Errore durante il salvataggio dei tornei preferiti.');
+      }
+    } catch (error) {
+      console.error('Errore salvataggio tornei preferiti:', error);
+      showErrorModal('❌ Errore', 'Errore durante il salvataggio dei tornei preferiti.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Rimuovi un torneo preferito
+  const removeTorneoPreferito = async (torneoId) => {
+    if (!selectedLega) return;
+
+    try {
+      const response = await rimuoviTorneoPreferito(selectedLega, torneoId, token);
+      
+      if (response.success) {
+        showSuccessModal('✅ Torneo Rimosso', 'Torneo rimosso dai preferiti con successo.');
+        // Ricarica i tornei preferiti
+        await loadTorneiPreferiti();
+      } else {
+        showErrorModal('❌ Errore', response.message || 'Errore durante la rimozione del torneo.');
+      }
+    } catch (error) {
+      console.error('Errore rimozione torneo preferito:', error);
+      showErrorModal('❌ Errore', 'Errore durante la rimozione del torneo.');
+    }
+  };
+
+  // Carica i tornei preferiti quando cambia la lega
+  useEffect(() => {
+    if (selectedLega) {
+      loadTorneiPreferiti();
+    }
+  }, [selectedLega]);
+
+  const handleUpdateCredentials = async () => {
+    if (!selectedLega || !credentials.username || !credentials.password) {
+      showErrorModal('Dati Mancanti', 'Seleziona una lega e inserisci username e password.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await updateCredentials(selectedLega, credentials.username, credentials.password, token);
+      if (result.success) {
+        showSuccessModal('✅ Credenziali Aggiornate', 'Le credenziali sono state salvate nel database!');
+        // Ricarica i dati della lega
+        // await loadLeghe(); // Commentato perché loadLeghe non è definita
+      } else {
+        showErrorModal('❌ Errore', result.error || 'Errore durante l\'aggiornamento delle credenziali.');
+      }
+    } catch (error) {
+      console.error('Errore aggiornamento credenziali:', error);
+      showErrorModal('❌ Errore', 'Errore durante l\'aggiornamento delle credenziali.');
+    } finally {
+    setLoading(false);
+    }
+  };
+
+  const loadDatiScraping = async () => {
+    if (!selectedLega) return;
+    
+    try {
+      const response = await getDatiScraping(selectedLega, token);
+      console.log('DEBUG: Risposta API dati scraping:', response);
+      
+      // L'API restituisce { success: true, lega: {...}, dati_scraping: {...} }
+      if (response.success && response.dati_scraping) {
+        setDatiScraping({
+          lega_nome: response.lega?.nome || 'Lega',
+          rose: response.dati_scraping.rose || [],
+          classifica: response.dati_scraping.classifica || [],
+          voti: response.dati_scraping.voti || [],
+          formazioni: response.dati_scraping.formazioni || [],
+          mercato: response.dati_scraping.mercato || []
+        });
+      } else {
+        setDatiScraping(null);
+      }
+      
+      // Resetta sempre l'ordinamento a quello predefinito (per ruolo)
+      setSortField('default');
+      setSortDirection('desc');
+    } catch (error) {
+      console.error('Errore caricamento dati scraping:', error);
+      setDatiScraping(null);
+    }
+  };
+
+  const loadConfrontoDati = async () => {
+    if (!selectedLega) return;
+    
+    try {
+      const data = await getConfrontoDati(selectedLega, token);
+      setConfrontoDati(data);
+    } catch (error) {
+      console.error('Errore caricamento confronto dati:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedLega) {
+      loadDatiScraping();
+      loadConfrontoDati();
+    }
+  }, [selectedLega]);
+
+  // Funzioni di ordinamento
+  const handleSort = (field) => {
+    if (field === 'default') {
+      // Reset all'ordinamento predefinito (per ruolo)
+      setSortField('default');
+      setSortDirection('desc');
+    } else if (sortField === field) {
+      // Cambia direzione se è lo stesso campo
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      } else {
+      // Nuovo campo di ordinamento
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortGiocatori = (giocatori) => {
+    if (!giocatori || giocatori.length === 0) return giocatori;
+    
+    // Se non c'è un campo di ordinamento specifico, ordina sempre per ruolo Mantra
+    if (!sortField || sortField === 'default') {
+      // Usa la stessa logica della pagina dettaglio squadra
+      const roleOrder = ['Por', 'Ds', 'Dc', 'Dd', 'B', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc']; // Mantra
+      
+      return [...giocatori].sort((a, b) => {
+        const roleA = a.ruolo || '';
+        const roleB = b.ruolo || '';
+        
+        // Per ruoli multipli, prendi il primo ruolo
+        const firstRoleA = roleA.split(';')[0];
+        const firstRoleB = roleB.split(';')[0];
+        
+        const indexA = roleOrder.indexOf(firstRoleA);
+        const indexB = roleOrder.indexOf(firstRoleB);
+        
+        // Se entrambi i ruoli sono nell'ordine definito, ordina per posizione
+        if (indexA !== -1 && indexB !== -1) {
+          if (indexA === indexB) {
+            // Se hanno lo stesso ruolo base, ordina per il ruolo completo
+            return roleA.localeCompare(roleB);
+          }
+          return indexA - indexB;
+        }
+        
+        // Se solo uno è nell'ordine definito, metti quello definito prima
+        if (indexA !== -1) return -1;
+        if (indexB !== -1) return 1;
+        
+        // Se nessuno è nell'ordine definito, ordina alfabeticamente
+        return roleA.localeCompare(roleB);
+      });
+    }
+    
+    // Altrimenti usa l'ordinamento specificato
+    return [...giocatori].sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortField) {
+        case 'nome':
+          aValue = a.nome?.toLowerCase() || '';
+          bValue = b.nome?.toLowerCase() || '';
+          break;
+        case 'ruolo':
+          aValue = a.ruolo?.toLowerCase() || '';
+          bValue = b.ruolo?.toLowerCase() || '';
+          break;
+        case 'squadra':
+          aValue = a.squadra?.toLowerCase() || '';
+          bValue = b.squadra?.toLowerCase() || '';
+          break;
+        case 'quotazione':
+          aValue = parseFloat(a.quotazione) || 0;
+          bValue = parseFloat(b.quotazione) || 0;
+          break;
+        case 'qi':
+          aValue = parseFloat(a.qi) || 0;
+          bValue = parseFloat(b.qi) || 0;
+          break;
+        case 'fvMp':
+          aValue = parseFloat(a.fvMp) || 0;
+          bValue = parseFloat(b.fvMp) || 0;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (typeof aValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+      
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  const renderResults = () => {
+    if (!results) return null;
+
+    return (
+      <div className={`results ${results.success ? 'success' : 'error'}`}>
+        <h3>{results.type === 'credentials' ? 'Test Credenziali' : 
+             results.type === 'url' ? 'Test URL' : 
+             results.type === 'scraping' ? 'Scraping Completato' : 'Aggiornamento Credenziali'}</h3>
+        <p>{results.message}</p>
+        {results.details && <pre>{JSON.stringify(results.details, null, 2)}</pre>}
+      </div>
+    );
+  };
+
+  const renderDatiScraping = () => {
+    console.log('DEBUG renderDatiScraping:', datiScraping);
+    console.log('DEBUG sortField:', sortField);
+    console.log('DEBUG sortDirection:', sortDirection);
+    
+    if (!datiScraping) return <p>Nessun dato di scraping disponibile per questa lega</p>;
+
+    const toggleSection = (sectionName) => {
+      setExpandedSections(prev => ({
+        ...prev,
+        [sectionName]: !prev[sectionName]
+      }));
+    };
+
+    const toggleSquadra = (squadraId) => {
+      setExpandedSquadre(prev => ({
+        ...prev,
+        [squadraId]: !prev[squadraId]
+      }));
+    };
+
+    // Debug: controlla se ci sono rose
+    console.log('DEBUG rose disponibili:', datiScraping.rose);
+    if (datiScraping.rose && datiScraping.rose.length > 0) {
+      console.log('DEBUG prima squadra:', datiScraping.rose[0]);
+      console.log('DEBUG giocatori prima squadra:', datiScraping.rose[0].giocatori);
+      if (datiScraping.rose[0].giocatori && datiScraping.rose[0].giocatori.length > 0) {
+        console.log('DEBUG primo giocatore:', datiScraping.rose[0].giocatori[0]);
+        console.log('DEBUG giocatori ordinati:', sortGiocatori(datiScraping.rose[0].giocatori));
+      }
+    }
+
+    return (
+      <div className="dati-scraping-container">
+        <div className="dati-scraping-header">
+          <h3>Dati di Scraping - {datiScraping.lega_nome}</h3>
+          <button 
+            className="refresh-button"
+            onClick={async () => {
+              console.log('🔄 Refresh manuale dati scraping...');
+              await loadDatiScraping();
+              await loadConfrontoDati();
+              console.log('✅ Dati aggiornati manualmente');
+            }}
+            disabled={loading}
+          >
+            🔄 Aggiorna Dati
+          </button>
+        </div>
+        <p className="info-text">
+          Dati estratti tramite scraping automatico. Questi dati sono separati dai dati ufficiali della lega.
+        </p>
+
+        {/* Sezione Rose */}
+        {datiScraping.rose && datiScraping.rose.length > 0 && (
+          <div className="data-section">
+            <div 
+              className="section-header" 
+              onClick={() => toggleSection('rose')}
+            >
+              <h4>📋 Rose ({datiScraping.rose.length} squadre)</h4>
+              <span className="toggle-icon">
+                {expandedSections.rose ? '▼' : '▶'}
+              </span>
+            </div>
+            
+            {expandedSections.rose && (
+              <div className="section-content">
+                <div className="sorting-controls">
+                  <label>Ordina per:</label>
+                  <select 
+                    className="sort-select"
+                    value={sortField || 'default'}
+                    onChange={(e) => handleSort(e.target.value)}
+                  >
+                    <option value="default">Predefinito (Ruolo)</option>
+                    <option value="nome">Nome</option>
+                    <option value="ruolo">Ruolo</option>
+                    <option value="squadra_reale">Squadra Reale</option>
+                    <option value="qi">QI</option>
+                    <option value="quotazione">QA</option>
+                    <option value="fv_mp">FVMp</option>
+                  </select>
+                  <button 
+                    className={`sort-button ${sortDirection === 'asc' ? 'active' : ''}`}
+                    onClick={() => setSortDirection('asc')}
+                  >
+                    Crescente
+                  </button>
+                  <button 
+                    className={`sort-button ${sortDirection === 'desc' ? 'active' : ''}`}
+                    onClick={() => setSortDirection('desc')}
+                  >
+                    Decrescente
+                  </button>
+                </div>
+                
+                {datiScraping.rose.map((squadra, index) => (
+                  <div key={index} className="squadra-card">
+                    <div 
+                      className="squadra-header"
+                      onClick={() => toggleSquadra(`rose-${index}`)}
+                    >
+                      <h5>{squadra.nome}</h5>
+                      <span className="giocatori-count">
+                        {squadra.giocatori?.length || 0} giocatori
+                      </span>
+                      <span className="toggle-icon">
+                        {expandedSquadre[`rose-${index}`] ? '▼' : '▶'}
+                      </span>
+                    </div>
+                    
+                    {expandedSquadre[`rose-${index}`] && squadra.giocatori && (
+                      <div className="giocatori-list">
+                        <table className="giocatori-table">
+                          <thead>
+                            <tr>
+                              <th>Nome</th>
+                              <th>Ruolo</th>
+                              <th>Squadra Reale</th>
+                              <th>QI</th>
+                              <th>QA</th>
+                              <th>FVMp</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sortGiocatori(squadra.giocatori).map((giocatore, gIndex) => (
+                              <tr key={gIndex}>
+                                <td>{giocatore.nome}</td>
+                                <td>
+                                  <PlayerRole>
+                                    {splitRoles(giocatore.ruolo).map((ruolo, index) => (
+                                      <span key={index} className={`ruolo-badge ${getRoleClass(ruolo)}`}>{ruolo}</span>
+                                    ))}
+                                  </PlayerRole>
+                                </td>
+                                <td>{giocatore.squadra_reale}</td>
+                                <td>{giocatore.qi || '-'}</td>
+                                <td>{giocatore.quotazione || '-'}</td>
+                                <td>{giocatore.fv_mp || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sezione Classifica */}
+        {datiScraping.classifica && datiScraping.classifica.length > 0 && (
+          <div className="data-section">
+            <div 
+              className="section-header" 
+              onClick={() => toggleSection('classifica')}
+            >
+              <h4>Classifica ({datiScraping.classifica.length} posizioni)</h4>
+              <span className="toggle-icon">
+                {expandedSections.classifica ? '▼' : '▶'}
+              </span>
+            </div>
+            
+            {expandedSections.classifica && (
+              <div className="section-content">
+                <table className="classifica-table">
+                  <thead>
+                    <tr>
+                      <th>Pos.</th>
+                      <th>Squadra</th>
+                      <th>Punti</th>
+                      <th>Partite</th>
+                      <th>V</th>
+                      <th>P</th>
+                      <th>S</th>
+                      <th>GF</th>
+                      <th>GS</th>
+                      <th>DR</th>
+                      <th>PT totali</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {datiScraping.classifica.map((posizione, index) => (
+                      <tr key={index}>
+                        <td className="posizione">{posizione.posizione}</td>
+                        <td className="squadra">{posizione.squadra}</td>
+                        <td className="punti">{posizione.punti}</td>
+                        <td className="partite">{posizione.partite}</td>
+                        <td className="vittorie">{posizione.vittorie || 0}</td>
+                        <td className="pareggi">{posizione.pareggi || 0}</td>
+                        <td className="sconfitte">{posizione.sconfitte || 0}</td>
+                        <td className="gol-fatti">{posizione.gol_fatti || 0}</td>
+                        <td className="gol-subiti">{posizione.gol_subiti || 0}</td>
+                        <td className="differenza-reti">{posizione.differenza_reti || 0}</td>
+                        <td className="punti-totali">{posizione.punti_totali !== undefined ? Number(posizione.punti_totali).toFixed(1) : ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Sezione Formazioni */}
+        {datiScraping.formazioni && datiScraping.formazioni.length > 0 && (
+          <div className="data-section">
+            <div 
+              className="section-header" 
+              onClick={() => toggleSection('formazioni')}
+            >
+              <h4>Formazioni ({datiScraping.formazioni.length} formazioni)</h4>
+              <span className="toggle-icon">
+                {expandedSections.formazioni ? '▼' : '▶'}
+              </span>
+            </div>
+            
+            {expandedSections.formazioni && (
+              <div className="section-content">
+                {/* Controlli per formazioni */}
+                <div className="formazioni-controls" style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: '500' }}>Giornata:</label>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    max="40" 
+                    style={{ 
+                      width: '60px', 
+                      padding: '4px 8px', 
+                      border: '1px solid #ddd', 
+                      borderRadius: '4px',
+                      fontSize: '12px'
+                    }}
+                    placeholder="Giornata"
+                  />
+                  <button 
+                    style={{ 
+                      padding: '4px 12px', 
+                      fontSize: '12px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => alert('Funzionalità in sviluppo')}
+                  >
+                    Scraping Formazioni
+                  </button>
+                </div>
+
+                {datiScraping.formazioni.map((formazione, index) => (
+                  <div key={index} className="formazione-card">
+                    <div 
+                      className="formazione-header"
+                      onClick={() => toggleSquadra(`formazione-${index}`)}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <h5 style={{ margin: 0 }}>{formazione.squadra || `${formazione.squadra_casa || 'Casa'} vs ${formazione.squadra_trasferta || 'Trasferta'}`}</h5>
+                        <span className="modulo">Modulo: {formazione.modulo || formazione.modulo_casa || 'N/A'}</span>
+                        <span style={{ fontSize: '12px', color: '#666' }}>Giornata: {formazione.giornata}</span>
+                      </div>
+                      <span className="toggle-icon">
+                        {expandedSquadre[`formazione-${index}`] ? '▼' : '▶'}
+                      </span>
+                    </div>
+                    
+                    {expandedSquadre[`formazione-${index}`] && (
+                      <div className="formazione-details">
+                        {/* Se è una formazione con squadra casa/trasferta */}
+                        {(formazione.squadra_casa || formazione.squadra_trasferta) ? (
+                          <>
+                            <div className="titolari-section">
+                              <h6>🏠 {formazione.squadra_casa || 'Casa'} - Titolari ({(formazione.titolari_casa || []).length})</h6>
+                              <div className="giocatori-grid">
+                                {(formazione.titolari_casa || []).map((giocatore, gIndex) => (
+                                  <span key={gIndex} className="giocatore-chip">
+                                    {giocatore}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div className="panchinari-section">
+                              <h6>🏠 {formazione.squadra_casa || 'Casa'} - Panchinari ({(formazione.panchinari_casa || []).length})</h6>
+                              <div className="giocatori-grid">
+                                {(formazione.panchinari_casa || []).map((giocatore, gIndex) => (
+                                  <span key={gIndex} className="giocatore-chip panchinaro">
+                                    {giocatore}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div className="titolari-section">
+                              <h6>✈️ {formazione.squadra_trasferta || 'Trasferta'} - Titolari ({(formazione.titolari_trasferta || []).length})</h6>
+                              <div className="giocatori-grid">
+                                {(formazione.titolari_trasferta || []).map((giocatore, gIndex) => (
+                                  <span key={gIndex} className="giocatore-chip">
+                                    {giocatore}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div className="panchinari-section">
+                              <h6>✈️ {formazione.squadra_trasferta || 'Trasferta'} - Panchinari ({(formazione.panchinari_trasferta || []).length})</h6>
+                              <div className="giocatori-grid">
+                                {(formazione.panchinari_trasferta || []).map((giocatore, gIndex) => (
+                                  <span key={gIndex} className="giocatore-chip panchinaro">
+                                    {giocatore}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            {/* Dati extra se disponibili */}
+                            {(formazione.data || formazione.risultato || formazione.stato || Object.keys(formazione.colonne_extra || {}).length > 0) && (
+                              <div className="formazione-extra">
+                                <h6>📊 Dati Partita</h6>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                                  {formazione.data && <div><strong>Data:</strong> {formazione.data}</div>}
+                                  {formazione.risultato && <div><strong>Risultato:</strong> {formazione.risultato}</div>}
+                                  {formazione.stato && <div><strong>Stato:</strong> {formazione.stato}</div>}
+                                  {formazione.voto_casa && <div><strong>Voto Casa:</strong> {formazione.voto_casa}</div>}
+                                  {formazione.voto_trasferta && <div><strong>Voto Trasferta:</strong> {formazione.voto_trasferta}</div>}
+                                  {Object.entries(formazione.colonne_extra || {}).map(([key, value]) => (
+                                    <div key={key}><strong>{key.replace('colonna_', 'Colonna ')}:</strong> {value}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          /* Formazione tradizionale con una sola squadra */
+                          <>
+                            <div className="titolari-section">
+                              <h6>👥 Titolari ({(formazione.titolari || []).length})</h6>
+                              <div className="giocatori-grid">
+                                {(formazione.titolari || []).map((giocatore, gIndex) => (
+                                  <span key={gIndex} className="giocatore-chip">
+                                    {giocatore}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div className="panchinari-section">
+                              <h6>🪑 Panchinari ({(formazione.panchinari || []).length})</h6>
+                              <div className="giocatori-grid">
+                                {(formazione.panchinari || []).map((giocatore, gIndex) => (
+                                  <span key={gIndex} className="giocatore-chip panchinaro">
+                                    {giocatore}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Messaggio se non ci sono dati */}
+        {(!datiScraping.rose || datiScraping.rose.length === 0) &&
+         (!datiScraping.classifica || datiScraping.classifica.length === 0) &&
+         (!datiScraping.formazioni || datiScraping.formazioni.length === 0) && (
+          <div className="no-data-message">
+            <p>📭 Nessun dato di scraping disponibile per questa lega</p>
+            <p>Esegui lo scraping per iniziare a raccogliere dati</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderConfrontoDati = () => {
+    if (!confrontoDati) return <p>Nessun dato di confronto disponibile</p>;
+
+    return (
+      <div className="confronto-dati">
+        <h3>Confronto: Dati Ufficiali vs Dati Scraping</h3>
+        
+        <div className="confronto-stats">
+          <div className="stat-card">
+            <h4>Dati Ufficiali (Excel)</h4>
+            <p>Squadre: {confrontoDati.confronto.squadre_ufficiali}</p>
+            <p>Giocatori: {confrontoDati.confronto.giocatori_ufficiali}</p>
+          </div>
+          
+          <div className="stat-card">
+            <h4>Dati Scraping</h4>
+            <p>Squadre: {confrontoDati.confronto.squadre_scraping}</p>
+            <p>Giocatori: {confrontoDati.confronto.giocatori_scraping}</p>
+          </div>
+          
+          <div className="stat-card">
+            <h4>Corrispondenze</h4>
+            <p>Squadre comuni: {confrontoDati.confronto.squadre_comuni}</p>
+            <p>Giocatori comuni: {confrontoDati.confronto.giocatori_comuni}</p>
+          </div>
+        </div>
+
+        <div className="differenze">
+          <h4>Differenze Principali:</h4>
+          <ul>
+            <li><strong>Dati Ufficiali:</strong> Caricati tramite file Excel durante la creazione della lega</li>
+            <li><strong>Dati Scraping:</strong> Ottenuti tramite scraping automatico, salvati separatamente</li>
+            <li><strong>Separazione:</strong> I due set di dati non si sovrascrivono mai</li>
+            <li><strong>Scopo:</strong> I dati di scraping sono utilizzati per altri scopi (aggiornamenti, confronti, ecc.)</li>
+          </ul>
+        </div>
+      </div>
+    );
+  };
+
+  // Popup di progresso
+  const ProgressModal = () => {
+    if (!showProgressModal) return null;
+
+    // Determina il tipo di operazione basato sul messaggio
+    const isScraping = progressMessage.toLowerCase().includes('scraping');
+    const isTournamentRecovery = progressMessage.toLowerCase().includes('tornei') || progressMessage.toLowerCase().includes('recupero');
+
+    return (
+      <div className="progress-modal-overlay">
+        <div className="progress-modal">
+          <h3>
+            {isScraping ? '🕷️ Scraping in corso...' : 
+             isTournamentRecovery ? '🔍 Recupero tornei...' : 
+             '⏳ Operazione in corso...'}
+          </h3>
+          <div className="progress-bar-container">
+            <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+          </div>
+          <p className="progress-text">{progressMessage}</p>
+          <p className="progress-percentage">{progress}%</p>
+          <div className="progress-info">
+            <small>
+              {isScraping ? '⏱️ Tempo stimato: 30-60 secondi' : 
+               isTournamentRecovery ? '⏱️ Tempo stimato: 10-20 secondi' : 
+               '⏱️ Operazione in corso...'}
+            </small>
+            <br />
+            <small>🔄 Non chiudere questa finestra durante l'operazione</small>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const toggleTournament = (id) => {
+    console.log('🔍 DEBUG - toggleTournament chiamato con id:', id);
+    console.log('🔍 DEBUG - selectedTournaments prima:', selectedTournaments);
+    if (selectedTournaments.includes(id)) {
+      setSelectedTournaments(selectedTournaments.filter((i) => i !== id));
+    } else {
+      setSelectedTournaments([...selectedTournaments, id]);
+    }
+    console.log('🔍 DEBUG - selectedTournaments dopo:', selectedTournaments);
+  };
+
+  const selectAllTournaments = () => {
+    setSelectedTournaments(availableTournaments.map((t) => t.id));
+  };
+
+  const clearTournamentSelection = () => {
+    setSelectedTournaments([]);
+  };
+
+  const handleScrapingMultiplo = async (tipo) => {
+    if (!selectedTournaments.length) {
+      showErrorModal('Seleziona almeno un torneo');
+      return;
+    }
+    setLoading(true);
+    setShowProgressModal(true);
+    setProgress(0);
+    setProgressMessage('Scraping multiplo in corso...');
+    try {
+      const urls = availableTournaments.filter(t => selectedTournaments.includes(t.id)).map(t => ({
+        torneo_id: t.id,
+        url: t.url,
+        nome: t.name
+      }));
+      const response = await scrapingMultiplo(urls, selectedLega, tipo, token);
+      if (response.success) {
+        setScrapingResults(response.results);
+        setProgressMessage('Scraping completato!');
+        setProgress(100);
+      } else {
+        showErrorModal('Errore scraping', response.error || 'Errore generico');
+      }
+    } catch (error) {
+      showErrorModal('Errore scraping', error.message);
+    } finally {
+      setLoading(false);
+      setShowProgressModal(false);
+      setProgress(0);
+      setProgressMessage('');
+    }
+  };
+
+  return (
+    <Container>
+      <Header>
+        <Title>��️ Gestione Scraping</Title>
+        <Subtitle>Importa dati da siti esterni come leghe.fantacalcio.it</Subtitle>
+        <Button 
+          onClick={() => navigate('/area-admin')}
+          style={{ marginTop: '1rem', background: '#6c757d' }}
+        >
+          ← Torna all'Area Admin
+        </Button>
+      </Header>
+
+      <div className="tabs">
+        <button 
+          className={activeTab === 'scraping' ? 'active' : ''} 
+          onClick={() => setActiveTab('scraping')}
+        >
+          Scraping
+        </button>
+        <button 
+          className={activeTab === 'dati-scraping' ? 'active' : ''} 
+          onClick={() => setActiveTab('dati-scraping')}
+        >
+          Dati Scraping
+        </button>
+        <button 
+          className={activeTab === 'confronto' ? 'active' : ''} 
+          onClick={() => setActiveTab('confronto')}
+        >
+          Confronto Dati
+        </button>
+      </div>
+
+      {activeTab === 'scraping' && (
+        <div className="scraping-section">
+          <div className="form-section">
+            <h3>Configurazione Scraping</h3>
+            
+            <div className="form-group">
+              <label>Seleziona Lega:</label>
+              <select 
+              value={selectedLega} 
+                onChange={(e) => setSelectedLega(e.target.value)}
+            >
+              <option value="">Seleziona una lega</option>
+              {leghe.map(lega => (
+                <option key={lega.id} value={lega.id}>
+                    {lega.nome}
+                </option>
+              ))}
+              </select>
+              </div>
+
+            <div className="form-group">
+              <label>URL Base Lega Fantacalcio:</label>
+              <input
+                type="text"
+                value={leagueUrl}
+                onChange={(e) => handleUrlChange('base', e.target.value)}
+                placeholder="https://leghe.fantacalcio.it/fantaleague-11"
+              />
+              <small>Inserisci l'URL base della lega. Gli altri URL verranno generati automaticamente.</small>
+            </div>
+
+            <div className="form-group">
+              <label>URL Rose:</label>
+              <input
+                type="text"
+                value={scrapingUrls.rose}
+                onChange={(e) => handleUrlChange('rose', e.target.value)}
+                placeholder="https://leghe.fantacalcio.it/fantaleague-11/rose"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>URL Classifica:</label>
+              <input
+                type="text"
+                value={scrapingUrls.classifica}
+              onChange={(e) => handleUrlChange('classifica', e.target.value)}
+                placeholder="https://leghe.fantacalcio.it/fantaleague-11/classifica"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>URL Formazioni:</label>
+              <input
+                type="text"
+                value={scrapingUrls.formazioni}
+                onChange={(e) => handleUrlChange('formazioni', e.target.value)}
+                placeholder="https://leghe.fantacalcio.it/fantaleague-11/formazioni"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Giornata Formazioni (opzionale):</label>
+              <input
+                type="number"
+                value={formazioniGiornata}
+                onChange={(e) => setFormazioniGiornata(e.target.value)}
+                placeholder="1"
+                min="1"
+                max="38"
+              />
+              <small>Inserisci il numero della giornata per le formazioni. Se lasciato vuoto, verrà usata la giornata corrente.</small>
+            </div>
+
+            <div className="form-group">
+              <label>Username Fantacalcio:</label>
+              <input
+                type="text"
+                value={credentials.username}
+                onChange={(e) => handleCredentialsChange('username', e.target.value)}
+                placeholder="Inserisci username"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Password Fantacalcio:</label>
+              <input
+                type="password"
+                value={credentials.password}
+                onChange={(e) => handleCredentialsChange('password', e.target.value)}
+                placeholder="Inserisci password"
+              />
+            </div>
+
+            {/* Pulsante per pulire le credenziali salvate */}
+            {(credentials.username || credentials.password) && (
+              <div className="form-group">
+                <button
+                  type="button"
+                  className="btn btn-outline-danger"
+                  onClick={handleClearSavedCredentials}
+                  style={{ fontSize: '0.9em', padding: '8px 16px' }}
+                >
+                  🗑️ Rimuovi Credenziali Salvate
+                </button>
+                <small style={{ display: 'block', marginTop: '5px', color: '#666' }}>
+                  Rimuove le credenziali salvate dal browser. Dovrai reinserirle alla prossima sessione.
+                </small>
+              </div>
+            )}
+
+            {/* Sezione Tornei */}
+            <div className="form-group">
+              <label>Gestione Tornei:</label>
+              <div className="tournament-controls">
+                <button 
+                  type="button"
+                  className="btn btn-warning"
+                  onClick={handleGetTournaments}
+                    disabled={loading}
+                  style={{ 
+                    backgroundColor: '#ebb13d', 
+                    borderColor: '#ebb13d', 
+                    color: 'white',
+                    fontWeight: '600',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    transition: 'all 0.3s ease',
+                    minWidth: '150px'
+                  }}
+                >
+                  {loading ? 'Recuperando...' : 'Recupera Tornei Disponibili'}
+                </button>
+                
+                {availableTournaments.length > 0 && (
+                  <div className="tournament-selection">
+                    <h4>Tornei Disponibili:</h4>
+                    <div className="tournament-buttons">
+                      {availableTournaments.map((tournament, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          className={`btn btn-outline-secondary tournament-btn ${selectedTournaments.includes(tournament.id) ? 'active' : ''}`}
+                          onClick={() => toggleTournament(tournament.id)}
+                        >
+                          {tournament.name} (ID: {tournament.id})
+                        </button>
+                      ))}
+                    </div>
+                    <div className="tournament-actions">
+                      <button
+                        type="button"
+                        className="btn btn-success"
+                        onClick={() => selectAllTournaments()}
+                      >
+                        Seleziona Tutti
+                      </button>
+                      <button
+                        type="button"
+                    className="btn btn-warning"
+                        onClick={() => clearTournamentSelection()}
+                  >
+                        Deseleziona Tutti
+                      </button>
+                </div>
+                    <div className="selected-tournaments">
+                      <strong>Tornei selezionati:</strong> {selectedTournaments.length > 0 ? selectedTournaments.join(', ') : 'Nessuno'}
+              </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Sezione Tornei Preferiti */}
+            <div className="form-group">
+              <label>🎯 Tornei Preferiti:</label>
+              <div className="preferiti-controls">
+                <button 
+                  type="button"
+                  className="btn btn-info"
+                  onClick={() => setShowPreferiti(!showPreferiti)}
+                  style={{ 
+                    backgroundColor: '#17a2b8', 
+                    borderColor: '#17a2b8', 
+                    color: 'white',
+                    fontWeight: '600',
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    marginRight: '10px'
+                  }}
+                >
+                  {showPreferiti ? '🔽 Nascondi' : '🔼 Mostra'} Preferiti ({torneiPreferiti.length})
+                </button>
+                
+                {selectedTournaments.length > 0 && (
+                  <button 
+                    type="button"
+                    className="btn btn-success"
+                    onClick={saveTorneiPreferiti}
+                    disabled={loading}
+                    style={{ 
+                      backgroundColor: '#28a745', 
+                      borderColor: '#28a745', 
+                      color: 'white',
+                      fontWeight: '600',
+                      padding: '8px 16px',
+                      borderRadius: '6px'
+                    }}
+                  >
+                    {loading ? '💾 Salvando...' : '💾 Salva Selezionati come Preferiti'}
+                  </button>
+                )}
+              </div>
+              
+              {showPreferiti && (
+                <div className="preferiti-section">
+                  {torneiPreferiti.length > 0 ? (
+                    <div className="preferiti-list">
+                      <h5>I tuoi tornei preferiti:</h5>
+                      <div className="preferiti-buttons">
+                        {torneiPreferiti.map((torneo, index) => (
+                          <div key={index} className="preferito-item">
+                            <button
+                              type="button"
+                              className="btn btn-outline-primary preferito-btn"
+                              onClick={() => toggleTournament(torneo.id)}
+                              style={{
+                                backgroundColor: selectedTournaments.includes(torneo.id) ? '#007bff' : 'transparent',
+                                color: selectedTournaments.includes(torneo.id) ? 'white' : '#007bff',
+                                border: '1px solid #007bff',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                margin: '2px',
+                                fontSize: '0.9em',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              {torneo.name} (ID: {torneo.id})
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger remove-btn"
+                              onClick={() => removeTorneoPreferito(torneo.id)}
+                              style={{
+                                backgroundColor: 'transparent',
+                                color: '#dc3545',
+                                border: '1px solid #dc3545',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                marginLeft: '5px',
+                                fontSize: '0.8em',
+                                cursor: 'pointer'
+                              }}
+                              title="Rimuovi dai preferiti"
+                            >
+                              ❌
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="preferiti-info">
+                        <small style={{ color: '#666', fontStyle: 'italic' }}>
+                          💡 Clicca su un torneo preferito per selezionarlo automaticamente. I tornei preferiti vengono salvati per ogni lega.
+                        </small>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="no-preferiti">
+                      <p style={{ color: '#666', fontStyle: 'italic', margin: '10px 0' }}>
+                        📝 Nessun torneo preferito salvato. Seleziona dei tornei e clicca "Salva Selezionati come Preferiti" per salvarli.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="actions">
+              <button onClick={handleUpdateCredentials} disabled={loading}>
+                {loading ? 'Aggiornando...' : 'Aggiorna Credenziali'}
+              </button>
+              <button onClick={handleScrapingPlaywright} disabled={loading} className="primary">
+                {loading ? 'Scraping...' : 'Avvia Scraping Rose'}
+              </button>
+              <button onClick={handleScrapingClassifica} disabled={loading} className="primary">
+                {loading ? 'Scraping...' : 'Scraping Classifica'}
+              </button>
+              <button onClick={handleScrapingFormazioni} disabled={loading} className="primary">
+                {loading ? 'Scraping...' : 'Scraping Formazioni'}
+              </button>
+              <button onClick={handleScrapingCompletoPlaywright} disabled={loading} className="primary">
+                {loading ? 'Scraping...' : 'Scraping Completo'}
+              </button>
+            </div>
+          </div>
+
+          {renderResults()}
+        </div>
+      )}
+
+      {activeTab === 'dati-scraping' && (
+        <div className="dati-scraping-section">
+          <div className="form-group">
+            <label>Seleziona Lega per visualizzare i dati di scraping:</label>
+            <select 
+              value={selectedLega} 
+              onChange={(e) => setSelectedLega(e.target.value)}
+            >
+              <option value="">Seleziona una lega</option>
+              {leghe.map(lega => (
+                <option key={lega.id} value={lega.id}>
+                  {lega.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {renderDatiScraping()}
+        </div>
+      )}
+
+      {activeTab === 'confronto' && (
+        <div className="confronto-section">
+          <div className="form-group">
+            <label>Seleziona Lega per confrontare i dati:</label>
+            <select 
+              value={selectedLega} 
+              onChange={(e) => setSelectedLega(e.target.value)}
+            >
+              <option value="">Seleziona una lega</option>
+              {leghe.map(lega => (
+                <option key={lega.id} value={lega.id}>
+                  {lega.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {renderConfrontoDati()}
+                  </div>
+                )}
+
+      <ProgressModal />
+
+      {Object.entries(scrapingResults).map(([torneo, dati]) => (
+        <div key={torneo} style={{ margin: '2rem 0' }}>
+          <h3>Classifica {torneo}</h3>
+          <table className="table table-striped">
+            <thead>
+              <tr>
+                <th>Pos</th>
+                <th>Squadra</th>
+                <th>Partite</th>
+                <th>V</th>
+                <th>N</th>
+                <th>P</th>
+                <th>GF</th>
+                <th>GS</th>
+                <th>DR</th>
+                <th>Punti</th>
+                <th>Punti Totali</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.isArray(dati) && dati.map((row, idx) => (
+                <tr key={idx}>
+                  <td>{row.posizione}</td>
+                  <td>{row.squadra}</td>
+                  <td>{row.partite}</td>
+                  <td>{row.vittorie}</td>
+                  <td>{row.pareggi}</td>
+                  <td>{row.sconfitte}</td>
+                  <td>{row.golFatti}</td>
+                  <td>{row.golSubiti}</td>
+                  <td>{row.differenzaReti}</td>
+                  <td>{row.punti}</td>
+                  <td>{row.puntiTotali}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+              </div>
+      ))}
+    </Container>
+  );
+};
+
+// Stili CSS per i componenti
+const styles = `
+  .tournament-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 15px 0;
+  }
+  
+  .tournament-btn {
+    min-width: 120px;
+    text-align: center;
+    font-size: 0.9em;
+    padding: 8px 12px;
+  }
+  
+  .tournament-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+  }
+  
+  .tournament-actions {
+    display: flex;
+    gap: 10px;
+    margin: 15px 0;
+  }
+  
+  .selected-tournaments {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+  }
+
+  .preferiti-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+  }
+
+  .preferiti-section {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+  }
+
+  .preferiti-list h5 {
+    margin-bottom: 15px;
+    color: #333;
+    font-weight: 600;
+  }
+
+  .preferiti-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+  }
+
+  .preferito-item {
+    display: flex;
+    align-items: center;
+  }
+
+  .preferito-btn {
+    transition: all 0.2s ease;
+  }
+
+  .preferito-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .remove-btn {
+    transition: all 0.2s ease;
+  }
+
+  .remove-btn:hover {
+    background-color: #dc3545 !important;
+    color: white !important;
+    transform: scale(1.1);
+  }
+
+  .preferiti-info {
+    margin-top: 10px;
+    padding: 8px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+  }
+
+  .no-preferiti {
+    text-align: center;
+    padding: 20px;
+  }
+`;
+
+// Inserisci gli stili nel DOM
+const styleSheet = document.createElement("style");
+styleSheet.innerText = styles;
+document.head.appendChild(styleSheet);
+
+export default ScrapingManager; 

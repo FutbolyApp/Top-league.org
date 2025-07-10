@@ -1,7 +1,2 @@
-2025/06/28-20:56:13.022 915e73 Reusing MANIFEST /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/Local Storage/leveldb/MANIFEST-000001
-2025/06/28-20:56:13.026 915e73 Recovering log #12
-2025/06/28-20:56:13.027 915e73 Level-0 table #15: started
-2025/06/28-20:56:13.043 915e73 Level-0 table #15: 64043 bytes OK
-2025/06/28-20:56:13.044 915e73 Recovering log #14
-2025/06/28-20:56:13.044 915e73 Reusing old log /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/Local Storage/leveldb/000014.log 
-2025/06/28-20:56:13.046 915e73 Delete type=0 #12
+2025/07/10-15:48:00.468 14585c Creating DB /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/Local Storage/leveldb since it was missing.
+2025/07/10-15:48:00.477 14585c Reusing MANIFEST /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/Local Storage/leveldb/MANIFEST-000001

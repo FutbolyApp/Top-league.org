@@ -148,4 +148,4 @@ backend/Scraping/config.json
 Dockerfile
 
 # Render deployment
-render.yaml 
+render.yaml node_modules/ # ignora pacchetti, build ecc.

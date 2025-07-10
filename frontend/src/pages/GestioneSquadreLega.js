@@ -66,37 +66,72 @@ const SectionTitle = styled.h2`
   gap: 0.5rem;
 `;
 
-const TeamsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+const TeamsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 `;
 
-const TeamCard = styled.div`
+const TeamRow = styled.div`
   border: 1px solid #e5e5e7;
   border-radius: 8px;
-  padding: 1.5rem;
-  background: #f8f9fa;
+  padding: 1rem;
+  background: white;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background: #f8f9fa;
+    border-color: #007AFF;
   }
+`;
+
+const TeamInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
 `;
 
 const TeamName = styled.h3`
   font-size: 1.1rem;
   font-weight: 600;
   color: #1d1d1f;
-  margin: 0 0 1rem 0;
+  margin: 0;
+  min-width: 200px;
 `;
 
-const TeamInfo = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+const TeamDetails = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  font-size: 0.9rem;
+`;
+
+const DetailItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+`;
+
+const DetailLabel = styled.span`
+  color: #666;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const DetailValue = styled.span`
+  color: #1d1d1f;
+  font-weight: 600;
+  font-size: 0.9rem;
+`;
+
+const TeamActions = styled.div`
+  display: flex;
   gap: 0.5rem;
-  margin-bottom: 1rem;
 `;
 
 const InfoItem = styled.div`
@@ -296,7 +331,7 @@ const GestioneSquadreLega = () => {
 
       <TeamsSection>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <SectionTitle>🏃‍♂️ Squadre della Lega</SectionTitle>
+          <SectionTitle>Squadre della Lega</SectionTitle>
           <ActionButton 
             className="success"
             onClick={handleAddSquadra}
@@ -317,35 +352,37 @@ const GestioneSquadreLega = () => {
             </ActionButton>
           </EmptyContainer>
         ) : (
-          <TeamsGrid>
+          <TeamsList>
             {squadre.map(squadra => (
-              <TeamCard key={squadra.id}>
-                <TeamName>{squadra.nome}</TeamName>
-                
+              <TeamRow key={squadra.id}>
                 <TeamInfo>
-                  <InfoItem>
-                    <InfoLabel>Proprietario:</InfoLabel>
-                    <InfoValue>{squadra.proprietario_nome || 'Orfana'}</InfoValue>
-                  </InfoItem>
-                  <InfoItem>
-                    <InfoLabel>Giocatori:</InfoLabel>
-                    <InfoValue>{squadra.giocatori?.length || 0}</InfoValue>
-                  </InfoItem>
-                  <InfoItem>
-                    <InfoLabel>Club Level:</InfoLabel>
-                    <InfoValue>{squadra.club_level || 1}</InfoValue>
-                  </InfoItem>
-                  <InfoItem>
-                    <InfoLabel>Valore:</InfoLabel>
-                    <InfoValue>€{squadra.valore_squadra?.toLocaleString() || 0}</InfoValue>
-                  </InfoItem>
+                  <TeamName>{squadra.nome}</TeamName>
+                  
+                  <TeamDetails>
+                    <DetailItem>
+                      <DetailLabel>Proprietario</DetailLabel>
+                      <DetailValue>{squadra.proprietario_nome || 'Orfana'}</DetailValue>
+                    </DetailItem>
+                    <DetailItem>
+                      <DetailLabel>Giocatori</DetailLabel>
+                      <DetailValue>{squadra.giocatori?.length || 0}</DetailValue>
+                    </DetailItem>
+                    <DetailItem>
+                      <DetailLabel>Club Level</DetailLabel>
+                      <DetailValue>{squadra.club_level || 1}</DetailValue>
+                    </DetailItem>
+                    <DetailItem>
+                      <DetailLabel>Valore</DetailLabel>
+                      <DetailValue>FM {squadra.valore_squadra?.toLocaleString() || 0}</DetailValue>
+                    </DetailItem>
+                  </TeamDetails>
                 </TeamInfo>
                 
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <TeamActions>
                   <ActionButton 
                     onClick={() => handleEditSquadra(squadra.id)}
                   >
-                    ✏️ Modifica
+                    Modifica
                   </ActionButton>
                   <ActionButton 
                     className="danger"
@@ -353,10 +390,10 @@ const GestioneSquadreLega = () => {
                   >
                     🗑️ Elimina
                   </ActionButton>
-                </div>
-              </TeamCard>
+                </TeamActions>
+              </TeamRow>
             ))}
-          </TeamsGrid>
+          </TeamsList>
         )}
       </TeamsSection>
     </Container>

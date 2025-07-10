@@ -37,4 +37,17 @@ export const checkAvailability = (data) => api.post('/auth/check-availability', 
 
 export const isLeagueAdmin = (legaId, token) => api.get(`/auth/is-league-admin/${legaId}`, token);
 
-export const verifyUser = (token) => api.get('/auth/verify-user', token); 
+export const verifyUser = (token) => api.get('/auth/verify-user', token);
+
+// Ricerca utenti per autocomplete (solo SuperAdmin)
+export const searchUsers = async (query, legaId, token) => {
+  const params = new URLSearchParams({ query });
+  if (legaId) {
+    params.append('legaId', legaId);
+  }
+  
+  const res = await fetch(`${API_URL}/search-users?${params}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  return handleResponse(res);
+}; 

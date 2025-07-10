@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
-import { getSquadraById, joinSquadra } from '../api/squadre';
+import { getSquadraById, joinSquadra, getSquadreByUtente } from '../api/squadre';
 import { getLegaById } from '../api/leghe';
 import { getGiocatoriBySquadra } from '../api/giocatori';
 import { splitRoles, getRoleClass } from '../utils/roleUtils';
@@ -322,14 +322,14 @@ const CostValue = styled.span`
 `;
 
 const ViewButton = styled(Link)`
-  color: #FFA94D;
+  color: #E67E22;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
   transition: color 0.2s;
   
   &:hover {
-    color: #FF8C00;
+    color: #D35400;
     text-decoration: underline;
   }
 `;
@@ -399,31 +399,49 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [joining, setJoining] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestMessage, setRequestMessage] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'ruolo', direction: 'asc' });
+  const [userSquadre, setUserSquadre] = useState([]);
+  const [hasSquadraInLega, setHasSquadraInLega] = useState(false);
+
+  // Funzione per caricare i dati della squadra
+  const fetchSquadra = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await getSquadraById(id, token);
+      setSquadra(res.squadra);
+      
+      if (setCurrentTeam) setCurrentTeam(res.squadra);
+      
+      // Carica la lega per il contesto
+      if (res.squadra.lega_id) {
+        const legaRes = await getLegaById(res.squadra.lega_id, token);
+        setLega(legaRes.lega);
+        if (setCurrentLeague) setCurrentLeague(legaRes.lega);
+        
+        // Carica le squadre dell'utente per verificare se ha già una squadra in questa lega
+        try {
+          const squadreRes = await getSquadreByUtente(token);
+          setUserSquadre(squadreRes.squadre || []);
+          
+          // Verifica se l'utente ha già una squadra in questa lega
+          const hasSquadra = squadreRes.squadre?.some(s => s.lega_id === res.squadra.lega_id);
+          setHasSquadraInLega(hasSquadra);
+        } catch (err) {
+          console.error('Errore nel caricamento squadre utente:', err);
+        }
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+    setLoading(false);
+  }, [id, token, setCurrentLeague, setCurrentTeam]);
 
   useEffect(() => {
-    async function fetchSquadra() {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await getSquadraById(id, token);
-        setSquadra(res.squadra);
-        
-        if (setCurrentTeam) setCurrentTeam(res.squadra);
-        
-        // Carica la lega per il contesto
-        if (res.squadra.lega_id) {
-          const legaRes = await getLegaById(res.squadra.lega_id, token);
-          setLega(legaRes.lega);
-          if (setCurrentLeague) setCurrentLeague(legaRes.lega);
-        }
-      } catch (err) {
-        setError(err.message);
-      }
-      setLoading(false);
-    }
     if (token) fetchSquadra();
-  }, [id, token, setCurrentLeague, setCurrentTeam]);
+  }, [fetchSquadra]);
 
   const formatMoney = (value) => {
     if (!value) return 'FM 0';
@@ -433,20 +451,19 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
   const getTeamStats = () => {
     if (!squadra) return {};
     
-    const totalPlayers = squadra.giocatori?.length || 0;
-    const totalValue = squadra.giocatori?.reduce((sum, g) => sum + (g.costo_attuale || 0), 0) || 0;
-    const totalSalary = squadra.giocatori?.reduce((sum, g) => sum + (g.salario || 0), 0) || 0;
-    const averageAge = squadra.giocatori?.length > 0 
-      ? Math.round(squadra.giocatori.reduce((sum, g) => sum + (g.eta || 0), 0) / squadra.giocatori.length)
-      : 0;
-    const totalQuotazioni = squadra.giocatori?.reduce((sum, g) => sum + (g.quotazione_attuale || 0), 0) || 0;
+    // Valore Squadra: somma di quotazione_attuale di tutti i giocatori
+    const valoreSquadra = squadra.giocatori?.reduce((sum, g) => sum + (g.quotazione_attuale || 0), 0) || 0;
+    
+    // Casse Societarie: dalla squadra
+    const casseSocietarie = squadra.casse_societarie || 0;
+    
+    // Ingaggio totale: somma di costo_attuale di tutti i giocatori
+    const ingaggioTotale = squadra.giocatori?.reduce((sum, g) => sum + (g.costo_attuale || 0), 0) || 0;
 
     return {
-      totalPlayers,
-      totalValue,
-      totalSalary,
-      averageAge,
-      totalQuotazioni
+      valoreSquadra,
+      casseSocietarie,
+      ingaggioTotale
     };
   };
 
@@ -458,18 +475,35 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
     
     // Definizione dell'ordine dei ruoli
     const roleOrder = isMantra 
-      ? ['P', 'DC', 'B', 'DD', 'DS', 'E', 'M', 'C', 'T', 'A', 'PC'] // Mantra
-      : ['P', 'D', 'C', 'A']; // Classic
+      ? ['P', 'Por', 'D', 'Dc', 'B', 'Dd', 'Ds', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc'] // Mantra
+      : ['P', 'Por', 'D', 'Dc', 'B', 'Dd', 'Ds', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc']; // Classic
     
     return [...players].sort((a, b) => {
       const roleA = a.ruolo || '';
       const roleB = b.ruolo || '';
       
-      const indexA = roleOrder.indexOf(roleA);
-      const indexB = roleOrder.indexOf(roleB);
+      // Per Euroleghe Mantra, mappa i ruoli complessi ai ruoli base
+      let mappedRoleA = roleA;
+      let mappedRoleB = roleB;
+      
+      if (isMantra) {
+        // Per ruoli multipli, prendi il primo ruolo
+        const firstRoleA = roleA.split(';')[0];
+        const firstRoleB = roleB.split(';')[0];
+        
+        mappedRoleA = firstRoleA;
+        mappedRoleB = firstRoleB;
+      }
+      
+      const indexA = roleOrder.indexOf(mappedRoleA);
+      const indexB = roleOrder.indexOf(mappedRoleB);
       
       // Se entrambi i ruoli sono nell'ordine definito, ordina per posizione
       if (indexA !== -1 && indexB !== -1) {
+        if (indexA === indexB) {
+          // Se hanno lo stesso ruolo base, ordina per il ruolo completo
+          return roleA.localeCompare(roleB);
+        }
         return indexA - indexB;
       }
       
@@ -527,16 +561,35 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
           // Per l'ordinamento per ruolo, usa la logica speciale
           const isMantra = lega?.modalita?.includes('Mantra');
           const roleOrder = isMantra 
-            ? ['P', 'DC', 'B', 'DD', 'DS', 'E', 'M', 'C', 'T', 'A', 'PC']
-            : ['P', 'D', 'C', 'A'];
+            ? ['P', 'Por', 'D', 'Dc', 'B', 'Dd', 'Ds', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc']
+            : ['P', 'Por', 'D', 'Dc', 'B', 'Dd', 'Ds', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc'];
           
           const roleA = a.ruolo || '';
           const roleB = b.ruolo || '';
           
-          const indexA = roleOrder.indexOf(roleA);
-          const indexB = roleOrder.indexOf(roleB);
+          // Per Euroleghe Mantra, mappa i ruoli complessi ai ruoli base
+          let mappedRoleA = roleA;
+          let mappedRoleB = roleB;
+          
+          if (isMantra) {
+            // Per ruoli multipli, prendi il primo ruolo
+            const firstRoleA = roleA.split(';')[0];
+            const firstRoleB = roleB.split(';')[0];
+            
+            mappedRoleA = firstRoleA;
+            mappedRoleB = firstRoleB;
+          }
+          
+          const indexA = roleOrder.indexOf(mappedRoleA);
+          const indexB = roleOrder.indexOf(mappedRoleB);
           
           if (indexA !== -1 && indexB !== -1) {
+            if (indexA === indexB) {
+              // Se hanno lo stesso ruolo base, ordina per il ruolo completo
+              return sortConfig.direction === 'asc' 
+                ? roleA.localeCompare(roleB)
+                : roleB.localeCompare(roleA);
+            }
             return sortConfig.direction === 'asc' ? indexA - indexB : indexB - indexA;
           }
           
@@ -557,10 +610,6 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
         case 'squadra_reale':
           aValue = a.squadra_reale || '';
           bValue = b.squadra_reale || '';
-          break;
-        case 'eta':
-          aValue = a.eta || 0;
-          bValue = b.eta || 0;
           break;
         case 'qi':
           aValue = a.qi || 0;
@@ -590,6 +639,22 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
           aValue = a.triggers || '';
           bValue = b.triggers || '';
           break;
+        case 'roster':
+          aValue = a.roster || '';
+          bValue = b.roster || '';
+          break;
+        case 'stato_trasferimento':
+          aValue = a.stato_trasferimento || '';
+          bValue = b.stato_trasferimento || '';
+          break;
+        case 'stato_prestito':
+          aValue = a.stato_prestito || '';
+          bValue = b.stato_prestito || '';
+          break;
+        case 'cantera':
+          aValue = a.cantera ? 'Sì' : 'No';
+          bValue = b.cantera ? 'Sì' : 'No';
+          break;
         default:
           return 0;
       }
@@ -610,9 +675,23 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
   async function handleJoin() {
     if (!squadra.is_orfana) return;
     
+    if (!showRequestForm) {
+      setShowRequestForm(true);
+      return;
+    }
+    
+    if (!requestMessage.trim()) {
+      setError('Inserisci un messaggio per la tua richiesta');
+      return;
+    }
+    
     setJoining(true);
+    setError(null);
+    
     try {
-      await joinSquadra(squadra.id, token);
+      await joinSquadra(squadra.id, token, { messaggio: requestMessage });
+      setShowRequestForm(false);
+      setRequestMessage('');
       // Ricarica i dati della squadra
       const res = await getSquadraById(id, token);
       setSquadra(res.squadra);
@@ -671,7 +750,39 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
       </BackButton>
       
       <Header>
-        <TeamTitle>{squadra.nome}</TeamTitle>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+          {squadra.logo_url ? (
+            <img 
+              src={`http://localhost:3001/uploads/${squadra.logo_url}`} 
+              alt="logo" 
+              style={{ 
+                width: 60, 
+                height: 60, 
+                borderRadius: '50%', 
+                objectFit: 'cover', 
+                background: '#eee',
+                border: '2px solid #e5e5e7'
+              }} 
+            />
+          ) : (
+            <div style={{
+              width: 60,
+              height: 60,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #ff9500 0%, #e6850e 100%)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.5rem',
+              fontWeight: '700',
+              border: '2px solid #e5e5e7'
+            }}>
+              {squadra.nome.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <TeamTitle>{squadra.nome}</TeamTitle>
+        </div>
         
         <TeamInfo>
           <InfoCard>
@@ -691,6 +802,20 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
             <InfoValue>{stats.totalPlayers}</InfoValue>
           </InfoCard>
           <InfoCard>
+            <InfoLabel>Proprietario</InfoLabel>
+            <InfoValue>
+              {squadra.proprietario_username ? (
+                <span style={{ color: '#28a745', fontWeight: '600' }}>
+                  {squadra.proprietario_username}
+                </span>
+              ) : (
+                <span style={{ color: '#dc3545', fontStyle: 'italic' }}>
+                  N/A
+                </span>
+              )}
+            </InfoValue>
+          </InfoCard>
+          <InfoCard>
             <InfoLabel>Stato</InfoLabel>
             <InfoValue>
               <TeamStatus $orphan={squadra.is_orfana}>
@@ -700,7 +825,7 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
           </InfoCard>
         </TeamInfo>
 
-        {squadra.is_orfana && (
+        {squadra.is_orfana && !hasSquadraInLega && (
           <JoinButton onClick={handleJoin} disabled={joining}>
             {joining ? 'Unione in corso...' : 'Unisciti a questa squadra'}
           </JoinButton>
@@ -718,35 +843,131 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
         )}
       </Header>
 
+      {/* Form di richiesta */}
+      {showRequestForm && squadra.is_orfana && !hasSquadraInLega && (
+        <div style={{
+          background: '#f8f9fa',
+          border: '1px solid #dee2e6',
+          borderRadius: '8px',
+          padding: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#495057' }}>
+            Richiesta di unione alla squadra
+          </h3>
+          <p style={{ marginBottom: '1rem', color: '#6c757d', fontSize: '0.9rem' }}>
+            Invia una richiesta all'admin della lega per unirti a questa squadra. 
+            L'admin riceverà una notifica e potrà accettare o rifiutare la tua richiesta.
+          </p>
+          
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#495057' }}>
+              Messaggio per l'admin:
+            </label>
+            <textarea
+              value={requestMessage}
+              onChange={(e) => setRequestMessage(e.target.value)}
+              placeholder="Spiega perché vuoi unirti a questa squadra..."
+              style={{
+                width: '100%',
+                minHeight: '100px',
+                padding: '0.75rem',
+                border: '1px solid #ced4da',
+                borderRadius: '4px',
+                fontSize: '0.9rem',
+                fontFamily: 'inherit',
+                resize: 'vertical'
+              }}
+            />
+          </div>
+          
+          {error && (
+            <div style={{
+              color: '#dc3545',
+              marginBottom: '1rem',
+              padding: '0.5rem',
+              background: '#f8d7da',
+              border: '1px solid #f5c6cb',
+              borderRadius: '4px'
+            }}>
+              {error}
+            </div>
+          )}
+          
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={handleJoin}
+              disabled={joining || !requestMessage.trim()}
+              style={{
+                background: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '4px',
+                cursor: joining || !requestMessage.trim() ? 'not-allowed' : 'pointer',
+                opacity: joining || !requestMessage.trim() ? 0.6 : 1,
+                fontWeight: '500'
+              }}
+            >
+              {joining ? 'Invio in corso...' : 'Invia Richiesta'}
+            </button>
+            
+            <button
+              onClick={() => {
+                setShowRequestForm(false);
+                setRequestMessage('');
+                setError(null);
+              }}
+              style={{
+                background: '#6c757d',
+                color: 'white',
+                border: 'none',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              Annulla
+            </button>
+          </div>
+        </div>
+      )}
+
       <StatsGrid>
         <StatCard>
           <StatTitle>Valore Squadra</StatTitle>
-          <StatValue>{formatMoney(squadra.valore_squadra)}</StatValue>
+          <StatValue>{formatMoney(stats.valoreSquadra)}</StatValue>
         </StatCard>
         <StatCard>
-          <StatTitle>Crediti Residui</StatTitle>
-          <StatValue>{formatMoney(squadra.casse_societarie)}</StatValue>
+          <StatTitle>Casse Societarie</StatTitle>
+          <StatValue>{formatMoney(stats.casseSocietarie)}</StatValue>
         </StatCard>
         <StatCard>
-          <StatTitle>Costo Ingaggi</StatTitle>
-          <StatValue>{formatMoney(stats.totalValue)}</StatValue>
-        </StatCard>
-        <StatCard>
-          <StatTitle>Valore Giocatori</StatTitle>
-          <StatValue>{formatMoney(squadra.costo_salariale_annuale)}</StatValue>
-        </StatCard>
-        <StatCard>
-          <StatTitle>Età Media</StatTitle>
-          <StatValue>{stats.averageAge} anni</StatValue>
-        </StatCard>
-        <StatCard>
-          <StatTitle>Costo Attuale Tot.</StatTitle>
-          <StatValue>{formatMoney(stats.totalQuotazioni)}</StatValue>
+          <StatTitle>Ingaggio Totale</StatTitle>
+          <StatValue>{formatMoney(stats.ingaggioTotale)}</StatValue>
         </StatCard>
       </StatsGrid>
 
       <PlayersSection>
-        <SectionTitle>Giocatori della Squadra</SectionTitle>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <SectionTitle>Giocatori della Squadra</SectionTitle>
+          <button 
+            onClick={fetchSquadra}
+            style={{
+              background: '#5856d6',
+              color: 'white',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: '500'
+            }}
+          >
+            🔄 Aggiorna Dati
+          </button>
+        </div>
         
         {!squadra.giocatori || squadra.giocatori.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#86868b' }}>
@@ -772,14 +993,14 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
                   <TableHeader onClick={() => handleSort('squadra_reale')}>
                     Squadra Reale{getSortArrow('squadra_reale')}
                   </TableHeader>
-                  <TableHeader onClick={() => handleSort('eta')}>
-                    Età{getSortArrow('eta')}
-                  </TableHeader>
-                  <TableHeader onClick={() => handleSort('qi')}>
-                    QI{getSortArrow('qi')}
+                  <TableHeader onClick={() => handleSort('cantera')}>
+                    Cantera{getSortArrow('cantera')}
                   </TableHeader>
                   <TableHeader onClick={() => handleSort('ingaggio')}>
                     Ingaggio{getSortArrow('ingaggio')}
+                  </TableHeader>
+                  <TableHeader onClick={() => handleSort('qi')}>
+                    QI{getSortArrow('qi')}
                   </TableHeader>
                   <TableHeader onClick={() => handleSort('qa')}>
                     QA{getSortArrow('qa')}
@@ -790,17 +1011,38 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
                   <TableHeader onClick={() => handleSort('anni_contratto')}>
                     Anni Contratto{getSortArrow('anni_contratto')}
                   </TableHeader>
-                  <TableHeader onClick={() => handleSort('prestito')}>
-                    Prestito{getSortArrow('prestito')}
-                  </TableHeader>
                   <TableHeader onClick={() => handleSort('triggers')}>
                     Triggers{getSortArrow('triggers')}
+                  </TableHeader>
+                  <TableHeader onClick={() => handleSort('roster')}>
+                    Roster{getSortArrow('roster')}
+                  </TableHeader>
+                  <TableHeader onClick={() => handleSort('stato_trasferimento')}>
+                    St.Trasf{getSortArrow('stato_trasferimento')}
+                  </TableHeader>
+                  <TableHeader onClick={() => handleSort('stato_prestito')}>
+                    St.Prest{getSortArrow('stato_prestito')}
                   </TableHeader>
                 </tr>
               </thead>
               <tbody>
                 {getSortedPlayers().map(giocatore => (
-                  <tr key={giocatore.id}>
+                  <tr 
+                    key={giocatore.id}
+                    style={{
+                      backgroundColor: (() => {
+                        if (giocatore.squadra_prestito_id) {
+                          // Giocatore in prestito da un'altra squadra (giallo chiaro)
+                          return '#fffbf0';
+                        } else if (giocatore.valore_prestito > 0 || giocatore.valore_trasferimento > 0) {
+                          // Giocatore della squadra corrente disponibile al prestito/trasferimento (viola molto chiaro)
+                          return '#faf5ff';
+                        } else {
+                          return 'transparent';
+                        }
+                      })()
+                    }}
+                  >
                     <TableCell>
                       <ViewButton to={`/giocatore/${giocatore.id}`}>
                         {giocatore.nome} {giocatore.cognome}
@@ -818,18 +1060,66 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
                     <TableCell>{giocatore.r || '-'}</TableCell>
                     <TableCell>{giocatore.fr || '-'}</TableCell>
                     <TableCell>{giocatore.squadra_reale}</TableCell>
-                    <TableCell>{giocatore.eta}</TableCell>
-                    <TableCell>{giocatore.qi || '-'}</TableCell>
+                    <TableCell>{giocatore.cantera ? '✔' : '-'}</TableCell>
                     <TableCell>
                       <CostValue>{formatMoney(giocatore.costo_attuale)}</CostValue>
                     </TableCell>
+                    <TableCell>{giocatore.qi || '-'}</TableCell>
                     <TableCell>
                       <MoneyValue>{giocatore.quotazione_attuale || '-'}</MoneyValue>
                     </TableCell>
                     <TableCell>{giocatore.fv_mp || '-'}</TableCell>
                     <TableCell>{giocatore.anni_contratto || 0}</TableCell>
-                    <TableCell>{giocatore.prestito ? 'Sì' : 'No'}</TableCell>
                     <TableCell>{giocatore.triggers || '-'}</TableCell>
+                    <TableCell>
+                      <span style={{
+                        padding: '0.2rem 0.4rem',
+                        borderRadius: '4px',
+                        fontSize: '0.7rem',
+                        fontWeight: '600',
+                        backgroundColor: giocatore.roster === 'A' ? '#dbeafe' : '#fef3c7',
+                        color: giocatore.roster === 'A' ? '#1e40af' : '#92400e'
+                      }}>
+                        {giocatore.roster || '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {giocatore.valore_trasferimento > 0 ? (
+                        <div style={{ textAlign: 'center', whiteSpace: 'pre-line' }}>
+                          <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '2px' }}>Costo Trasferimento</div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#dc3545' }}>
+                            ({formatMoney(giocatore.valore_trasferimento)})
+                          </div>
+                        </div>
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        if (giocatore.squadra_prestito_id) {
+                          // Giocatore in prestito da un'altra squadra
+                          return (
+                            <div style={{ textAlign: 'center', whiteSpace: 'pre-line' }}>
+                              <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '2px' }}>In Prestito da</div>
+                              <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#28a745' }}>
+                                {giocatore.squadra_prestito_nome || 'Sconosciuta'}
+                              </div>
+                            </div>
+                          );
+                        } else if (giocatore.valore_prestito > 0) {
+                          // Giocatore della squadra corrente disponibile al prestito
+                          return (
+                            <div style={{ textAlign: 'center', whiteSpace: 'pre-line' }}>
+                              <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: '2px' }}>Costo Prestito</div>
+                              <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#28a745' }}>
+                                ({formatMoney(giocatore.valore_prestito)})
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          return '-';
+                        }
+                      })()}
+                    </TableCell>
                   </tr>
                 ))}
               </tbody>

@@ -1,179 +1,98 @@
-import { chromium } from 'playwright';
+import { default as PlaywrightScraper } from './utils/playwrightScraper.js';
 
 async function debugPageStructure() {
-    const browser = await chromium.launch({ headless: false });
-    const page = await browser.newPage();
+    console.log('🔍 DEBUG: Analisi struttura pagina Euroleghe...');
+    
+    const scraper = new PlaywrightScraper();
     
     try {
-        console.log('🔍 DEBUG: Analisi struttura pagina rose...');
+        // Test URL
+        const testUrl = 'https://euroleghe.fantacalcio.it/topleague/';
         
-        // Vai alla pagina di login
-        await page.goto('https://leghe.fantacalcio.it/fantaleague-11/rose', {
-            waitUntil: 'domcontentloaded',
-            timeout: 30000
-        });
-        
-        // Gestisci popup
-        const buttons = await page.$$('button');
-        for (const btn of buttons) {
-            const text = await btn.textContent();
-            if (text && text.toLowerCase().includes('continua senza accettare')) {
-                await btn.click();
-                break;
-            }
+        console.log('1. Inizializzazione browser...');
+        if (!await scraper.init()) {
+            throw new Error('Impossibile inizializzare Playwright');
         }
         
-        await page.waitForTimeout(3000);
-        
-        // Se siamo nella pagina di login, fai login
-        const currentUrl = page.url();
-        if (currentUrl.includes('login') || currentUrl.includes('signin')) {
-            console.log('🔐 Pagina di login rilevata, faccio login...');
-            
-            // Trova e compila i campi
-            const usernameField = await page.$('input[type="text"], input[name="username"]');
-            if (usernameField) {
-                await usernameField.fill('nemeneme');
-            }
-            
-            const passwordField = await page.$('input[type="password"], input[name="password"]');
-            if (passwordField) {
-                await passwordField.fill('laziomerda');
-            }
-            
-            // Clicca login
-            const loginButton = await page.$('button[type="submit"], input[type="submit"]');
-            if (loginButton) {
-                await loginButton.click();
-            }
-            
-            await page.waitForTimeout(5000);
-            
-            // Ora vai alla pagina rose
-            await page.goto('https://leghe.fantacalcio.it/fantaleague-11/rose', {
-                waitUntil: 'domcontentloaded',
-                timeout: 30000
-            });
-            
-            await page.waitForTimeout(3000);
+        console.log('2. Login...');
+        const loginSuccess = await scraper.login('nemeneme', 'laziomerda', testUrl);
+        if (!loginSuccess) {
+            throw new Error('Login fallito');
         }
         
-        // Analizza la struttura
-        const structure = await page.evaluate(() => {
-            const result = {
-                url: window.location.href,
-                title: document.title,
-                panels: [],
-                tables: [],
-                squadreHeaders: []
+        console.log('3. Analisi struttura pagina...');
+        const pageStructure = await scraper.page.evaluate(() => {
+            const analysis = {
+                headings: [],
+                links: [],
+                sections: [],
+                allElements: []
             };
             
-            // Analizza tutti i panel
-            const panels = document.querySelectorAll('.panel, .widget, [class*="panel"], [class*="widget"]');
-            console.log(`Trovati ${panels.length} panel`);
-            
-            panels.forEach((panel, index) => {
-                const panelInfo = {
-                    index,
-                    className: panel.className,
-                    title: null,
-                    tables: []
-                };
-                
-                // Cerca il titolo del panel
-                const titleEl = panel.querySelector('.panel-title, h3, h4, .title, .team-title');
-                if (titleEl) {
-                    panelInfo.title = titleEl.textContent.trim();
-                    result.squadreHeaders.push(panelInfo.title);
-                }
-                
-                // Cerca tabelle nel panel
-                const tables = panel.querySelectorAll('table');
-                tables.forEach((table, tableIndex) => {
-                    const tableInfo = {
-                        tableIndex,
-                        rows: table.querySelectorAll('tr').length,
-                        headers: [],
-                        sampleData: []
-                    };
-                    
-                    // Analizza header
-                    const headerRow = table.querySelector('tr');
-                    if (headerRow) {
-                        headerRow.querySelectorAll('th, td').forEach(cell => {
-                            tableInfo.headers.push(cell.textContent.trim());
-                        });
-                    }
-                    
-                    // Analizza prime righe di dati
-                    table.querySelectorAll('tr').forEach((row, rowIndex) => {
-                        if (rowIndex < 5 && rowIndex > 0) { // Salta header
-                            const rowData = [];
-                            row.querySelectorAll('td').forEach(td => {
-                                rowData.push(td.textContent.trim());
-                            });
-                            if (rowData.length > 0) {
-                                tableInfo.sampleData.push(rowData);
-                            }
-                        }
-                    });
-                    
-                    panelInfo.tables.push(tableInfo);
-                });
-                
-                result.panels.push(panelInfo);
-            });
-            
-            // Analizza tutte le tabelle
-            const allTables = document.querySelectorAll('table');
-            allTables.forEach((table, index) => {
-                const tableInfo = {
-                    index,
-                    id: table.id,
-                    className: table.className,
-                    rows: table.querySelectorAll('tr').length,
-                    headers: [],
-                    sampleData: []
-                };
-                
-                // Analizza header
-                const headerRow = table.querySelector('tr');
-                if (headerRow) {
-                    headerRow.querySelectorAll('th, td').forEach(cell => {
-                        tableInfo.headers.push(cell.textContent.trim());
+            // Analizza tutti gli heading
+            document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((heading, index) => {
+                const text = heading.textContent?.trim();
+                if (text && text.length > 2) {
+                    analysis.headings.push({
+                        tag: heading.tagName.toLowerCase(),
+                        text: text,
+                        className: heading.className,
+                        id: heading.id
                     });
                 }
-                
-                // Analizza prime righe di dati
-                table.querySelectorAll('tr').forEach((row, rowIndex) => {
-                    if (rowIndex < 5 && rowIndex > 0) { // Salta header
-                        const rowData = [];
-                        row.querySelectorAll('td').forEach(td => {
-                            rowData.push(td.textContent.trim());
-                        });
-                        if (rowData.length > 0) {
-                            tableInfo.sampleData.push(rowData);
-                        }
-                    }
-                });
-                
-                result.tables.push(tableInfo);
             });
             
-            return result;
+            // Analizza tutti i link
+            document.querySelectorAll('a').forEach((link, index) => {
+                const text = link.textContent?.trim();
+                const href = link.getAttribute('href');
+                if (text && text.length > 2) {
+                    analysis.links.push({
+                        text: text,
+                        href: href,
+                        className: link.className,
+                        id: link.id
+                    });
+                }
+            });
+            
+            // Cerca sezioni con classi specifiche
+            document.querySelectorAll('[class*="section"], [class*="competition"], [class*="tournament"]').forEach((section, index) => {
+                const text = section.textContent?.trim();
+                if (text && text.length > 10) {
+                    analysis.sections.push({
+                        className: section.className,
+                        text: text.substring(0, 100) + '...',
+                        tag: section.tagName.toLowerCase()
+                    });
+                }
+            });
+            
+            return analysis;
         });
         
-        console.log('📊 STRUTTURA PAGINA ANALIZZATA:');
-        console.log(JSON.stringify(structure, null, 2));
+        console.log('4. Risultati analisi:');
+        console.log('   Headings trovati:', pageStructure.headings.length);
+        pageStructure.headings.forEach((h, i) => {
+            console.log(`     ${i + 1}. <${h.tag}> "${h.text}" [${h.className}]`);
+        });
         
-        // Screenshot
-        await page.screenshot({ path: 'backend/uploads/debug_page_structure.png', fullPage: true });
-        console.log('📸 Screenshot salvato: backend/uploads/debug_page_structure.png');
+        console.log('\n   Links trovati:', pageStructure.links.length);
+        pageStructure.links.slice(0, 20).forEach((link, i) => {
+            console.log(`     ${i + 1}. "${link.text}" -> ${link.href} [${link.className}]`);
+        });
+        
+        console.log('\n   Sezioni trovate:', pageStructure.sections.length);
+        pageStructure.sections.forEach((section, i) => {
+            console.log(`     ${i + 1}. <${section.tag}> [${section.className}] "${section.text}"`);
+        });
+        
+        console.log('✅ Debug completato!');
         
     } catch (error) {
-        console.error('❌ Errore debug:', error);
+        console.error('❌ Errore durante il debug:', error);
     } finally {
-        await browser.close();
+        await scraper.close();
     }
 }
 

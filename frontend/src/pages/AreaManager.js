@@ -5,7 +5,6 @@ import { useAuth } from '../components/AuthContext';
 import { getSquadreByUtente } from '../api/squadre';
 import { getNotificheByUtente } from '../api/notifiche';
 import { getMovimentiMercato } from '../api/offerte';
-import { cleanupProfiles } from '../api/scraping';
 
 const Container = styled.div`
   max-width: 1400px;
@@ -251,27 +250,7 @@ const EmptyContainer = styled.div`
   text-align: center;
 `;
 
-const CleanupButton = styled.button`
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s;
-  font-size: 0.8rem;
-  
-  &:hover {
-    transform: translateY(-1px);
-  }
-  
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
-`;
+const DefaultLogo = null;
 
 const AreaManager = () => {
   const { token } = useAuth();
@@ -282,7 +261,6 @@ const AreaManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedSquadra, setExpandedSquadra] = useState(null);
-  const [cleaningProfiles, setCleaningProfiles] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -333,18 +311,6 @@ const AreaManager = () => {
     setExpandedSquadra(expandedSquadra === squadraId ? null : squadraId);
   };
 
-  const handleCleanupProfiles = async () => {
-    try {
-      setCleaningProfiles(true);
-      const result = await cleanupProfiles();
-      alert(`Pulizia completata! Rimossi ${result.removedProfiles || 0} profili.`);
-    } catch (error) {
-      alert('Errore durante la pulizia dei profili: ' + error.message);
-    } finally {
-      setCleaningProfiles(false);
-    }
-  };
-
   if (loading) return (
     <Container>
       <LoadingContainer>Caricamento area manager...</LoadingContainer>
@@ -367,12 +333,6 @@ const AreaManager = () => {
         <HeaderLeft>
           <Title>👑 Area Manager</Title>
         </HeaderLeft>
-        <CleanupButton 
-          onClick={handleCleanupProfiles}
-          disabled={cleaningProfiles}
-        >
-          {cleaningProfiles ? '🧹 Pulendo...' : '🧹 Pulisci Profili Browser'}
-        </CleanupButton>
       </Header>
 
       {squadre.length === 0 ? (
@@ -388,11 +348,12 @@ const AreaManager = () => {
             <thead>
               <tr>
                 <Th>Squadra</Th>
-                <Th>Lega</Th>
-                <Th>Crediti Residui</Th>
                 <Th>Club Level</Th>
-                <Th>Costo Ingaggi</Th>
-                <Th>Valore Squadra</Th>
+                <Th>Torneo</Th>
+                <Th>Ingaggi</Th>
+                <Th>Crediti Residui</Th>
+                <Th>Valore Attuale</Th>
+                <Th>Giocatori</Th>
                 <Th> </Th>
               </tr>
             </thead>
@@ -401,26 +362,36 @@ const AreaManager = () => {
                 const movimentiLega = getMovimentiByLega(squadra.lega_id);
                 const notificheCount = getNotificheCount(squadra.id);
                 const isExpanded = expandedSquadra === squadra.id;
-                
+                let valoreAttuale = 0;
+                let ingaggi = 0;
+                let numGiocatori = 0;
+                if (Array.isArray(squadra.giocatori) && squadra.giocatori.length > 0) {
+                  valoreAttuale = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g.quotazione_attuale) || 0), 0);
+                  ingaggi = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g.costo_attuale) || 0), 0);
+                  numGiocatori = squadra.giocatori.length;
+                } else if (typeof squadra.numero_giocatori === 'number') {
+                  numGiocatori = squadra.numero_giocatori;
+                }
+                const maxGiocatori = squadra.max_giocatori || 30;
+                const logoUrl = squadra.logo_url;
+                const torneoNome = squadra.torneo_nome || 'N/A';
                 return (
                   <React.Fragment key={squadra.id}>
                     <tr>
-                      <Td>
-                        <TeamName>{squadra.nome}</TeamName>
-                      </Td>
-                      <Td>
-                        <LeagueName>{squadra.lega_nome}</LeagueName>
-                      </Td>
-                      <Td>
-                        <MoneyValue>{formatMoney(squadra.casse_societarie)}</MoneyValue>
+                      <Td style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {logoUrl ? (
+                          <img src={`http://localhost:3001/uploads/${logoUrl}`} alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+                        ) : (
+                          <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iMTYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iI0U1RTVFNyIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxwYXRoIGQ9Ik0xNiA4QzE4LjIwOTEgOCAyMCA5Ljc5MDg2IDIwIDEyQzIwIDE0LjIwOTEgMTguMjA5MSAxNiAxNiAxNkMxMy43OTA5IDE2IDEyIDE0LjIwOTEgMTIgMTJDMTIgOS43OTA4NiAxMy43OTA5IDggMTYgOFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTggMjRDMTAuMjA5MSAyNCAxMiAyMi4yMDkxIDEyIDIwQzEyIDE3Ljc5MDkgMTAuMjA5MSAxNiA4IDE2QzUuNzkwODYgMTYgNCAxNy43OTA5IDQgMjBDNCAyMi4yMDkxIDUuNzkwODYgMjQgOCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTI0IDI0QzI2LjIwOTEgMjQgMjggMjIuMjA5MSAyOCAyMEMyOCAxNy43OTA5IDI2LjIwOTEgMTYgMjQgMTZDMjEuNzkwOSAxNiAyMCAxNy43OTA5IDIwIDIwQzIwIDIyLjIwOTEgMjEuNzkwOSAyNCAyNCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+" alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+                        )}
+                        <span style={{ fontWeight: 600, cursor: 'pointer', color: '#FF8C42' }} onClick={() => navigate(`/gestione-squadra/${squadra.lega_id}`)}>{squadra.nome}</span>
                       </Td>
                       <Td>{squadra.club_level || 1}</Td>
-                      <Td>
-                        <CostValue>{formatMoney(squadra.valore_squadra)}</CostValue>
-                      </Td>
-                      <Td>
-                        <MoneyValue>{formatMoney(squadra.costo_salariale_annuale)}</MoneyValue>
-                      </Td>
+                      <Td>{torneoNome}</Td>
+                      <Td>FM {ingaggi.toLocaleString()}</Td>
+                      <Td><MoneyValue>{squadra.casse_societarie?.toLocaleString() || 0} FM</MoneyValue></Td>
+                      <Td>FM {valoreAttuale.toLocaleString()}</Td>
+                      <Td>{numGiocatori}/{maxGiocatori}</Td>
                       <Td>
                         <SelectButton onClick={() => handleToggleExpanded(squadra.id)}>
                           {isExpanded ? 'Chiudi' : 'Gestisci'}
@@ -429,34 +400,15 @@ const AreaManager = () => {
                     </tr>
                     {isExpanded && (
                       <ExpandedRow>
-                        <ExpandedCell colSpan="7">
+                        <ExpandedCell colSpan="8">
                           <ExpandedContent>
-                            <TeamStats>
-                              <StatItem>
-                                <StatLabel>Crediti Residui</StatLabel>
-                                <StatValue>
-                                  <MoneyValue>{formatMoney(squadra.casse_societarie)}</MoneyValue>
-                                </StatValue>
-                              </StatItem>
-                              <StatItem>
-                                <StatLabel>Club Level</StatLabel>
-                                <StatValue>{squadra.club_level || 1}</StatValue>
-                              </StatItem>
-                              <StatItem>
-                                <StatLabel>Costo Ingaggi</StatLabel>
-                                <StatValue>
-                                  <CostValue>{formatMoney(squadra.valore_squadra)}</CostValue>
-                                </StatValue>
-                              </StatItem>
-                              <StatItem>
-                                <StatLabel>Valore Squadra</StatLabel>
-                                <StatValue>
-                                  <MoneyValue>{formatMoney(squadra.costo_salariale_annuale)}</MoneyValue>
-                                </StatValue>
-                              </StatItem>
-                            </TeamStats>
-
                             <ActionButtons>
+                              <ActionButton 
+                                type="visualizza"
+                                onClick={() => navigate(`/gestione-squadra/${squadra.lega_id}`)}
+                              >
+                                Visualizza
+                              </ActionButton>
                               <ActionButton 
                                 type="notifiche"
                                 onClick={() => navigate(`/notifiche?squadra=${squadra.id}`)}
@@ -470,36 +422,31 @@ const AreaManager = () => {
                                 Proponi Offerta
                               </ActionButton>
                               <ActionButton 
-                                type="contratti"
-                                onClick={() => navigate(`/paga-contratti?squadra=${squadra.id}`)}
-                              >
-                                Paga Contratti
-                              </ActionButton>
-                              <ActionButton 
-                                type="rinnovo"
-                                onClick={() => navigate(`/rinnovo-contratti?squadra=${squadra.id}`)}
-                              >
-                                Rinnovo Contratti
-                              </ActionButton>
-                              <ActionButton 
                                 type="admin"
                                 onClick={() => navigate(`/richiesta-admin?squadra=${squadra.id}`)}
                               >
                                 Richiesta Admin
                               </ActionButton>
                               <ActionButton 
-                                type="club"
-                                onClick={() => navigate(`/richiedi-club-level?squadra=${squadra.id}`)}
-                              >
-                                Richiedi Club Level
-                              </ActionButton>
-                              <ActionButton 
                                 type="log"
-                                onClick={() => navigate(`/log?squadra=${squadra.id}`)}
+                                onClick={() => navigate(`/log-squadra/${squadra.id}`)}
                               >
                                 Log
                               </ActionButton>
                             </ActionButtons>
+
+                            <MarketMovements>
+                              <MarketTitle>📢 Ultime 5 Notifiche</MarketTitle>
+                              {notifiche.filter(n => n.squadra_id === squadra.id).slice(0, 5).length === 0 ? (
+                                <MovementItem>Nessuna notifica recente</MovementItem>
+                              ) : (
+                                notifiche.filter(n => n.squadra_id === squadra.id).slice(0, 5).map((notifica, index) => (
+                                  <MovementItem key={index}>
+                                    {notifica.titolo}: {notifica.messaggio} - {new Date(notifica.created_at).toLocaleDateString()}
+                                  </MovementItem>
+                                ))
+                              )}
+                            </MarketMovements>
 
                             <MarketMovements>
                               <MarketTitle>📈 Ultimi 5 Movimenti di Mercato</MarketTitle>

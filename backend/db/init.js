@@ -75,12 +75,21 @@ const giocatori = `CREATE TABLE IF NOT EXISTS giocatori (
   costo_attuale INTEGER,
   costo_precedente INTEGER,
   prestito INTEGER,
+  squadra_prestito_id INTEGER,
   anni_contratto INTEGER,
   cantera INTEGER,
   triggers TEXT,
+  site_id TEXT,
+  nazione_campionato TEXT,
+  qi INTEGER,
+  qa INTEGER,
+  fvm INTEGER,
+  media_voto REAL,
+  fantamedia_voto REAL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(lega_id) REFERENCES leghe(id),
-  FOREIGN KEY(squadra_id) REFERENCES squadre(id)
+  FOREIGN KEY(squadra_id) REFERENCES squadre(id),
+  FOREIGN KEY(squadra_prestito_id) REFERENCES squadre(id)
 );`;
 
 // NOTIFICHE
@@ -88,14 +97,17 @@ const notifiche = `CREATE TABLE IF NOT EXISTS notifiche (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   lega_id INTEGER,
   utente_id INTEGER,
-  tipo TEXT,
-  messaggio TEXT,
-  letto INTEGER,
+  titolo TEXT,
+  messaggio TEXT NOT NULL,
+  tipo TEXT DEFAULT 'generale',
+  letta BOOLEAN DEFAULT 0,
+  letto INTEGER DEFAULT 0,
   data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
   data_lettura DATETIME,
-  archiviata INTEGER,
-  FOREIGN KEY(lega_id) REFERENCES leghe(id),
-  FOREIGN KEY(utente_id) REFERENCES utenti(id)
+  dati_aggiuntivi TEXT,
+  archiviata INTEGER DEFAULT 0,
+  FOREIGN KEY (lega_id) REFERENCES leghe (id),
+  FOREIGN KEY (utente_id) REFERENCES utenti (id)
 );`;
 
 // RICHIESTE INGRESSO
@@ -111,10 +123,28 @@ const richieste_ingresso = `CREATE TABLE IF NOT EXISTS richieste_ingresso (
   risposta_admin_id INTEGER,
   messaggio_richiesta TEXT,
   messaggio_risposta TEXT,
-  FOREIGN KEY(utente_id) REFERENCES utenti(id),
+  FOREIGN KEY(utente_id) REFERENCES users(id),
   FOREIGN KEY(lega_id) REFERENCES leghe(id),
   FOREIGN KEY(squadra_id) REFERENCES squadre(id),
-  FOREIGN KEY(risposta_admin_id) REFERENCES utenti(id)
+  FOREIGN KEY(risposta_admin_id) REFERENCES users(id)
+);`;
+
+// RICHIESTE UNIONE SQUADRA
+const richieste_unione_squadra = `CREATE TABLE IF NOT EXISTS richieste_unione_squadra (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  utente_id INTEGER NOT NULL,
+  squadra_id INTEGER NOT NULL,
+  lega_id INTEGER NOT NULL,
+  stato TEXT DEFAULT 'in_attesa',
+  data_richiesta DATETIME DEFAULT CURRENT_TIMESTAMP,
+  data_risposta DATETIME,
+  risposta_admin_id INTEGER,
+  messaggio_richiesta TEXT,
+  messaggio_risposta TEXT,
+  FOREIGN KEY(utente_id) REFERENCES users(id),
+  FOREIGN KEY(squadra_id) REFERENCES squadre(id),
+  FOREIGN KEY(lega_id) REFERENCES leghe(id),
+  FOREIGN KEY(risposta_admin_id) REFERENCES users(id)
 );`;
 
 // LOG
@@ -126,7 +156,7 @@ const log = `CREATE TABLE IF NOT EXISTS log (
   utente_id INTEGER,
   data_azione DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(lega_id) REFERENCES leghe(id),
-  FOREIGN KEY(utente_id) REFERENCES utenti(id)
+  FOREIGN KEY(utente_id) REFERENCES users(id)
 );`;
 
 // OFFERTE
@@ -136,9 +166,11 @@ const offerte = `CREATE TABLE IF NOT EXISTS offerte (
   squadra_mittente_id INTEGER,
   squadra_destinatario_id INTEGER,
   giocatore_id INTEGER,
+  giocatore_scambio_id INTEGER,
   tipo TEXT,
-  valore INTEGER,
-  stato TEXT,
+  valore_offerta INTEGER,
+  richiesta_fm INTEGER,
+  stato TEXT DEFAULT 'in_attesa',
   data_invio DATETIME DEFAULT CURRENT_TIMESTAMP,
   data_accettazione DATETIME,
   data_approvazione_admin DATETIME,
@@ -146,7 +178,27 @@ const offerte = `CREATE TABLE IF NOT EXISTS offerte (
   FOREIGN KEY(lega_id) REFERENCES leghe(id),
   FOREIGN KEY(squadra_mittente_id) REFERENCES squadre(id),
   FOREIGN KEY(squadra_destinatario_id) REFERENCES squadre(id),
-  FOREIGN KEY(giocatore_id) REFERENCES giocatori(id)
+  FOREIGN KEY(giocatore_id) REFERENCES giocatori(id),
+  FOREIGN KEY(giocatore_scambio_id) REFERENCES giocatori(id)
+);`;
+
+// LOG OPERAZIONI GIOCATORI
+const log_operazioni_giocatori = `CREATE TABLE IF NOT EXISTS log_operazioni_giocatori (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  giocatore_id INTEGER,
+  lega_id INTEGER,
+  tipo_operazione TEXT,
+  squadra_mittente_id INTEGER,
+  squadra_destinatario_id INTEGER,
+  valore INTEGER,
+  dettagli TEXT,
+  data_operazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+  utente_id INTEGER,
+  FOREIGN KEY(giocatore_id) REFERENCES giocatori(id),
+  FOREIGN KEY(lega_id) REFERENCES leghe(id),
+  FOREIGN KEY(squadra_mittente_id) REFERENCES squadre(id),
+  FOREIGN KEY(squadra_destinatario_id) REFERENCES squadre(id),
+  FOREIGN KEY(utente_id) REFERENCES utenti(id)
 );`;
 
 // SUBADMIN
@@ -154,12 +206,27 @@ const subadmin = `CREATE TABLE IF NOT EXISTS subadmin (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   lega_id INTEGER,
   utente_id INTEGER,
-  attivo INTEGER,
+  permessi TEXT,
+  attivo INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(lega_id) REFERENCES leghe(id),
-  FOREIGN KEY(utente_id) REFERENCES utenti(id)
+  FOREIGN KEY(utente_id) REFERENCES users(id)
 );`;
 
-const tables = [utenti, leghe, squadre, giocatori, notifiche, richieste_ingresso, log, offerte, subadmin];
+// Tabella richieste_admin
+const richieste_admin = `CREATE TABLE IF NOT EXISTS richieste_admin (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  squadra_id INTEGER NOT NULL,
+  tipo_richiesta TEXT NOT NULL,
+  dati_richiesta TEXT,
+  stato TEXT DEFAULT 'pending',
+  data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+  data_risposta DATETIME,
+  note_admin TEXT,
+  FOREIGN KEY (squadra_id) REFERENCES squadre (id)
+)`;
+
+const tables = [utenti, leghe, squadre, giocatori, notifiche, richieste_ingresso, richieste_unione_squadra, log, offerte, log_operazioni_giocatori, subadmin, richieste_admin];
 
 db.serialize(() => {
   for (const t of tables) {
@@ -167,6 +234,33 @@ db.serialize(() => {
       if (err) console.error('Errore creazione tabella:', err.message);
     });
   }
+  
+  // Aggiungi colonna squadra_prestito_id se non esiste
+  db.run(`ALTER TABLE giocatori ADD COLUMN squadra_prestito_id INTEGER REFERENCES squadre(id)`, (err) => {
+    if (err && !err.message.includes('duplicate column name')) {
+      console.error('Errore aggiunta colonna squadra_prestito_id:', err.message);
+    }
+  });
+  
+  // Aggiungi colonne per limiti di ruolo se non esistono
+  const limitiColonne = [
+    'max_portieri INTEGER DEFAULT 3',
+    'min_portieri INTEGER DEFAULT 2',
+    'max_difensori INTEGER DEFAULT 8',
+    'min_difensori INTEGER DEFAULT 5',
+    'max_centrocampisti INTEGER DEFAULT 8',
+    'min_centrocampisti INTEGER DEFAULT 5',
+    'max_attaccanti INTEGER DEFAULT 6',
+    'min_attaccanti INTEGER DEFAULT 3'
+  ];
+  
+  limitiColonne.forEach(colonna => {
+    db.run(`ALTER TABLE leghe ADD COLUMN ${colonna}`, (err) => {
+      if (err && !err.message.includes('duplicate column name')) {
+        console.error(`Errore aggiunta colonna ${colonna}:`, err.message);
+      }
+    });
+  });
 });
 
 db.close();
@@ -199,7 +293,7 @@ export function ensureTables() {
       budget_iniziale DECIMAL(10,2) DEFAULT 1000000.00,
       data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
       stato TEXT DEFAULT 'attiva',
-      FOREIGN KEY (admin_id) REFERENCES utenti (id)
+      FOREIGN KEY (admin_id) REFERENCES users (id)
     )
   `);
 
@@ -217,7 +311,7 @@ export function ensureTables() {
       differenza_reti INTEGER DEFAULT 0,
       data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (lega_id) REFERENCES leghe (id),
-      FOREIGN KEY (utente_id) REFERENCES utenti (id)
+      FOREIGN KEY (utente_id) REFERENCES users (id)
     )
   `);
 
@@ -261,16 +355,36 @@ export function ensureTables() {
   db.run(`
     CREATE TABLE IF NOT EXISTS notifiche (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      lega_id INTEGER,
-      utente_id INTEGER,
+      utente_id INTEGER NOT NULL,
       titolo TEXT NOT NULL,
       messaggio TEXT NOT NULL,
-      tipo TEXT DEFAULT 'generale',
-      letta BOOLEAN DEFAULT 0,
+      tipo TEXT NOT NULL,
+      dati_aggiuntivi TEXT,
+      letta INTEGER DEFAULT 0,
+      letto INTEGER DEFAULT 0,
+      archiviata INTEGER DEFAULT 0,
       data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
-      data_lettura DATETIME,
+      FOREIGN KEY (utente_id) REFERENCES users (id)
+    )
+  `);
+
+  // Tabella richieste unione squadra
+  db.run(`
+    CREATE TABLE IF NOT EXISTS richieste_unione_squadra (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      utente_id INTEGER NOT NULL,
+      squadra_id INTEGER NOT NULL,
+      lega_id INTEGER NOT NULL,
+      stato TEXT DEFAULT 'in_attesa',
+      data_richiesta DATETIME DEFAULT CURRENT_TIMESTAMP,
+      data_risposta DATETIME,
+      risposta_admin_id INTEGER,
+      messaggio_richiesta TEXT,
+      messaggio_risposta TEXT,
+      FOREIGN KEY (utente_id) REFERENCES users (id),
+      FOREIGN KEY (squadra_id) REFERENCES squadre (id),
       FOREIGN KEY (lega_id) REFERENCES leghe (id),
-      FOREIGN KEY (utente_id) REFERENCES utenti (id)
+      FOREIGN KEY (risposta_admin_id) REFERENCES users (id)
     )
   `);
 
@@ -302,20 +416,62 @@ export function ensureTables() {
       dettagli TEXT,
       data_azione DATETIME DEFAULT CURRENT_TIMESTAMP,
       ip_address TEXT,
-      FOREIGN KEY (utente_id) REFERENCES utenti (id)
+      FOREIGN KEY (utente_id) REFERENCES users (id)
     )
   `);
 
-  // Tabella subadmin
+  // Tabella log squadre
+  db.run(`
+    CREATE TABLE IF NOT EXISTS log_squadre (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      squadra_id INTEGER NOT NULL,
+      lega_id INTEGER NOT NULL,
+      tipo_evento TEXT NOT NULL,
+      categoria TEXT NOT NULL,
+      titolo TEXT NOT NULL,
+      descrizione TEXT,
+      dati_aggiuntivi TEXT,
+      utente_id INTEGER,
+      giocatore_id INTEGER,
+      data_evento DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (squadra_id) REFERENCES squadre (id),
+      FOREIGN KEY (lega_id) REFERENCES leghe (id),
+      FOREIGN KEY (utente_id) REFERENCES users (id),
+      FOREIGN KEY (giocatore_id) REFERENCES giocatori (id)
+    )
+  `);
+
+  // Tabella subadmin (aggiornata)
   db.run(`
     CREATE TABLE IF NOT EXISTS subadmin (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       utente_id INTEGER,
       lega_id INTEGER,
       permessi TEXT,
+      attivo INTEGER DEFAULT 1,
       data_nomina DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (utente_id) REFERENCES utenti (id),
-      FOREIGN KEY (lega_id) REFERENCES leghe (id)
+      FOREIGN KEY (utente_id) REFERENCES users (id),
+      FOREIGN KEY (lega_id) REFERENCES leghe (id),
+      UNIQUE(utente_id, lega_id)
+    )
+  `);
+
+  // Tabella modifiche in attesa di approvazione
+  db.run(`
+    CREATE TABLE IF NOT EXISTS pending_changes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      lega_id INTEGER NOT NULL,
+      subadmin_id INTEGER NOT NULL,
+      action_type TEXT NOT NULL,
+      action_data TEXT NOT NULL,
+      description TEXT,
+      details TEXT,
+      status TEXT DEFAULT 'pending',
+      admin_response TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      reviewed_at DATETIME,
+      FOREIGN KEY (lega_id) REFERENCES leghe (id),
+      FOREIGN KEY (subadmin_id) REFERENCES users (id)
     )
   `);
 
@@ -359,11 +515,13 @@ export function ensureTables() {
       giornate_totali INTEGER,
       data_inizio DATE,
       data_fine DATE,
-      stato TEXT DEFAULT 'in_corso',
+      descrizione TEXT,
+      informazioni_utente TEXT,
+      stato TEXT DEFAULT 'programmato',
       admin_id INTEGER,
       data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (lega_id) REFERENCES leghe (id),
-      FOREIGN KEY (admin_id) REFERENCES utenti (id)
+      FOREIGN KEY (admin_id) REFERENCES users (id)
     )
   `);
 
@@ -385,6 +543,19 @@ export function ensureTables() {
       FOREIGN KEY (torneo_id) REFERENCES tornei (id),
       FOREIGN KEY (squadra_casa_id) REFERENCES squadre (id),
       FOREIGN KEY (squadra_trasferta_id) REFERENCES squadre (id)
+    )
+  `);
+
+  // Tabella tornei_squadre
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tornei_squadre (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      torneo_id INTEGER,
+      squadra_id INTEGER,
+      data_iscrizione DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (torneo_id) REFERENCES tornei (id),
+      FOREIGN KEY (squadra_id) REFERENCES squadre (id),
+      UNIQUE(torneo_id, squadra_id)
     )
   `);
 
@@ -414,6 +585,21 @@ export function ensureTables() {
       dimensione INTEGER,
       record_count INTEGER,
       stato TEXT DEFAULT 'completato'
+    )
+  `);
+
+  // Tabella richieste_admin
+  db.run(`
+    CREATE TABLE IF NOT EXISTS richieste_admin (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      squadra_id INTEGER NOT NULL,
+      tipo_richiesta TEXT NOT NULL,
+      dati_richiesta TEXT,
+      stato TEXT DEFAULT 'pending',
+      data_creazione DATETIME DEFAULT CURRENT_TIMESTAMP,
+      data_risposta DATETIME,
+      note_admin TEXT,
+      FOREIGN KEY (squadra_id) REFERENCES squadre (id)
     )
   `);
 
@@ -464,4 +650,56 @@ export function ensureTables() {
   `);
 
   console.log('All tables ensured successfully!');
+  
+  // Aggiungi colonne mancanti alla tabella subadmin se non esistono
+  db.run("PRAGMA table_info(subadmin)", (err, columns) => {
+    if (err) {
+      console.error('Errore nel controllo struttura tabella subadmin:', err);
+      return;
+    }
+    
+    const columnNames = columns.map(col => col.name);
+    
+    if (!columnNames.includes('permessi')) {
+      console.log('Aggiungendo colonna permessi alla tabella subadmin...');
+      db.run('ALTER TABLE subadmin ADD COLUMN permessi TEXT', (err) => {
+        if (err) console.error('Errore aggiunta colonna permessi:', err);
+        else console.log('Colonna permessi aggiunta con successo');
+      });
+    }
+    
+    if (!columnNames.includes('data_nomina')) {
+      console.log('Aggiungendo colonna data_nomina alla tabella subadmin...');
+      db.run('ALTER TABLE subadmin ADD COLUMN data_nomina DATETIME DEFAULT CURRENT_TIMESTAMP', (err) => {
+        if (err) console.error('Errore aggiunta colonna data_nomina:', err);
+        else console.log('Colonna data_nomina aggiunta con successo');
+      });
+    }
+  });
+
+  // Aggiungi colonne mancanti alla tabella pending_changes se non esistono
+  db.run("PRAGMA table_info(pending_changes)", (err, columns) => {
+    if (err) {
+      console.error('Errore nel controllo struttura tabella pending_changes:', err);
+      return;
+    }
+    
+    const columnNames = columns.map(col => col.name);
+    
+    if (!columnNames.includes('description')) {
+      console.log('Aggiungendo colonna description alla tabella pending_changes...');
+      db.run('ALTER TABLE pending_changes ADD COLUMN description TEXT', (err) => {
+        if (err) console.error('Errore aggiunta colonna description:', err);
+        else console.log('Colonna description aggiunta con successo');
+      });
+    }
+    
+    if (!columnNames.includes('details')) {
+      console.log('Aggiungendo colonna details alla tabella pending_changes...');
+      db.run('ALTER TABLE pending_changes ADD COLUMN details TEXT', (err) => {
+        if (err) console.error('Errore aggiunta colonna details:', err);
+        else console.log('Colonna details aggiunta con successo');
+      });
+    }
+  });
 }

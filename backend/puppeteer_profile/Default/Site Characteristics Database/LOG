@@ -1,3 +1,2 @@
-2025/06/28-20:56:13.210 915e29 Reusing MANIFEST /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/Site Characteristics Database/MANIFEST-000001
-2025/06/28-20:56:13.210 915e29 Recovering log #3
-2025/06/28-20:56:13.210 915e29 Reusing old log /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/Site Characteristics Database/000003.log 
+2025/07/10-15:48:00.519 145810 Creating DB /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/Site Characteristics Database since it was missing.
+2025/07/10-15:48:00.523 145810 Reusing MANIFEST /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/Site Characteristics Database/MANIFEST-000001

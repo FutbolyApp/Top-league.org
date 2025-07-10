@@ -489,26 +489,7 @@ const GiocatoriManager = () => {
               onChange={handleFilterChange}
             />
           </FormGroup>
-          <FormGroup>
-            <Label>Età Min</Label>
-            <Input
-              name="eta_min"
-              type="number"
-              placeholder="Età minima"
-              value={filters.eta_min}
-              onChange={handleFilterChange}
-            />
-          </FormGroup>
-          <FormGroup>
-            <Label>Età Max</Label>
-            <Input
-              name="eta_max"
-              type="number"
-              placeholder="Età massima"
-              value={filters.eta_max}
-              onChange={handleFilterChange}
-            />
-          </FormGroup>
+
           <FormGroup>
             <Label>Quotazione Min</Label>
             <Input
@@ -551,7 +532,7 @@ const GiocatoriManager = () => {
                   <TableHeader>Giocatore</TableHeader>
                   <TableHeader>Ruolo</TableHeader>
                   <TableHeader>Squadra Reale</TableHeader>
-                  <TableHeader>Età</TableHeader>
+                  <TableHeader>Cantera</TableHeader>
                   <TableHeader>Quotazione</TableHeader>
                   <TableHeader>Salario</TableHeader>
                   <TableHeader>Costo Attuale</TableHeader>
@@ -578,7 +559,7 @@ const GiocatoriManager = () => {
                       </PlayerRole>
                     </TableCell>
                     <TableCell>{giocatore.squadra_reale}</TableCell>
-                    <TableCell>{giocatore.eta}</TableCell>
+                    <TableCell>{giocatore.cantera ? '✓' : ''}</TableCell>
                     <TableCell>{giocatore.quotazione_attuale}</TableCell>
                     <TableCell>
                       <CostValue>{formatMoney(giocatore.salario)}</CostValue>

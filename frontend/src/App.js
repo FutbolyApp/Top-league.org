@@ -28,7 +28,22 @@ import ProponiOfferta from './pages/ProponiOfferta';
 import ScrapingManager from './pages/ScrapingManager';
 import GestioneCredenziali from './pages/GestioneCredenziali';
 import TorneiManager from './pages/TorneiManager';
+import GestioneTornei from './pages/GestioneTornei';
+import TorneoDetail from './pages/TorneoDetail';
 import PagaContratti from './pages/PagaContratti';
+import NotifichePage from './pages/NotifichePage';
+import LogSquadraPage from './pages/LogSquadraPage';
+import RichiesteUnioneSquadra from './pages/RichiesteUnioneSquadra';
+import LeagueAdminArea from './pages/LeagueAdminArea';
+import SubadminArea from './pages/SubadminArea';
+import LeagueSubadminArea from './pages/LeagueSubadminArea';
+import RequestSquadreModification from './pages/RequestSquadreModification';
+import RequestGiocatoriModification from './pages/RequestGiocatoriModification';
+import SubadminRequestsPage from './pages/SubadminRequestsPage';
+import GestioneSquadra from './pages/GestioneSquadra';
+import RichiestaAdmin from './pages/RichiestaAdmin';
+import GestioneRichiesteAdmin from './pages/GestioneRichiesteAdmin';
+import GestioneRosterAdmin from './pages/GestioneRosterAdmin';
 import './index.css';
 
 function AppRoutes() {
@@ -40,6 +55,7 @@ function AppRoutes() {
         <Route path="/leghe" element={<ProtectedRoute><Leghe /></ProtectedRoute>} />
         <Route path="/area-admin" element={<ProtectedRoute><AreaAdmin /></ProtectedRoute>} />
         <Route path="/area-admin/:legaId" element={<ProtectedRoute><AreaAdmin /></ProtectedRoute>} />
+        <Route path="/admin/richieste-unione-squadra/:legaId" element={<ProtectedRoute><RichiesteUnioneSquadra /></ProtectedRoute>} />
         <Route path="/area-manager" element={<ProtectedRoute><AreaManager /></ProtectedRoute>} />
         <Route path="/proponi-offerta" element={<ProtectedRoute><ProponiOfferta /></ProtectedRoute>} />
         <Route path="/unisciti-lega" element={<ProtectedRoute><UniscitiLega /></ProtectedRoute>} />
@@ -49,7 +65,10 @@ function AppRoutes() {
         <Route path="/giocatore/:id" element={<ProtectedRoute><DettaglioGiocatore /></ProtectedRoute>} />
         <Route path="/crea-lega" element={<ProtectedRoute><CreaLega /></ProtectedRoute>} />
         <Route path="/tornei/:legaId" element={<ProtectedRoute><TorneiManager /></ProtectedRoute>} />
+        <Route path="/gestione-tornei/:legaId" element={<ProtectedRoute><GestioneTornei /></ProtectedRoute>} />
+        <Route path="/torneo/:torneoId" element={<ProtectedRoute><TorneoDetail /></ProtectedRoute>} />
         <Route path="/paga-contratti" element={<ProtectedRoute><PagaContratti /></ProtectedRoute>} />
+        <Route path="/notifiche" element={<ProtectedRoute><NotifichePage /></ProtectedRoute>} />
         <Route path="/scraping" element={<ProtectedRoute><ScrapingManager /></ProtectedRoute>} />
         <Route path="/scraping-manager/:legaId" element={<ProtectedRoute><ScrapingManager /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
@@ -63,6 +82,18 @@ function AppRoutes() {
         <Route path="/modifica-giocatore-completa/:id" element={<ProtectedRoute><ModificaGiocatoreCompleta /></ProtectedRoute>} />
         <Route path="/crea-giocatore" element={<ProtectedRoute><CreaGiocatore /></ProtectedRoute>} />
         <Route path="/gestione-credenziali/:legaId" element={<ProtectedRoute><GestioneCredenziali /></ProtectedRoute>} />
+        <Route path="/league-admin/:legaId" element={<ProtectedRoute><LeagueAdminArea /></ProtectedRoute>} />
+        <Route path="/league-subadmin/:legaId" element={<ProtectedRoute><LeagueSubadminArea /></ProtectedRoute>} />
+        <Route path="/subadmin-area" element={<ProtectedRoute><SubadminArea /></ProtectedRoute>} />
+        <Route path="/subadmin-requests" element={<ProtectedRoute><SubadminRequestsPage /></ProtectedRoute>} />
+        <Route path="/request-squadre-modification/:legaId" element={<ProtectedRoute><RequestSquadreModification /></ProtectedRoute>} />
+        <Route path="/request-giocatori-modification/:legaId" element={<ProtectedRoute><RequestGiocatoriModification /></ProtectedRoute>} />
+        <Route path="/gestione-squadra/:legaId" element={<ProtectedRoute><GestioneSquadra /></ProtectedRoute>} />
+        <Route path="/richiesta-admin" element={<RichiestaAdmin />} />
+        <Route path="/gestione-richieste-admin/:legaId" element={<GestioneRichiesteAdmin />} />
+        <Route path="/gestione-roster-admin/:legaId" element={<ProtectedRoute><GestioneRosterAdmin /></ProtectedRoute>} />
+        <Route path="/modifica-lega/:id" element={<ProtectedRoute><ModificaLega /></ProtectedRoute>} />
+        <Route path="/log-squadra/:squadraId" element={<ProtectedRoute><LogSquadraPage /></ProtectedRoute>} />
         <Route path="*" element={<ProtectedRoute><Home /></ProtectedRoute>} />
       </Routes>
     </>

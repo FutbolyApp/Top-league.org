@@ -1,3 +1,2 @@
-2025/06/28-20:56:13.701 915e27 Reusing MANIFEST /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/shared_proto_db/MANIFEST-000001
-2025/06/28-20:56:13.701 915e27 Recovering log #3
-2025/06/28-20:56:13.702 915e27 Reusing old log /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/shared_proto_db/000003.log 
+2025/07/10-15:48:01.169 14581f Creating DB /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/shared_proto_db since it was missing.
+2025/07/10-15:48:01.179 14581f Reusing MANIFEST /Users/massimolasorsa/TopLeagueC/backend/puppeteer_profile/Default/shared_proto_db/MANIFEST-000001

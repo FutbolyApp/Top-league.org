@@ -5,6 +5,7 @@ import { useAuth } from '../components/AuthContext';
 import { getSquadraById, updateSquadra } from '../api/squadre';
 import { getGiocatoriBySquadra, deleteGiocatore, transferGiocatore } from '../api/giocatori';
 import { checkUser } from '../api/auth';
+import UserAutocomplete from '../components/UserAutocomplete';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -465,9 +466,9 @@ const FilterSelect = styled.select`
 `;
 
 const SortButton = styled.button`
-  background: ${props => props.active ? '#007AFF' : '#f8f9fa'};
-  color: ${props => props.active ? 'white' : '#333'};
-  border: 2px solid ${props => props.active ? '#007AFF' : '#e5e5e7'};
+  background: ${props => props.$active ? '#007AFF' : '#f8f9fa'};
+  color: ${props => props.$active ? 'white' : '#333'};
+  border: 2px solid ${props => props.$active ? '#007AFF' : '#e5e5e7'};
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 0.9rem;
@@ -476,7 +477,7 @@ const SortButton = styled.button`
   transition: all 0.2s;
   
   &:hover {
-    background: ${props => props.active ? '#0056b3' : '#e9ecef'};
+    background: ${props => props.$active ? '#0056b3' : '#e9ecef'};
   }
 `;
 
@@ -486,7 +487,7 @@ const SortDirection = styled.span`
 `;
 
 const ModificaSquadraCompleta = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [squadra, setSquadra] = useState(null);
@@ -665,7 +666,7 @@ const ModificaSquadraCompleta = () => {
         if (bValue === null || bValue === undefined) bValue = 0;
 
         // Per i campi numerici, confronta direttamente i numeri
-        if (sortConfig.field === 'costo_attuale' || sortConfig.field === 'salario' || sortConfig.field === 'eta') {
+        if (sortConfig.field === 'costo_attuale' || sortConfig.field === 'salario') {
           if (sortConfig.direction === 'asc') {
             return aValue - bValue;
           } else {
@@ -757,8 +758,7 @@ const ModificaSquadraCompleta = () => {
 
   const handleAddPlayer = () => {
     // Verifica il numero massimo di giocatori
-    const maxPlayers = squadra?.lega?.max_giocatori || 30;
-    if (giocatori.length >= maxPlayers) {
+    if (!canAddPlayer) {
       setError(`Impossibile aggiungere giocatori. Numero massimo raggiunto (${maxPlayers})`);
       return;
     }
@@ -811,9 +811,9 @@ const ModificaSquadraCompleta = () => {
 
       // Verifica che la squadra destinazione non sia piena
       const selectedSquadra = squadreLega.find(s => s.id === parseInt(transferData.squadra_destinazione_id));
-      const maxPlayers = getMaxPlayersForLeague();
-      if (selectedSquadra && selectedSquadra.num_giocatori >= maxPlayers) {
-        setError(`Numero massimo di giocatori raggiunto (${maxPlayers}). Impossibile aggiungere nuovi calciatori.`);
+      const maxPlayersTransfer = getMaxPlayersForLeague();
+      if (selectedSquadra && selectedSquadra.num_giocatori >= maxPlayersTransfer) {
+        setError(`Numero massimo di giocatori raggiunto (${maxPlayersTransfer}). Impossibile aggiungere nuovi calciatori.`);
         setSubmitting(false);
         return;
       }
@@ -880,6 +880,7 @@ const ModificaSquadraCompleta = () => {
     </Container>
   );
 
+  // Calcola il numero massimo di giocatori e se si può aggiungere
   const maxPlayers = squadra?.lega?.max_giocatori || 30;
   const canAddPlayer = giocatori.length < maxPlayers;
 
@@ -890,10 +891,23 @@ const ModificaSquadraCompleta = () => {
       </BackButton>
       
       <Header>
-        <Title>Modifica Squadra: {squadra?.nome}</Title>
-        <Subtitle>Modifica tutti i dettagli della squadra e dei suoi giocatori</Subtitle>
-        <div style={{marginTop: '1rem', fontWeight: 500, color: '#333'}}>
-          Proprietario: {squadra?.proprietario_nome || 'Orfana'}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <Title>Modifica Squadra: {squadra?.nome}</Title>
+            <Subtitle>Modifica tutti i dettagli della squadra e dei suoi giocatori</Subtitle>
+            <div style={{marginTop: '1rem', fontWeight: 500, color: '#333'}}>
+              Proprietario: {squadra?.proprietario_nome || 'Orfana'}
+            </div>
+          </div>
+          <Button 
+            type="button" 
+            className="success"
+            onClick={handleAddPlayer}
+            disabled={!canAddPlayer}
+            style={{ marginTop: '0.5rem' }}
+          >
+            + Crea Calciatore
+          </Button>
         </div>
       </Header>
 
@@ -952,14 +966,35 @@ const ModificaSquadraCompleta = () => {
           {formData.is_orfana && (
             <FormGroup>
               <Label>Username Nuovo Proprietario</Label>
-              <Input
-                name="newOwnerUsername"
-                value={newOwnerUsername}
-                onChange={(e) => setNewOwnerUsername(e.target.value)}
-                placeholder="Inserisci username del nuovo proprietario"
-              />
+              {user?.ruolo === 'superadmin' || user?.ruolo === 'SuperAdmin' ? (
+                <UserAutocomplete
+                  value={newOwnerUsername}
+                  onChange={setNewOwnerUsername}
+                  placeholder="Inizia a digitare per cercare un utente..."
+                  token={token}
+                  legaId={formData.lega_id}
+                  onUserSelect={(selectedUser) => {
+                    console.log('Utente selezionato:', selectedUser);
+                  }}
+                />
+              ) : (
+                <Input
+                  name="newOwnerUsername"
+                  value={newOwnerUsername}
+                  onChange={(e) => setNewOwnerUsername(e.target.value)}
+                  placeholder="Inserisci username del nuovo proprietario"
+                />
+              )}
+              {user && (
+                <small style={{ color: '#666', marginTop: '0.25rem', display: 'block' }}>
+                  Ruolo utente: {user.ruolo} - Token: {token ? 'Presente' : 'Mancante'}
+                </small>
+              )}
               <small style={{ color: '#666', marginTop: '0.25rem', display: 'block' }}>
-                L'username verrà verificato nel database prima del salvataggio
+                {user?.ruolo === 'superadmin' || user?.ruolo === 'SuperAdmin' 
+                  ? 'Digita almeno 2 caratteri per vedere i suggerimenti. Gli utenti già nella lega non saranno mostrati.'
+                  : 'L\'username verrà verificato nel database prima del salvataggio'
+                }
               </small>
             </FormGroup>
           )}
@@ -1096,50 +1131,35 @@ const ModificaSquadraCompleta = () => {
               <FilterGroup>
                 <FilterLabel>Ordinamento</FilterLabel>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <SortButton
-                    active={sortConfig.field === 'nome'}
-                    onClick={() => handleSort('nome')}
-                  >
+                  <SortButton $active={sortConfig.field === 'nome'} onClick={() => handleSort('nome')}>
                     Nome
                     {sortConfig.field === 'nome' && (
                       <SortDirection>{sortConfig.direction === 'asc' ? '↑' : '↓'}</SortDirection>
                     )}
                   </SortButton>
                   
-                  <SortButton
-                    active={sortConfig.field === 'ruolo'}
-                    onClick={() => handleSort('ruolo')}
-                  >
+                  <SortButton $active={sortConfig.field === 'ruolo'} onClick={() => handleSort('ruolo')}>
                     Ruolo
                     {sortConfig.field === 'ruolo' && (
                       <SortDirection>{sortConfig.direction === 'asc' ? '↑' : '↓'}</SortDirection>
                     )}
                   </SortButton>
                   
-                  <SortButton
-                    active={sortConfig.field === 'squadra_reale'}
-                    onClick={() => handleSort('squadra_reale')}
-                  >
+                  <SortButton $active={sortConfig.field === 'squadra_reale'} onClick={() => handleSort('squadra_reale')}>
                     Squadra Reale
                     {sortConfig.field === 'squadra_reale' && (
                       <SortDirection>{sortConfig.direction === 'asc' ? '↑' : '↓'}</SortDirection>
                     )}
                   </SortButton>
                   
-                  <SortButton
-                    active={sortConfig.field === 'salario'}
-                    onClick={() => handleSort('salario')}
-                  >
+                  <SortButton $active={sortConfig.field === 'salario'} onClick={() => handleSort('salario')}>
                     Ingaggio
                     {sortConfig.field === 'salario' && (
                       <SortDirection>{sortConfig.direction === 'asc' ? '↑' : '↓'}</SortDirection>
                     )}
                   </SortButton>
                   
-                  <SortButton
-                    active={sortConfig.field === 'costo_attuale'}
-                    onClick={() => handleSort('costo_attuale')}
-                  >
+                  <SortButton $active={sortConfig.field === 'costo_attuale'} onClick={() => handleSort('costo_attuale')}>
                     Costo Calciatore
                     {sortConfig.field === 'costo_attuale' && (
                       <SortDirection>{sortConfig.direction === 'asc' ? '↑' : '↓'}</SortDirection>
@@ -1221,15 +1241,15 @@ const ModificaSquadraCompleta = () => {
                   {squadreLega
                     .filter(s => s.id !== parseInt(id)) // Escludi la squadra corrente
                     .map(squadra => {
-                      const maxPlayers = getMaxPlayersForLeague();
-                      const isFull = squadra.num_giocatori >= maxPlayers;
+                      const maxPlayersModal = getMaxPlayersForLeague();
+                      const isFull = squadra.num_giocatori >= maxPlayersModal;
                       return (
                         <option 
                           key={squadra.id} 
                           value={squadra.id}
                           disabled={isFull}
                         >
-                          {squadra.nome} (Giocatori: {squadra.num_giocatori || 0}/{maxPlayers}, Casse: {squadra.casse_societarie?.toLocaleString() || 0} FM)
+                          {squadra.nome} (Giocatori: {squadra.num_giocatori || 0}/{maxPlayersModal}, Casse: {squadra.casse_societarie?.toLocaleString() || 0} FM)
                           {isFull ? ' - COMPLETA' : ''}
                         </option>
                       );
@@ -1298,7 +1318,7 @@ const ModificaSquadraCompleta = () => {
       {showSuccessPopup && (
         <PopupOverlay onClick={() => setShowSuccessPopup(false)}>
           <PopupContent onClick={(e) => e.stopPropagation()}>
-            <PopupTitle>✅ Trasferimento Completato</PopupTitle>
+            <PopupTitle>Trasferimento Completato</PopupTitle>
             <PopupMessage>{successMessage}</PopupMessage>
             <PopupButton onClick={() => setShowSuccessPopup(false)}>
               OK
