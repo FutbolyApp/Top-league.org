@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import bcrypt from 'bcryptjs';
 
 // Configurazione PostgreSQL
 const pool = new Pool({
@@ -192,7 +193,6 @@ export async function initDb() {
     const result = await client.query('SELECT COUNT(*) as count FROM users');
     if (result.rows[0].count === '0') {
       console.log('Creating test user...');
-      const bcrypt = require('bcryptjs');
       const password_hash = bcrypt.hashSync('admin123', 10);
       
       await client.query(`
