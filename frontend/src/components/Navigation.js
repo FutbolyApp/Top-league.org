@@ -68,11 +68,15 @@ const MobileMenu = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 1000;
+  backdrop-filter: blur(10px);
+  transition: opacity 0.3s ease;
+  opacity: ${props => props.$isOpen ? 1 : 0};
+  pointer-events: ${props => props.$isOpen ? 'auto' : 'none'};
   
   @media (max-width: 768px) {
-    display: ${props => props.$isOpen ? 'block' : 'none'};
+    display: block;
   }
 `;
 
@@ -86,6 +90,8 @@ const MobileMenuContent = styled.div`
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   max-height: 100vh;
   overflow-y: auto;
+  transform: translateX(${props => props.$isOpen ? '0' : '-100%'});
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 const MobileMenuHeader = styled.div`
@@ -107,21 +113,30 @@ const MobileMenuClose = styled.button`
 
 const MobileNavLink = styled(Link)`
   display: block;
-  padding: 1rem;
+  width: 100%;
+  padding: 1rem 1.5rem;
   color: #1d1d1f;
   text-decoration: none;
-  border-bottom: 1px solid #f0f0f0;
   font-size: 1.1rem;
   font-weight: 500;
+  background: white;
+  border: none;
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+  text-align: left;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   
   &:hover {
     background-color: #f8f9fa;
-    color: #5856d6;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
   
   &.active {
-    background-color: #5856d6;
+    background: linear-gradient(135deg, #5856d6 0%, #7c3aed 100%);
     color: white;
+    box-shadow: 0 4px 12px rgba(88, 86, 214, 0.3);
   }
 `;
 
@@ -140,17 +155,36 @@ const MobileUserActions = styled.div`
 `;
 
 const MobileActionButton = styled.button`
-  background: ${props => props.$primary ? '#5856d6' : 'transparent'};
-  color: ${props => props.$primary ? 'white' : '#5856d6'};
-  border: 1px solid #5856d6;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
+  width: 100%;
+  background: white;
+  color: #1d1d1f;
+  border: none;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
   font-size: 1rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.5rem;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   
   &:hover {
-    background: ${props => props.$primary ? '#4a4a9e' : '#f8f9fa'};
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  &.logout {
+    color: #ff3b30;
+    background: #fff5f5;
+    
+    &:hover {
+      background: #fed7d7;
+    }
   }
 `;
 
@@ -361,6 +395,14 @@ const Navigation = () => {
     setIsMobileMenuOpen(false);
   };
 
+  const navigateAndCloseMenu = (path) => {
+    navigate(path);
+    // Chiudi il menu con un piccolo delay per permettere l'animazione
+    setTimeout(() => {
+      setIsMobileMenuOpen(false);
+    }, 100);
+  };
+
   const renderNavLinks = () => (
     <>
       <NavLink to="/" className={isActive('/') ? 'active' : ''}>
@@ -556,8 +598,8 @@ const Navigation = () => {
       </Nav>
 
       {/* Mobile Menu */}
-      <MobileMenu $isOpen={isMobileMenuOpen}>
-        <MobileMenuContent>
+      <MobileMenu $isOpen={isMobileMenuOpen} onClick={closeMobileMenu}>
+        <MobileMenuContent $isOpen={isMobileMenuOpen} onClick={(e) => e.stopPropagation()}>
           <MobileMenuHeader>
             <Logo to="/" onClick={closeMobileMenu}>
               TopLeague
@@ -578,15 +620,114 @@ const Navigation = () => {
             </MobileUserInfo>
           )}
 
-          {renderNavLinks()}
+          {/* Menu Navigation Links - iOS Style */}
+          <div style={{ marginBottom: '1rem' }}>
+            <MobileNavLink 
+              to="/" 
+              className={isActive('/') ? 'active' : ''}
+              onClick={closeMobileMenu}
+            >
+              Home
+            </MobileNavLink>
+            
+            <MobileNavLink 
+              to="/leghe" 
+              className={isActive('/leghe') ? 'active' : ''}
+              onClick={closeMobileMenu}
+            >
+              Leghe
+            </MobileNavLink>
+            
+            {user && (
+              <>
+                <MobileNavLink 
+                  to="/area-manager" 
+                  className={isActive('/area-manager') ? 'active' : ''}
+                  onClick={closeMobileMenu}
+                >
+                  Area Manager
+                </MobileNavLink>
+                
+                {isAdmin && (
+                  <MobileNavLink 
+                    to="/area-admin" 
+                    className={isActive('/area-admin') ? 'active' : ''}
+                    onClick={closeMobileMenu}
+                  >
+                    Area Admin
+                    {pendingAdminRequests > 0 && (
+                      <span style={{
+                        background: '#ff3b30',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '18px',
+                        height: '18px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.7rem',
+                        fontWeight: '600',
+                        marginLeft: 'auto'
+                      }}>
+                        {pendingAdminRequests > 9 ? '9+' : pendingAdminRequests}
+                      </span>
+                    )}
+                  </MobileNavLink>
+                )}
+                
+                {isSuperAdmin && (
+                  <MobileNavLink 
+                    to="/super-admin-dashboard" 
+                    className={isActive('/super-admin-dashboard') ? 'active' : ''}
+                    onClick={closeMobileMenu}
+                  >
+                    Super Admin
+                  </MobileNavLink>
+                )}
+                
+                {isSubadmin && (
+                  <MobileNavLink 
+                    to="/subadmin-area" 
+                    className={isActive('/subadmin-area') ? 'active' : ''}
+                    onClick={closeMobileMenu}
+                  >
+                    Subadmin
+                    {(() => {
+                      const unreadSubadminNotifications = notifications.filter(n => 
+                        (n.tipo === 'subadmin_request' || n.tipo === 'subadmin_response' || n.tipo === 'richiesta_ingresso') && 
+                        (!n.letto || n.letto === 0)
+                      );
+                      
+                      return unreadSubadminNotifications.length > 0 && (
+                        <span style={{
+                          background: '#ff3b30',
+                          color: 'white',
+                          borderRadius: '50%',
+                          width: '18px',
+                          height: '18px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.7rem',
+                          fontWeight: '600',
+                          marginLeft: 'auto'
+                        }}>
+                          {unreadSubadminNotifications.length > 9 ? '9+' : unreadSubadminNotifications.length}
+                        </span>
+                      );
+                    })()}
+                  </MobileNavLink>
+                )}
+              </>
+            )}
+          </div>
 
           {user ? (
             <MobileUserActions>
               <MobileActionButton onClick={() => {
-                navigate('/notifiche');
-                closeMobileMenu();
+                navigateAndCloseMenu('/notifiche');
               }}>
-                🔔 Notifiche
+                Notifiche
                 {(() => {
                   const unreadCount = notifications.filter(n => !n.letto || n.letto === 0).length;
                   return unreadCount > 0 && (
@@ -600,8 +741,7 @@ const Navigation = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '0.7rem',
-                      fontWeight: '600',
-                      marginLeft: '0.5rem'
+                      fontWeight: '600'
                     }}>
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
@@ -613,19 +753,18 @@ const Navigation = () => {
                 refreshUserData();
                 closeMobileMenu();
               }}>
-                🔄 Aggiorna Dati
+                Aggiorna Dati
               </MobileActionButton>
               
               <MobileActionButton 
-                $primary={false}
+                className="logout"
                 onClick={() => {
                   logoutUser();
                   navigate('/');
                   closeMobileMenu();
                 }}
-                style={{ color: '#ff3b30', borderColor: '#ff3b30' }}
               >
-                🚪 Logout
+                Logout
               </MobileActionButton>
             </MobileUserActions>
           ) : (
