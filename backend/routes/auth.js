@@ -117,28 +117,15 @@ async function processLoginSuccess(utente, res, req) {
     console.log('processLoginSuccess started for user:', utente.username);
     
     // Ottieni le leghe di cui l'utente è admin
-    const db = req.app.locals.db;
+    const db = getDb();
     if (!db) {
-      console.error('Database not available in app.locals');
+      console.error('Database not available');
       return res.status(500).json({ error: 'Database non disponibile' });
     }
     
     console.log('Querying leghe admin for user ID:', utente.id);
-    const legheAdmin = await new Promise((resolve, reject) => {
-      db.all(
-        'SELECT id, nome FROM leghe WHERE admin_id = ?',
-        [utente.id],
-        (err, rows) => {
-          if (err) {
-            console.error('Error querying leghe admin:', err);
-            reject(err);
-          } else {
-            console.log('Found leghe admin for user:', rows?.length || 0);
-            resolve(rows || []);
-          }
-        }
-      );
-    });
+    const legheResult = await db.query('SELECT id, nome FROM leghe WHERE admin_id = $1', [utente.id]);
+    const legheAdmin = legheResult.rows;
     
     console.log('Generating token for user:', utente.username);
     const token = generateToken(utente);
@@ -200,7 +187,7 @@ router.get('/search-users', requireSuperAdmin, async (req, res) => {
       return res.json([]);
     }
     
-    const db = req.app.locals.db;
+    const db = getDb();
     if (!db) {
       return res.status(500).json({ error: 'Database non disponibile' });
     }
@@ -209,44 +196,36 @@ router.get('/search-users', requireSuperAdmin, async (req, res) => {
     const searchQuery = `
       SELECT id, username, nome, cognome, email, ruolo, created_at
       FROM users 
-      WHERE (username LIKE ? OR nome LIKE ? OR cognome LIKE ?)
+      WHERE (username LIKE $1 OR nome LIKE $1 OR cognome LIKE $1)
       ORDER BY username ASC
       LIMIT 50
     `;
     
     const searchTerm = `%${query}%`;
     
-    db.all(searchQuery, [searchTerm, searchTerm, searchTerm], async (err, users) => {
-      if (err) {
-        console.error('Errore ricerca utenti:', err);
-        return res.status(500).json({ error: 'Errore DB', details: err.message });
+    const result = await db.query(searchQuery, [searchTerm]);
+    const users = result.rows;
+    
+    // Se è specificata una lega, filtra gli utenti che sono già in quella lega
+    if (legaId) {
+      const filteredUsers = [];
+      
+      for (const user of users) {
+        const squadraResult = await db.query(
+          'SELECT id FROM squadre WHERE lega_id = $1 AND proprietario_id = $2',
+          [legaId, user.id]
+        );
+        const hasTeamInLeague = squadraResult.rows.length > 0;
+        
+        if (!hasTeamInLeague) {
+          filteredUsers.push(user);
+        }
       }
       
-      // Se è specificata una lega, filtra gli utenti che sono già in quella lega
-      if (legaId) {
-        const filteredUsers = [];
-        
-        for (const user of users) {
-          const hasTeamInLeague = await new Promise((resolve) => {
-            db.get(
-              'SELECT id FROM squadre WHERE lega_id = ? AND proprietario_id = ?',
-              [legaId, user.id],
-              (err, squadra) => {
-                resolve(!!squadra); // true se l'utente ha già una squadra
-              }
-            );
-          });
-          
-          if (!hasTeamInLeague) {
-            filteredUsers.push(user);
-          }
-        }
-        
-        res.json(filteredUsers);
-      } else {
-        res.json(users);
-      }
-    });
+      res.json(filteredUsers);
+    } else {
+      res.json(users);
+    }
   } catch (e) {
     console.error('Errore ricerca utenti:', e);
     res.status(500).json({ error: 'Errore interno del server', details: e.message });
@@ -256,7 +235,7 @@ router.get('/search-users', requireSuperAdmin, async (req, res) => {
 // Ottieni tutti gli utenti (solo SuperAdmin)
 router.get('/all-users', requireSuperAdmin, async (req, res) => {
   try {
-    const db = req.app.locals.db;
+    const db = getDb();
     if (!db) {
       return res.status(500).json({ error: 'Database non disponibile' });
     }
@@ -267,14 +246,8 @@ router.get('/all-users', requireSuperAdmin, async (req, res) => {
       ORDER BY created_at DESC
     `;
     
-    db.all(query, [], (err, users) => {
-      if (err) {
-        console.error('Errore caricamento utenti:', err);
-        return res.status(500).json({ error: 'Errore DB', details: err.message });
-      }
-      
-      res.json(users);
-    });
+    const result = await db.query(query);
+    res.json(result.rows);
   } catch (e) {
     console.error('Errore caricamento utenti:', e);
     res.status(500).json({ error: 'Errore interno del server', details: e.message });
@@ -294,29 +267,25 @@ router.post('/check-availability', async (req, res) => {
     
     // Verifica email se fornita
     if (email) {
-      getUtenteByEmail(email, (err, utente) => {
-        if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
+      try {
+        const utente = await getUtenteByEmail(email);
         results.email = { available: !utente, message: utente ? 'Email già in uso' : 'Email disponibile' };
-        
-        // Se abbiamo anche username da verificare
-        if (username) {
-          getUtenteByUsername(username, (err, utenteUsername) => {
-            if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-            results.username = { available: !utenteUsername, message: utenteUsername ? 'Username già in uso' : 'Username disponibile' };
-            res.json(results);
-          });
-        } else {
-          res.json(results);
-        }
-      });
-    } else {
-      // Verifica solo username
-      getUtenteByUsername(username, (err, utente) => {
-        if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-        results.username = { available: !utente, message: utente ? 'Username già in uso' : 'Username disponibile' };
-        res.json(results);
-      });
+      } catch (err) {
+        return res.status(500).json({ error: 'Errore DB', details: err.message });
+      }
     }
+    
+    // Verifica username se fornito
+    if (username) {
+      try {
+        const utenteUsername = await getUtenteByUsername(username);
+        results.username = { available: !utenteUsername, message: utenteUsername ? 'Username già in uso' : 'Username disponibile' };
+      } catch (err) {
+        return res.status(500).json({ error: 'Errore DB', details: err.message });
+      }
+    }
+    
+    res.json(results);
   } catch (e) {
     res.status(500).json({ error: 'Errore interno del server', details: e.message });
   }
@@ -340,17 +309,14 @@ router.get('/is-league-admin/:legaId', async (req, res) => {
       const payload = jwt.verify(token, JWT_SECRET);
       const userId = payload.id;
       
-      const db = req.app.locals.db;
-      db.get(
-        'SELECT id FROM leghe WHERE id = ? AND admin_id = ?',
-        [legaId, userId],
-        (err, row) => {
-          if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-          
-          const isAdmin = !!row;
-          res.json({ isAdmin });
-        }
+      const db = getDb();
+      const result = await db.query(
+        'SELECT id FROM leghe WHERE id = $1 AND admin_id = $2',
+        [legaId, userId]
       );
+      
+      const isAdmin = result.rows.length > 0;
+      res.json({ isAdmin });
     } catch (e) {
       return res.status(401).json({ error: 'Token non valido' });
     }
@@ -377,44 +343,29 @@ router.get('/verify-user', async (req, res) => {
       const userId = payload.id;
       
       // Ottieni i dati aggiornati dell'utente
-      getUtenteById(userId, async (err, utente) => {
-        if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-        if (!utente) return res.status(404).json({ error: 'Utente non trovato' });
-        
-        // Ottieni le leghe di cui l'utente è admin
-        const db = req.app.locals.db;
-        if (!db) {
-          console.error('Database not available in app.locals');
-          return res.status(500).json({ error: 'Database non disponibile' });
-        }
-        
-        const legheAdmin = await new Promise((resolve, reject) => {
-          db.all(
-            'SELECT id, nome FROM leghe WHERE admin_id = ?',
-            [utente.id],
-            (err, rows) => {
-              if (err) {
-                console.error('Error querying leghe admin:', err);
-                reject(err);
-              } else {
-                console.log('Found leghe admin for user:', rows?.length || 0);
-                resolve(rows || []);
-              }
-            }
-          );
-        });
-        
-        res.json({ 
-          user: { 
-            id: utente.id, 
-            nome: utente.nome, 
-            cognome: utente.cognome, 
-            username: utente.username,
-            email: utente.email, 
-            ruolo: utente.ruolo,
-            leghe_admin: legheAdmin
-          } 
-        });
+      const utente = await getUtenteById(userId);
+      if (!utente) return res.status(404).json({ error: 'Utente non trovato' });
+      
+      // Ottieni le leghe di cui l'utente è admin
+      const db = getDb();
+      if (!db) {
+        console.error('Database not available');
+        return res.status(500).json({ error: 'Database non disponibile' });
+      }
+      
+      const legheResult = await db.query('SELECT id, nome FROM leghe WHERE admin_id = $1', [utente.id]);
+      const legheAdmin = legheResult.rows;
+      
+      res.json({ 
+        user: { 
+          id: utente.id, 
+          nome: utente.nome, 
+          cognome: utente.cognome, 
+          username: utente.username,
+          email: utente.email, 
+          ruolo: utente.ruolo,
+          leghe_admin: legheAdmin
+        } 
       });
     } catch (e) {
       return res.status(401).json({ error: 'Token non valido' });
