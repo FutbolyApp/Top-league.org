@@ -6,6 +6,15 @@ import { generateToken, requireSuperAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Test endpoint senza database
+router.get('/test-no-db', (req, res) => {
+  console.log('Test endpoint without database called');
+  res.json({ 
+    message: 'Test successful - no database involved',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Registrazione utente
 router.post('/register', async (req, res) => {
   try {
