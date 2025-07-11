@@ -180,27 +180,32 @@ router.get('/', requireAuth, (req, res) => {
 });
 
 // Ottieni solo le leghe a cui l'utente partecipa
-router.get('/user-leagues', requireAuth, (req, res) => {
+router.get('/user-leagues', requireAuth, async (req, res) => {
   const userId = req.user.id;
   
-  db.all(`
-    SELECT l.*, 
+  try {
+    const db = getDb();
+    const result = await db.query(`
+      SELECT l.*, 
            CASE 
              WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
              ELSE u.nome || ' ' || u.cognome 
            END as admin_nome,
            (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id) as numero_squadre_totali,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = 0) as squadre_assegnate,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = 1) as squadre_disponibili,
+           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = false) as squadre_assegnate,
+           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) as squadre_disponibili,
            (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei
-    FROM leghe l
-    LEFT JOIN users u ON l.admin_id = u.id
-    WHERE l.admin_id = ?
-    ORDER BY l.nome
-  `, [userId], (err, leghe) => {
-    if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-    res.json({ leghe });
-  });
+      FROM leghe l
+      LEFT JOIN users u ON l.admin_id = u.id
+      WHERE l.admin_id = $1
+      ORDER BY l.nome
+    `, [userId]);
+    
+    res.json({ leghe: result.rows });
+  } catch (err) {
+    console.error('Errore query user-leagues:', err);
+    res.status(500).json({ error: 'Errore DB', details: err.message });
+  }
 });
 
 // Ottieni leghe amministrate dall'utente (DEVE ESSERE PRIMA DELLE ROUTE CON PARAMETRI)
@@ -891,29 +896,28 @@ router.get('/richieste/utente', requireAuth, (req, res) => {
 });
 
 // Ottieni richieste di ingresso per admin di lega
-router.get('/richieste/admin', requireAuth, (req, res) => {
+router.get('/richieste/admin', requireAuth, async (req, res) => {
   const adminId = req.user.id;
   
   console.log('GET /api/leghe/richieste/admin - Admin ID:', adminId);
   
-  // Prima ottieni le richieste di ingresso normali
-  db.all(`
-    SELECT ri.*, l.nome as lega_nome, l.id as lega_id, s.nome as squadra_nome, 
-           u.nome || ' ' || u.cognome as utente_nome, u.email as utente_email,
-           'user' as tipo_richiesta, ri.messaggio_richiesta as tipo_richiesta_richiesta
-    FROM richieste_ingresso ri
-    JOIN leghe l ON ri.lega_id = l.id
-    JOIN squadre s ON ri.squadra_id = s.id
-    JOIN users u ON ri.utente_id = u.id
-    WHERE l.admin_id = ? AND ri.stato = 'in_attesa'
-  `, [adminId], (err, richiesteIngresso) => {
-    if (err) {
-      console.error('Errore query richieste ingresso:', err);
-      return res.status(500).json({ error: 'Errore DB' });
-    }
+  try {
+    const db = getDb();
+    
+    // Prima ottieni le richieste di ingresso normali
+    const richiesteIngressoResult = await db.query(`
+      SELECT ri.*, l.nome as lega_nome, l.id as lega_id, s.nome as squadra_nome, 
+             u.nome || ' ' || u.cognome as utente_nome, u.email as utente_email,
+             'user' as tipo_richiesta, ri.messaggio_richiesta as tipo_richiesta_richiesta
+      FROM richieste_ingresso ri
+      JOIN leghe l ON ri.lega_id = l.id
+      JOIN squadre s ON ri.squadra_id = s.id
+      JOIN users u ON ri.utente_id = u.id
+      WHERE l.admin_id = $1 AND ri.stato = 'in_attesa'
+    `, [adminId]);
 
     // Poi ottieni le richieste admin
-    db.all(`
+    const richiesteAdminResult = await db.query(`
       SELECT ra.*, l.nome as lega_nome, l.id as lega_id, s.nome as squadra_nome,
              COALESCE(u.nome || ' ' || u.cognome, 'N/A') as utente_nome, 
              COALESCE(u.email, 'N/A') as utente_email,
@@ -922,25 +926,23 @@ router.get('/richieste/admin', requireAuth, (req, res) => {
       JOIN squadre s ON ra.squadra_id = s.id
       JOIN leghe l ON s.lega_id = l.id
       LEFT JOIN users u ON s.proprietario_id = u.id
-      WHERE l.admin_id = ? AND ra.stato = 'pending'
-    `, [adminId], (err, richiesteAdmin) => {
-      if (err) {
-        console.error('Errore query richieste admin:', err);
-        return res.status(500).json({ error: 'Errore DB' });
-      }
+      WHERE l.admin_id = $1 AND ra.stato = 'pending'
+    `, [adminId]);
 
-      console.log('Richieste admin trovate:', richiesteAdmin.length);
+    console.log('Richieste admin trovate:', richiesteAdminResult.rows.length);
 
-      // Combina le due liste
-      const tutteRichieste = [
-        ...richiesteIngresso.map(r => ({ ...r, id: `ingresso_${r.id}` })),
-        ...richiesteAdmin.map(r => ({ ...r, id: `admin_${r.id}` }))
-      ];
+    // Combina le due liste
+    const tutteRichieste = [
+      ...richiesteIngressoResult.rows.map(r => ({ ...r, id: `ingresso_${r.id}` })),
+      ...richiesteAdminResult.rows.map(r => ({ ...r, id: `admin_${r.id}` }))
+    ];
 
-      console.log('Richieste totali trovate:', tutteRichieste.length);
-      res.json({ richieste: tutteRichieste });
-    });
-  });
+    console.log('Richieste totali trovate:', tutteRichieste.length);
+    res.json({ richieste: tutteRichieste });
+  } catch (err) {
+    console.error('Errore query richieste admin:', err);
+    res.status(500).json({ error: 'Errore DB' });
+  }
 });
 
 // Ottieni richieste di ingresso per subadmin di lega
@@ -1346,10 +1348,15 @@ router.put('/:id/config', requireAuth, async (req, res) => {
         cantera: cantera === 1,
         contratti: contratti === 1,
         triggers: triggers === 1,
-        max_portieri, min_portieri,
-        max_difensori, min_difensori,
-        max_centrocampisti, min_centrocampisti,
-        max_attaccanti, min_attaccanti
+        is_classic: config.modalita === 'Classic Serie A' || config.modalita === 'Classic Euroleghe',
+        max_portieri: config.max_portieri || 3,
+        min_portieri: config.min_portieri || 2,
+        max_difensori: config.max_difensori || 8,
+        min_difensori: config.min_difensori || 5,
+        max_centrocampisti: config.max_centrocampisti || 8,
+        min_centrocampisti: config.min_centrocampisti || 5,
+        max_attaccanti: config.max_attaccanti || 6,
+        min_attaccanti: config.min_attaccanti || 3
       }
     });
 
