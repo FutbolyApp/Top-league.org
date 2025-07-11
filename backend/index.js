@@ -51,9 +51,11 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
-  exposedHeaders: ['Content-Length', 'X-Requested-With']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept', 'Cache-Control'],
+  exposedHeaders: ['Content-Length', 'X-Requested-With', 'Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200
 }));
 app.use(express.json());
 

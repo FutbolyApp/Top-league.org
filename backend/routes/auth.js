@@ -235,10 +235,16 @@ router.get('/search-users', requireSuperAdmin, async (req, res) => {
 // Ottieni tutti gli utenti (solo SuperAdmin)
 router.get('/all-users', requireSuperAdmin, async (req, res) => {
   try {
+    console.log('GET /all-users - Starting request');
+    console.log('User from middleware:', req.user);
+    
     const db = getDb();
     if (!db) {
+      console.error('GET /all-users - Database not available');
       return res.status(500).json({ error: 'Database non disponibile' });
     }
+    
+    console.log('GET /all-users - Database connection available');
     
     const query = `
       SELECT id, username, email, ruolo, created_at
@@ -246,10 +252,15 @@ router.get('/all-users', requireSuperAdmin, async (req, res) => {
       ORDER BY created_at DESC
     `;
     
+    console.log('GET /all-users - Executing query:', query);
+    
     const result = await db.query(query);
+    console.log('GET /all-users - Query result rows:', result.rows.length);
+    
     res.json(result.rows);
   } catch (e) {
-    console.error('Errore caricamento utenti:', e);
+    console.error('GET /all-users - Error:', e);
+    console.error('GET /all-users - Error stack:', e.stack);
     res.status(500).json({ error: 'Errore interno del server', details: e.message });
   }
 });
