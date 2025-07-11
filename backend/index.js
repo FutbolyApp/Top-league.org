@@ -3,7 +3,7 @@ import cors from 'cors';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDb, getDb } from './db/config.js';
+import { initDb, getDb } from './db/postgres.js';
 import { initializeWebSocket } from './websocket.js';
 import legheRouter from './routes/leghe.js';
 import authRouter from './routes/auth.js';

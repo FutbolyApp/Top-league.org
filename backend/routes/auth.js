@@ -24,27 +24,36 @@ router.post('/register', async (req, res) => {
     }
     
     // Verifica se email già esiste
-    getUtenteByEmail(email, (err, utente) => {
-      if (utente) return res.status(400).json({ error: 'Email già registrata. Usa un\'altra email o fai login.' });
-      
-      // Verifica se username già esiste
-      getUtenteByUsername(username, (err, utenteUsername) => {
-        if (utenteUsername) return res.status(400).json({ error: 'Username già in uso. Scegline un altro.' });
-        
-        const password_hash = bcrypt.hashSync(password, 10);
-        const userRole = ruolo || 'Utente'; // Default a Utente se non specificato
-        createUtente({ nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo: userRole }, (err, userId) => {
-          if (err) return res.status(500).json({ error: 'Errore durante la registrazione', details: err.message });
-          res.json({ success: true, userId });
-        });
-      });
+    const existingUser = await getUtenteByEmail(email);
+    if (existingUser) return res.status(400).json({ error: 'Email già registrata. Usa un\'altra email o fai login.' });
+    
+    // Verifica se username già esiste
+    const existingUsername = await getUtenteByUsername(username);
+    if (existingUsername) return res.status(400).json({ error: 'Username già in uso. Scegline un altro.' });
+    
+    const password_hash = bcrypt.hashSync(password, 10);
+    const userRole = ruolo || 'Utente'; // Default a Utente se non specificato
+    
+    const userId = await createUtente({ 
+      nome, 
+      cognome, 
+      username, 
+      provenienza, 
+      squadra_cuore, 
+      come_conosciuto, 
+      email, 
+      password_hash, 
+      ruolo: userRole 
     });
+    
+    res.json({ success: true, userId });
   } catch (e) {
+    console.error('Registration error:', e);
     res.status(500).json({ error: 'Errore interno del server', details: e.message });
   }
 });
 
-// Login utente - versione semplificata per debug
+// Login utente - versione PostgreSQL
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -52,56 +61,47 @@ router.post('/login', async (req, res) => {
     
     console.log('Login attempt for email/username:', email);
     
-    // Test semplice del database
-    const db = req.app.locals.db;
-    console.log('Database object:', db ? 'available' : 'not available');
+    // Prima prova a cercare per email
+    let utente = await getUtenteByEmail(email);
     
-    // Test query semplice
-    db.get('SELECT 1 as test', [], (err, row) => {
-      console.log('Simple query test - err:', err, 'row:', row);
-      
-      if (err) {
-        console.error('Database test failed:', err);
-        return res.status(500).json({ error: 'Database test failed', details: err.message });
-      }
-      
-      console.log('Database test successful, proceeding with login...');
-      
-      // Ora prova la query reale
-      db.get('SELECT * FROM users WHERE email = ?', [email], (err, utente) => {
-        console.log('User query result - err:', err, 'utente:', utente ? 'found' : 'not found');
-        
-        if (err) {
-          console.error('Error querying user:', err);
-          return res.status(500).json({ error: 'Errore nel database', details: err.message });
-        }
-        
-        if (!utente) {
-          console.log('User not found');
-          return res.status(400).json({ error: 'Utente non trovato. Verifica email/username o registrati.' });
-        }
-        
-        // Verifica password
-        if (!bcrypt.compareSync(password, utente.password_hash)) {
-          console.log('Password incorrect');
-          return res.status(400).json({ error: 'Password non corretta. Riprova.' });
-        }
-        
-        console.log('User authenticated:', utente.username);
-        
-        // Risposta semplificata
-        res.json({ 
-          token: 'test-token', 
-          user: { 
-            id: utente.id, 
-            nome: utente.nome, 
-            cognome: utente.cognome, 
-            username: utente.username,
-            email: utente.email, 
-            ruolo: utente.ruolo
-          } 
-        });
-      });
+    // Se non trova per email, prova per username
+    if (!utente) {
+      console.log('User not found by email, trying username...');
+      utente = await getUtenteByUsername(email);
+    }
+    
+    if (!utente) {
+      console.log('User not found by username either');
+      return res.status(400).json({ error: 'Utente non trovato. Verifica email/username o registrati.' });
+    }
+    
+    // Verifica password
+    if (!bcrypt.compareSync(password, utente.password_hash)) {
+      console.log('Password incorrect');
+      return res.status(400).json({ error: 'Password non corretta. Riprova.' });
+    }
+    
+    console.log('User authenticated:', utente.username, 'ID:', utente.id);
+    
+    // Ottieni le leghe di cui l'utente è admin
+    const db = getDb();
+    const legheResult = await db.query('SELECT id, nome FROM leghe WHERE admin_id = $1', [utente.id]);
+    const legheAdmin = legheResult.rows;
+    
+    const token = generateToken(utente);
+    console.log('Login successful for:', utente.username, 'Leghe admin:', legheAdmin.length);
+    
+    res.json({ 
+      token, 
+      user: { 
+        id: utente.id, 
+        nome: utente.nome, 
+        cognome: utente.cognome, 
+        username: utente.username,
+        email: utente.email, 
+        ruolo: utente.ruolo,
+        leghe_admin: legheAdmin
+      } 
     });
     
   } catch (e) {
@@ -169,25 +169,24 @@ router.post('/check-user', async (req, res) => {
     const { username } = req.body;
     if (!username) return res.status(400).json({ error: 'Username è obbligatorio' });
     
-    getUtenteByUsername(username, (err, utente) => {
-      if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-      
-      if (!utente) {
-        return res.json({ exists: false, message: 'Utente non trovato' });
+    const utente = await getUtenteByUsername(username);
+    
+    if (!utente) {
+      return res.json({ exists: false, message: 'Utente non trovato' });
+    }
+    
+    res.json({ 
+      exists: true, 
+      user: {
+        id: utente.id,
+        nome: utente.nome,
+        cognome: utente.cognome,
+        username: utente.username,
+        email: utente.email
       }
-      
-      res.json({ 
-        exists: true, 
-        user: {
-          id: utente.id,
-          nome: utente.nome,
-          cognome: utente.cognome,
-          username: utente.username,
-          email: utente.email
-        }
-      });
     });
   } catch (e) {
+    console.error('Check user error:', e);
     res.status(500).json({ error: 'Errore interno del server', details: e.message });
   }
 });
