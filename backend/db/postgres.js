@@ -122,6 +122,8 @@ export async function initDb() {
         titolo VARCHAR(255),
         messaggio TEXT NOT NULL,
         letta BOOLEAN DEFAULT false,
+        archiviata BOOLEAN DEFAULT false,
+        dati_aggiuntivi TEXT DEFAULT '{}',
         data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         data_lettura TIMESTAMP
       );
@@ -187,7 +189,49 @@ export async function initDb() {
       );
     `);
     
+    // Tabella subadmin
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS subadmin (
+        id SERIAL PRIMARY KEY,
+        utente_id INTEGER NOT NULL REFERENCES users(id),
+        lega_id INTEGER NOT NULL REFERENCES leghe(id),
+        permessi TEXT DEFAULT '{}',
+        attivo BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(utente_id, lega_id)
+      );
+    `);
+    
+    // Tabella pending_changes
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS pending_changes (
+        id SERIAL PRIMARY KEY,
+        lega_id INTEGER NOT NULL REFERENCES leghe(id),
+        subadmin_id INTEGER NOT NULL REFERENCES users(id),
+        tipo VARCHAR(50) NOT NULL,
+        modifiche TEXT NOT NULL,
+        descrizione TEXT,
+        dettagli TEXT,
+        status VARCHAR(50) DEFAULT 'pending',
+        admin_response TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
     console.log('✅ All tables created successfully');
+    
+    // Migrazione: aggiungi colonne mancanti alla tabella notifiche se non esistono
+    try {
+      await client.query(`
+        ALTER TABLE notifiche 
+        ADD COLUMN IF NOT EXISTS archiviata BOOLEAN DEFAULT false,
+        ADD COLUMN IF NOT EXISTS dati_aggiuntivi TEXT DEFAULT '{}'
+      `);
+      console.log('✅ Migration: added missing columns to notifiche table');
+    } catch (error) {
+      console.log('Migration note: columns may already exist:', error.message);
+    }
     
     // Crea un utente di test se non esiste
     const result = await client.query('SELECT COUNT(*) as count FROM users');
