@@ -205,7 +205,7 @@ scheduleCleanup();
 
 // Initialize database and start server
 try {
-  initDb();
+  await initDb();
   const server = app.listen(PORT, () => {
     console.log(`TopLeague backend listening on port ${PORT}`);
     console.log(`Test the server with: curl http://localhost:${PORT}/api/ping`);
