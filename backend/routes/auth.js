@@ -35,7 +35,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Login utente
+// Login utente - versione semplificata per debug
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -43,52 +43,58 @@ router.post('/login', async (req, res) => {
     
     console.log('Login attempt for email/username:', email);
     
-    // Prima prova a cercare per email
-    getUtenteByEmail(email, async (err, utente) => {
-      console.log('getUtenteByEmail callback - err:', err, 'utente:', utente ? 'found' : 'not found');
+    // Test semplice del database
+    const db = req.app.locals.db;
+    console.log('Database object:', db ? 'available' : 'not available');
+    
+    // Test query semplice
+    db.get('SELECT 1 as test', [], (err, row) => {
+      console.log('Simple query test - err:', err, 'row:', row);
       
       if (err) {
-        console.error('Error in getUtenteByEmail:', err);
-        return res.status(500).json({ error: 'Errore nel database', details: err.message });
+        console.error('Database test failed:', err);
+        return res.status(500).json({ error: 'Database test failed', details: err.message });
       }
       
-      // Se non trova per email, prova per username
-      if (!utente) {
-        console.log('User not found by email, trying username...');
-        getUtenteByUsername(email, async (err, utenteUsername) => {
-          console.log('getUtenteByUsername callback - err:', err, 'utenteUsername:', utenteUsername ? 'found' : 'not found');
-          
-          if (err) {
-            console.error('Error in getUtenteByUsername:', err);
-            return res.status(500).json({ error: 'Errore nel database', details: err.message });
-          }
-          
-          if (!utenteUsername) {
-            console.log('User not found by username either');
-            return res.status(400).json({ error: 'Utente non trovato. Verifica email/username o registrati.' });
-          }
-          
-          // Verifica password per username
-          if (!bcrypt.compareSync(password, utenteUsername.password_hash)) {
-            console.log('Password incorrect for username');
-            return res.status(400).json({ error: 'Password non corretta. Riprova.' });
-          }
-          
-          console.log('User authenticated by username:', utenteUsername.username, 'ID:', utenteUsername.id);
-          await processLoginSuccess(utenteUsername, res, req);
-        });
-      } else {
-        console.log('User found by email, checking password...');
-        // Verifica password per email
+      console.log('Database test successful, proceeding with login...');
+      
+      // Ora prova la query reale
+      db.get('SELECT * FROM users WHERE email = ?', [email], (err, utente) => {
+        console.log('User query result - err:', err, 'utente:', utente ? 'found' : 'not found');
+        
+        if (err) {
+          console.error('Error querying user:', err);
+          return res.status(500).json({ error: 'Errore nel database', details: err.message });
+        }
+        
+        if (!utente) {
+          console.log('User not found');
+          return res.status(400).json({ error: 'Utente non trovato. Verifica email/username o registrati.' });
+        }
+        
+        // Verifica password
         if (!bcrypt.compareSync(password, utente.password_hash)) {
-          console.log('Password incorrect for email');
+          console.log('Password incorrect');
           return res.status(400).json({ error: 'Password non corretta. Riprova.' });
         }
         
-        console.log('User authenticated by email:', utente.username, 'ID:', utente.id);
-        await processLoginSuccess(utente, res, req);
-      }
+        console.log('User authenticated:', utente.username);
+        
+        // Risposta semplificata
+        res.json({ 
+          token: 'test-token', 
+          user: { 
+            id: utente.id, 
+            nome: utente.nome, 
+            cognome: utente.cognome, 
+            username: utente.username,
+            email: utente.email, 
+            ruolo: utente.ruolo
+          } 
+        });
+      });
     });
+    
   } catch (e) {
     console.error('Unexpected error in login:', e);
     res.status(500).json({ error: 'Errore interno del server', details: e.message });
