@@ -6,7 +6,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Usa una directory persistente per il database su Render, altrimenti locale
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'topleague.db');
+const DB_PATH = process.env.DB_PATH || (process.env.NODE_ENV === 'production' 
+  ? '/tmp/topleague.db' 
+  : path.join(__dirname, 'topleague.db'));
 console.log('SQLite DB Path:', DB_PATH);
 
 const db = new sqlite3.Database(DB_PATH, (err) => {
