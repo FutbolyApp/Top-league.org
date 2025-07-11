@@ -24,11 +24,23 @@ export function getUtenteById(id, callback) {
 }
 
 export function getUtenteByEmail(email, callback) {
-  db.get('SELECT * FROM users WHERE email = ?', [email], callback);
+  console.log('getUtenteByEmail called with email:', email);
+  console.log('Database instance:', db ? 'available' : 'not available');
+  
+  db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
+    console.log('getUtenteByEmail callback - err:', err, 'row:', row ? 'found' : 'not found');
+    callback(err, row);
+  });
 }
 
 export function getUtenteByUsername(username, callback) {
-  db.get('SELECT * FROM users WHERE username = ?', [username], callback);
+  console.log('getUtenteByUsername called with username:', username);
+  console.log('Database instance:', db ? 'available' : 'not available');
+  
+  db.get('SELECT * FROM users WHERE username = ?', [username], (err, row) => {
+    console.log('getUtenteByUsername callback - err:', err, 'row:', row ? 'found' : 'not found');
+    callback(err, row);
+  });
 }
 
 export function getAllUtenti(callback) {
