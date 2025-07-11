@@ -219,6 +219,35 @@ export async function initDb() {
       );
     `);
     
+    // Tabella tornei
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS tornei (
+        id SERIAL PRIMARY KEY,
+        nome VARCHAR(255) NOT NULL,
+        lega_id INTEGER NOT NULL REFERENCES leghe(id),
+        tipo VARCHAR(50) DEFAULT 'normale',
+        stato VARCHAR(50) DEFAULT 'attivo',
+        data_inizio DATE,
+        data_fine DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // Tabella richieste_admin
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS richieste_admin (
+        id SERIAL PRIMARY KEY,
+        squadra_id INTEGER NOT NULL REFERENCES squadre(id),
+        tipo_richiesta VARCHAR(50) NOT NULL,
+        descrizione TEXT,
+        stato VARCHAR(50) DEFAULT 'pending',
+        data_richiesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        data_risposta TIMESTAMP,
+        risposta_admin_id INTEGER REFERENCES users(id),
+        messaggio_risposta TEXT
+      );
+    `);
+    
     console.log('✅ All tables created successfully');
     
     // Migrazione: aggiungi colonne mancanti alla tabella notifiche se non esistono
