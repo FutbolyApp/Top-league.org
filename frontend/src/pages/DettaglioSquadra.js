@@ -753,16 +753,9 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
           {squadra.logo_url ? (
             <img 
-              src={`http://localhost:3001/uploads/${squadra.logo_url}`} 
-              alt="logo" 
-              style={{ 
-                width: 60, 
-                height: 60, 
-                borderRadius: '50%', 
-                objectFit: 'cover', 
-                background: '#eee',
-                border: '2px solid #e5e5e7'
-              }} 
+              src={`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/uploads/${squadra.logo_url}`} 
+              alt="Logo squadra" 
+              style={{ width: 100, height: 100, borderRadius: '50%', objectFit: 'cover' }} 
             />
           ) : (
             <div style={{

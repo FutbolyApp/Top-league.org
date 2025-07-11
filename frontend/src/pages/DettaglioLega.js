@@ -568,15 +568,9 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
                   <TableCell>
                     {squadra.logo_url ? (
                       <img 
-                        src={`http://localhost:3001/uploads/${squadra.logo_url}`} 
-                        alt="logo" 
-                        style={{ 
-                          width: 40, 
-                          height: 40, 
-                          borderRadius: '50%', 
-                          objectFit: 'cover', 
-                          background: '#eee' 
-                        }} 
+                        src={`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/uploads/${squadra.logo_url}`} 
+                        alt="Logo squadra" 
+                        style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover' }} 
                       />
                     ) : (
                       <TeamLogo>

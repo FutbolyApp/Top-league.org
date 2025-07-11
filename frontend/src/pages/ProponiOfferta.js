@@ -5,6 +5,7 @@ import { useAuth } from '../components/AuthContext';
 import { getSquadreByLega } from '../api/leghe';
 import { getGiocatoriByLega } from '../api/giocatori';
 import { splitRoles, getRoleClass } from '../utils/roleUtils';
+import { api } from '../api/config.js';
 
 const Container = styled.div`
   max-width: 1400px;
@@ -621,7 +622,7 @@ const ProponiOfferta = () => {
       setError('');
       try {
         // Prima ottieni la lega della squadra
-        const squadraRes = await fetch(`http://localhost:3001/api/squadre/${squadraId}`, {
+        const squadraRes = await fetch(`${api.baseUrl}/squadre/${squadraId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const squadraData = await squadraRes.json();
@@ -728,7 +729,7 @@ const ProponiOfferta = () => {
 
     setSubmitting(true);
     try {
-      const response = await fetch('http://localhost:3001/api/offerte/crea', {
+      const response = await fetch(`${api.baseUrl}/offerte/crea`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -820,7 +821,7 @@ const ProponiOfferta = () => {
 
     setSubmitting(true);
     try {
-      const response = await fetch('http://localhost:3001/api/offerte/crea', {
+      const response = await fetch(`${api.baseUrl}/offerte/crea`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

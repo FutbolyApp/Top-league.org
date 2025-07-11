@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../components/AuthContext';
+import { api } from '../api/config.js';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -130,16 +132,16 @@ const SubadminRequestsPage = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/leghe/richieste/subadmin', {
+      const response = await api.get('/richieste/subadmin', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (response.status !== 200) {
+        const errorData = response.data;
         throw new Error(errorData.error || 'Errore nel caricamento delle richieste');
       }
       
-      const data = await response.json();
+      const data = response.data;
       setRequests(data.richieste || []);
     } catch (err) {
       setError(err.message);
@@ -150,20 +152,18 @@ const SubadminRequestsPage = () => {
 
   const handleResponse = async (requestId, response, message = '') => {
     try {
-      const res = await fetch(`http://localhost:3001/api/leghe/richieste/${requestId}/rispondi`, {
-        method: 'POST',
+      const res = await api.post(`/richieste/${requestId}/rispondi`, {
+        risposta: response,
+        messaggio: message
+      }, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          risposta: response,
-          messaggio: message
-        })
+        }
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
+      if (res.status !== 200) {
+        const errorData = res.data;
         throw new Error(errorData.error || 'Errore nella risposta');
       }
 

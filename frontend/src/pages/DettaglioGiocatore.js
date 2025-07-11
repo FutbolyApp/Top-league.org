@@ -8,6 +8,7 @@ import { getSquadreByLega } from '../api/leghe';
 import { creaOfferta, getLogGiocatore } from '../api/offerte';
 import { splitRoles, getRoleClass } from '../utils/roleUtils';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import api from '../api/api';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -569,9 +570,7 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
   const fetchUserTeam = async () => {
     try {
       // Ottieni la squadra dell'utente nella lega del giocatore
-      const userTeamRes = await fetch(`http://localhost:3001/api/squadre/my-team/${giocatore.lega_id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const userTeamRes = await api.get(`/squadre/my-team/${giocatore.lega_id}`, token);
       if (userTeamRes.ok) {
         const userTeamData = await userTeamRes.json();
         setUserTeam(userTeamData.squadra);

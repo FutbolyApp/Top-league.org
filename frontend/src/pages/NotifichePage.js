@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../components/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { api } from '../api/config.js';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -461,12 +462,10 @@ const NotifichePage = () => {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3001/api/notifiche', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await api.get('/notifiche', { headers: { 'Authorization': `Bearer ${token}` } });
       
       if (response.ok) {
-        const data = await response.json();
+        const data = response.data;
         const notifiche = data.notifiche || [];
         
         // Normalizza le notifiche per gestire entrambi i campi (letta e letto)
@@ -511,10 +510,7 @@ const NotifichePage = () => {
 
   const markAsRead = async (notificationId) => {
     try {
-      await fetch(`http://localhost:3001/api/notifiche/${notificationId}/letta`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await api.put(`/notifiche/${notificationId}/letta`, { headers: { 'Authorization': `Bearer ${token}` } });
       
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, letta: true, letto: 1 } : n)
@@ -529,10 +525,7 @@ const NotifichePage = () => {
 
   const markAllAsRead = async () => {
     try {
-      await fetch('http://localhost:3001/api/notifiche/tutte-lette', {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      await api.put('/notifiche/tutte-lette', { headers: { 'Authorization': `Bearer ${token}` } });
       
       setNotifications(prev => 
         prev.map(n => ({ ...n, letta: true, letto: 1 }))
@@ -824,8 +817,7 @@ const NotifichePage = () => {
     
     setProcessingMarketAction(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/offerte/${action}/${offerId}`, {
-        method: 'POST',
+      const response = await api.post(`/offerte/${action}/${offerId}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -833,7 +825,7 @@ const NotifichePage = () => {
       });
 
       if (response.ok) {
-        const result = await response.json();
+        const result = response.data;
         alert(`Offerta ${action === 'accetta' ? 'accettata' : 'rifiutata'} con successo!`);
         setOfferProcessed(true);
         
@@ -856,7 +848,7 @@ const NotifichePage = () => {
         loadNotifications();
         }, 1500);
       } else {
-        const errorData = await response.json();
+        const errorData = response.data;
         alert(`Errore: ${errorData.error || 'Errore sconosciuto'}`);
         setProcessingMarketAction(false);
       }
@@ -887,22 +879,21 @@ const NotifichePage = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:3001/api/notifiche/archivia', {
-        method: 'PUT',
+      const response = await api.put('/notifiche/archivia', {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ notifica_ids: notificaIds })
+        data: { notifica_ids: notificaIds }
       });
       
       if (response.ok) {
-        const result = await response.json();
+        const result = response.data;
         alert(`Archiviate ${result.archiviate} notifiche con successo!`);
         setShowArchiveModal(false);
         loadNotifications(); // Ricarica le notifiche
       } else {
-        const errorData = await response.json();
+        const errorData = response.data;
         alert(`Errore: ${errorData.error}`);
       }
     } catch (err) {

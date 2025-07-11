@@ -6,6 +6,7 @@ import { getLegaById } from '../api/leghe';
 import { getSquadreByLega } from '../api/squadre';
 import { getGiocatoriByLega } from '../api/giocatori';
 import { createPendingChange } from '../api/subadmin';
+import api from '../api/api';
 
 const Container = styled.div`
   padding: 2rem;
@@ -319,10 +320,8 @@ const RequestSquadreModification = () => {
     async function fetchData() {
       try {
         // Verifica i permessi del subadmin
-        const subadminRes = await fetch(`http://localhost:3001/api/subadmin/check/${legaId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const subadminData = await subadminRes.json();
+        const subadminRes = await api.get(`/subadmin/check/${legaId}`, token);
+        const subadminData = subadminRes.data;
         
         if (!subadminData.isSubadmin) {
           setError('Non hai i permessi per modificare questa lega');

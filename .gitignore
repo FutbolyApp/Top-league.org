@@ -37,6 +37,9 @@ debug_*.jpeg
 *.png
 *.jpg
 *.jpeg
+!frontend/src/assets/*.png
+!frontend/src/assets/*.jpg
+!frontend/src/assets/*.jpeg
 backend/debug_*.png
 backend/debug_*.jpg
 backend/debug_*.jpeg
@@ -102,7 +105,6 @@ dist
 
 # Gatsby files
 .cache/
-public
 
 # Storybook build outputs
 .out
