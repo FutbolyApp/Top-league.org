@@ -49,36 +49,26 @@ router.get('/lega/:legaId', requireAuth, (req, res) => {
 });
 
 // Ottieni movimenti di mercato per una lega (offerte completate)
-router.get('/movimenti/:legaId', requireAuth, (req, res) => {
-  const legaId = req.params.legaId;
-  
-  // Query per ottenere le offerte completate (accettate) con dettagli delle squadre e giocatori
-  const query = `
-    SELECT 
-      o.id,
-      o.tipo,
-      o.valore,
-      o.cantera,
-      o.data_invio as data,
-      g.nome as giocatore_nome,
-      g.cognome as giocatore_cognome,
-      sm.nome as squadra_mittente,
-      sd.nome as squadra_destinataria,
-      o.lega_id
-    FROM offerte o
-    JOIN giocatori g ON o.giocatore_id = g.id
-    JOIN squadre sm ON o.squadra_mittente_id = sm.id
-    JOIN squadre sd ON o.squadra_destinatario_id = sd.id
-    WHERE o.lega_id = ? AND o.stato = 'accettata'
-    ORDER BY o.data_invio DESC
-    LIMIT 20
-  `;
-  
-  db.all(query, [legaId], (err, rows) => {
-    if (err) {
-      console.error('Errore query movimenti:', err);
-      return res.status(500).json({ error: 'Errore DB', details: err.message });
-    }
+router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
+  try {
+    const { legaId } = req.params;
+    
+    const query = `
+      SELECT o.id, o.tipo, o.valore, o.cantera, o.data_invio as data,
+             g.nome as giocatore_nome, g.cognome as giocatore_cognome,
+             sm.nome as squadra_mittente, sd.nome as squadra_destinataria,
+             o.lega_id
+      FROM offerte o
+      JOIN giocatori g ON o.giocatore_id = g.id
+      JOIN squadre sm ON o.squadra_mittente_id = sm.id
+      JOIN squadre sd ON o.squadra_destinatario_id = sd.id
+      WHERE o.lega_id = $1 AND o.stato = 'accettata'
+      ORDER BY o.data_invio DESC
+      LIMIT 20
+    `;
+    
+    const result = await db.query(query, [legaId]);
+    const rows = result.rows;
     
     // Se non ci sono offerte, restituisci array vuoto
     if (!rows || rows.length === 0) {
@@ -99,43 +89,30 @@ router.get('/movimenti/:legaId', requireAuth, (req, res) => {
     }));
     
     res.json({ movimenti });
-  });
+  } catch (err) {
+    console.error('Errore query movimenti:', err);
+    res.status(500).json({ error: 'Errore DB', details: err.message });
+  }
 });
 
 // Ottieni statistiche roster per una squadra
 router.get('/roster/stats/:squadraId', authenticateToken, async (req, res) => {
-  const { squadraId } = req.params;
-  const { id: userId, ruolo } = req.user;
-
   try {
+    const { squadraId } = req.params;
+    const { id: userId, ruolo } = req.user;
+
     // Verifica che l'utente sia proprietario della squadra O sia admin
     let squadra;
     
     if (ruolo === 'admin' || ruolo === 'superadmin' || ruolo === 'subadmin' || 
         ruolo === 'Admin' || ruolo === 'SuperAdmin' || ruolo === 'SubAdmin') {
       // Admin può vedere tutte le squadre
-      squadra = await new Promise((resolve, reject) => {
-        db.get(
-          'SELECT * FROM squadre WHERE id = ?',
-          [squadraId],
-          (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          }
-        );
-      });
+      const result = await db.query('SELECT * FROM squadre WHERE id = $1', [squadraId]);
+      squadra = result.rows[0];
     } else {
       // Utente normale deve essere proprietario
-      squadra = await new Promise((resolve, reject) => {
-        db.get(
-          'SELECT * FROM squadre WHERE id = ? AND proprietario_id = ?',
-          [squadraId, userId],
-          (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          }
-        );
-      });
+      const result = await db.query('SELECT * FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
+      squadra = result.rows[0];
     }
 
     if (!squadra) {
@@ -154,38 +131,22 @@ router.get('/roster/stats/:squadraId', authenticateToken, async (req, res) => {
 
 // Ottieni giocatori divisi per roster
 router.get('/roster/:squadraId', authenticateToken, async (req, res) => {
-  const { squadraId } = req.params;
-  const { id: userId, ruolo } = req.user;
-
   try {
+    const { squadraId } = req.params;
+    const { id: userId, ruolo } = req.user;
+
     // Verifica che l'utente sia proprietario della squadra O sia admin
     let squadra;
     
     if (ruolo === 'admin' || ruolo === 'superadmin' || ruolo === 'subadmin' || 
         ruolo === 'Admin' || ruolo === 'SuperAdmin' || ruolo === 'SubAdmin') {
       // Admin può vedere tutte le squadre
-      squadra = await new Promise((resolve, reject) => {
-        db.get(
-          'SELECT * FROM squadre WHERE id = ?',
-          [squadraId],
-          (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          }
-        );
-      });
+      const result = await db.query('SELECT * FROM squadre WHERE id = $1', [squadraId]);
+      squadra = result.rows[0];
     } else {
       // Utente normale deve essere proprietario
-      squadra = await new Promise((resolve, reject) => {
-        db.get(
-          'SELECT * FROM squadre WHERE id = ? AND proprietario_id = ?',
-          [squadraId, userId],
-          (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          }
-        );
-      });
+      const result = await db.query('SELECT * FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
+      squadra = result.rows[0];
     }
 
     if (!squadra) {
@@ -204,33 +165,28 @@ router.get('/roster/:squadraId', authenticateToken, async (req, res) => {
 
 // Gestisci ritorno prestito
 router.post('/roster/loan-return', authenticateToken, async (req, res) => {
-  const { giocatoreId } = req.body;
-  const { id: userId } = req.user;
-
   try {
+    const { giocatoreId } = req.body;
+    const { id: userId } = req.user;
+
     // Verifica che il giocatore appartenga a una squadra dell'utente
-    const giocatore = await new Promise((resolve, reject) => {
-      db.get(
-        `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id
-         FROM giocatori g 
-         JOIN squadre s ON g.squadra_id = s.id 
-         WHERE g.id = ? AND s.proprietario_id = ?`,
-        [giocatoreId, userId],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
+    const result = await db.query(
+      `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id
+       FROM giocatori g 
+       JOIN squadre s ON g.squadra_id = s.id 
+       WHERE g.id = $1 AND s.proprietario_id = $2`,
+      [giocatoreId, userId]
+    );
+    const giocatore = result.rows[0];
 
     if (!giocatore) {
       return res.status(404).json({ error: 'Giocatore non trovato o non autorizzato' });
     }
 
     const rosterManager = createRosterManager(giocatore.lega_id);
-    const result = await rosterManager.handleLoanReturn(giocatore.squadra_id, giocatoreId);
+    const result2 = await rosterManager.handleLoanReturn(giocatore.squadra_id, giocatoreId);
 
-    res.json(result);
+    res.json(result2);
   } catch (error) {
     console.error('Errore gestione ritorno prestito:', error);
     res.status(500).json({ error: 'Errore interno del server' });
@@ -239,51 +195,30 @@ router.post('/roster/loan-return', authenticateToken, async (req, res) => {
 
 // Termina prestito e riporta giocatore alla squadra originale
 router.post('/termina-prestito/:giocatoreId', authenticateToken, async (req, res) => {
-  const { giocatoreId } = req.params;
-  const { id: userId } = req.user;
-
   try {
+    const { giocatoreId } = req.params;
+    const { id: userId } = req.user;
+
     // Verifica che il giocatore sia in prestito e appartenga a una squadra dell'utente
-    const giocatore = await new Promise((resolve, reject) => {
-      db.get(
-        `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id, s.nome as squadra_nome
-         FROM giocatori g 
-         JOIN squadre s ON g.squadra_id = s.id 
-         WHERE g.id = ? AND s.proprietario_id = ? AND g.prestito = 1`,
-        [giocatoreId, userId],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
+    const result = await db.query(
+      `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id, s.nome as squadra_nome
+       FROM giocatori g 
+       JOIN squadre s ON g.squadra_id = s.id 
+       WHERE g.id = $1 AND s.proprietario_id = $2 AND g.prestito = 1`,
+      [giocatoreId, userId]
+    );
+    const giocatore = result.rows[0];
 
     if (!giocatore) {
       return res.status(404).json({ error: 'Giocatore in prestito non trovato o non autorizzato' });
     }
 
-    // Trova la squadra originale del giocatore (la squadra che lo ha dato in prestito)
-    // Per ora, assumiamo che la squadra originale sia quella che ha il giocatore
-    // In un sistema più complesso, dovremmo tracciare la squadra originale
-    
     // Imposta prestito = 0 e sposta in Roster A se possibile
-    const rosterManager = createRosterManager(giocatore.lega_id);
+    await db.query('UPDATE giocatori SET prestito = 0 WHERE id = $1', [giocatoreId]);
     
-    // Prima imposta prestito = 0
-    await new Promise((resolve, reject) => {
-      db.run('UPDATE giocatori SET prestito = 0 WHERE id = ?', [giocatoreId], function(err) {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
-
-    // Poi gestisci il roster
-    const result = await rosterManager.handleLoanReturn(giocatore.squadra_id, giocatoreId);
-
-    res.json({
-      success: true,
-      message: `Prestito terminato per ${giocatore.nome} ${giocatore.cognome}. ${result.message}`,
-      ...result
+    res.json({ 
+      success: true, 
+      message: `Prestito terminato per ${giocatore.nome} ${giocatore.cognome}` 
     });
   } catch (error) {
     console.error('Errore terminazione prestito:', error);

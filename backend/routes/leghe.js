@@ -359,35 +359,21 @@ router.get('/:legaId/regolamento', requireAuth, (req, res) => {
 });
 
 // Unisciti a una lega
-router.post('/:legaId/join', requireAuth, (req, res) => {
-  const legaId = req.params.legaId;
-  const userId = req.user.id;
-  const { password } = req.body;
-  
-  console.log(`POST /api/leghe/${legaId}/join - User ID: ${userId}`);
-  
-  // Verifica che la lega esista
-  getLegaById(legaId, (err, lega) => {
-    if (err) {
-      console.error('Errore nel getLegaById:', err);
-      return res.status(500).json({ error: 'Errore DB', details: err.message });
-    }
+router.post('/:legaId/join', requireAuth, async (req, res) => {
+  try {
+    const legaId = req.params.legaId;
+    const userId = req.user.id;
+    
+    console.log(`POST /api/leghe/${legaId}/join - User ID: ${userId}`);
+    
+    // Verifica che la lega esista
+    const lega = await getLegaById(legaId);
     if (!lega) {
       console.log('Lega non trovata');
       return res.status(404).json({ error: 'Lega non trovata' });
     }
     
-    console.log('Lega trovata:', { id: lega.id, nome: lega.nome, is_pubblica: lega.is_pubblica });
-    
-    // Se la lega non è pubblica, verifica la password
-    if (!lega.is_pubblica) {
-      if (!password) {
-        return res.status(400).json({ error: 'Password richiesta per unirsi a questa lega' });
-      }
-      if (lega.password !== password) {
-        return res.status(400).json({ error: 'Password non corretta' });
-      }
-    }
+    console.log('Lega trovata:', { id: lega.id, nome: lega.nome, admin_id: lega.admin_id });
     
     // Verifica che l'utente non sia già admin di questa lega
     if (lega.admin_id === userId) {
@@ -395,62 +381,47 @@ router.post('/:legaId/join', requireAuth, (req, res) => {
     }
     
     // Verifica che l'utente non abbia già una squadra in questa lega
-    db.get('SELECT id FROM squadre WHERE lega_id = ? AND proprietario_id = ?', [legaId, userId], (err, squadra) => {
-      if (err) {
-        console.error('Errore verifica squadra esistente:', err);
-        return res.status(500).json({ error: 'Errore DB', details: err.message });
+    const squadraResult = await db.query('SELECT id FROM squadre WHERE lega_id = $1 AND proprietario_id = $2', [legaId, userId]);
+    if (squadraResult.rows.length > 0) {
+      return res.status(400).json({ error: 'Hai già una squadra in questa lega' });
+    }
+    
+    // Trova una squadra orfana disponibile
+    const squadraOrfanaResult = await db.query('SELECT id, nome FROM squadre WHERE lega_id = $1 AND is_orfana = 1 LIMIT 1', [legaId]);
+    if (squadraOrfanaResult.rows.length === 0) {
+      return res.status(400).json({ error: 'Nessuna squadra disponibile in questa lega' });
+    }
+    
+    const squadraOrfana = squadraOrfanaResult.rows[0];
+    
+    // Assegna la squadra orfana all'utente
+    await db.query('UPDATE squadre SET proprietario_id = $1, is_orfana = 0 WHERE id = $2', [userId, squadraOrfana.id]);
+    
+    console.log(`Squadra ${squadraOrfana.nome} assegnata all'utente ${userId}`);
+    res.json({ 
+      success: true, 
+      message: `Unito con successo alla lega ${lega.nome}`,
+      squadra: {
+        id: squadraOrfana.id,
+        nome: squadraOrfana.nome
       }
-      
-      if (squadra) {
-        return res.status(400).json({ error: 'Hai già una squadra in questa lega' });
-      }
-      
-      // Trova una squadra orfana disponibile
-      db.get('SELECT id, nome FROM squadre WHERE lega_id = ? AND is_orfana = 1 LIMIT 1', [legaId], (err, squadraOrfana) => {
-        if (err) {
-          console.error('Errore ricerca squadra orfana:', err);
-          return res.status(500).json({ error: 'Errore DB', details: err.message });
-        }
-        
-        if (!squadraOrfana) {
-          return res.status(400).json({ error: 'Nessuna squadra disponibile in questa lega' });
-        }
-        
-        // Assegna la squadra orfana all'utente
-        db.run('UPDATE squadre SET proprietario_id = ?, is_orfana = 0 WHERE id = ?', [userId, squadraOrfana.id], (err) => {
-          if (err) {
-            console.error('Errore assegnazione squadra:', err);
-            return res.status(500).json({ error: 'Errore assegnazione squadra', details: err.message });
-          }
-          
-          console.log(`Squadra ${squadraOrfana.nome} assegnata all'utente ${userId}`);
-          res.json({ 
-            success: true, 
-            message: `Unito con successo alla lega ${lega.nome}`,
-            squadra: {
-              id: squadraOrfana.id,
-              nome: squadraOrfana.nome
-            }
-          });
-        });
-      });
     });
-  });
+  } catch (err) {
+    console.error('Errore unione lega:', err);
+    res.status(500).json({ error: 'Errore interno del server', details: err.message });
+  }
 });
 
 // Cancella una lega (solo admin della lega o superadmin)
-router.delete('/:legaId', requireAuth, (req, res) => {
-  const legaId = req.params.legaId;
-  const userId = req.user.id;
-  
-  console.log(`DELETE /api/leghe/${legaId} - User ID: ${userId}, Role: ${req.user.ruolo}`);
-  
-  // Verifica che l'utente sia admin della lega o superadmin
-  getLegaById(legaId, (err, lega) => {
-    if (err) {
-      console.error('Errore nel getLegaById:', err);
-      return res.status(500).json({ error: 'Errore DB', details: err.message });
-    }
+router.delete('/:legaId', requireAuth, async (req, res) => {
+  try {
+    const legaId = req.params.legaId;
+    const userId = req.user.id;
+    
+    console.log(`DELETE /api/leghe/${legaId} - User ID: ${userId}, Role: ${req.user.ruolo}`);
+    
+    // Verifica che l'utente sia admin della lega o superadmin
+    const lega = await getLegaById(legaId);
     if (!lega) {
       console.log('Lega non trovata');
       return res.status(404).json({ error: 'Lega non trovata' });
@@ -467,93 +438,45 @@ router.delete('/:legaId', requireAuth, (req, res) => {
     console.log('Autorizzazione OK, inizio transazione');
     
     // Elimina la lega e tutti i dati correlati
-    db.run('BEGIN TRANSACTION', (err) => {
-      if (err) {
-        console.error('Errore BEGIN TRANSACTION:', err);
-        return res.status(500).json({ error: 'Errore DB', details: err.message });
-      }
-      
+    await db.query('BEGIN');
+    try {
       console.log('Transazione iniziata, elimino giocatori');
       
       // Elimina giocatori
-      db.run('DELETE FROM giocatori WHERE squadra_id IN (SELECT id FROM squadre WHERE lega_id = ?)', [legaId], (err) => {
-        if (err) {
-          console.error('Errore eliminazione giocatori:', err);
-          db.run('ROLLBACK');
-          return res.status(500).json({ error: 'Errore eliminazione giocatori', details: err.message });
-        }
-        
-        console.log('Giocatori eliminati, elimino squadre');
-        
-        // Elimina squadre
-        db.run('DELETE FROM squadre WHERE lega_id = ?', [legaId], (err) => {
-          if (err) {
-            console.error('Errore eliminazione squadre:', err);
-            db.run('ROLLBACK');
-            return res.status(500).json({ error: 'Errore eliminazione squadre', details: err.message });
-          }
-          
-          console.log('Squadre eliminate, elimino notifiche');
-          
-          // Elimina notifiche
-          db.run('DELETE FROM notifiche WHERE lega_id = ?', [legaId], (err) => {
-            if (err) {
-              console.error('Errore eliminazione notifiche:', err);
-              db.run('ROLLBACK');
-              return res.status(500).json({ error: 'Errore eliminazione notifiche', details: err.message });
-            }
-            
-            console.log('Notifiche eliminate, elimino offerte');
-            
-            // Elimina offerte
-            db.run('DELETE FROM offerte WHERE lega_id = ?', [legaId], (err) => {
-              if (err) {
-                console.error('Errore eliminazione offerte:', err);
-                db.run('ROLLBACK');
-                return res.status(500).json({ error: 'Errore eliminazione offerte', details: err.message });
-              }
-              
-              console.log('Offerte eliminate, elimino log');
-              
-              // Elimina log
-              db.run('DELETE FROM log WHERE lega_id = ?', [legaId], (err) => {
-                if (err) {
-                  console.error('Errore eliminazione log:', err);
-                  db.run('ROLLBACK');
-                  return res.status(500).json({ error: 'Errore eliminazione log', details: err.message });
-                }
-                
-                console.log('Log eliminati, elimino lega');
-                
-                // Elimina la lega
-                db.run('DELETE FROM leghe WHERE id = ?', [legaId], (err) => {
-                  if (err) {
-                    console.error('Errore eliminazione lega:', err);
-                    db.run('ROLLBACK');
-                    return res.status(500).json({ error: 'Errore eliminazione lega', details: err.message });
-                  }
-                  
-                  console.log('Lega eliminata, faccio commit');
-                  
-                  // Commit della transazione
-                  db.run('COMMIT', (err) => {
-                    if (err) {
-                      console.error('Errore COMMIT:', err);
-                      db.run('ROLLBACK');
-                      return res.status(500).json({ error: 'Errore commit', details: err.message });
-                    }
-                    
-                    console.log('Transazione completata con successo');
-                    res.json({ success: true, message: 'Lega eliminata con successo' });
-                  });
-                });
-              });
-            });
-          });
-        });
-      });
-    });
-  });
+      await db.query('DELETE FROM giocatori WHERE squadra_id IN (SELECT id FROM squadre WHERE lega_id = $1)', [legaId]);
+      console.log('Giocatori eliminati, elimino squadre');
+      
+      // Elimina squadre
+      await db.query('DELETE FROM squadre WHERE lega_id = $1', [legaId]);
+      console.log('Squadre eliminate, elimino notifiche');
+      
+      // Elimina notifiche
+      await db.query('DELETE FROM notifiche WHERE lega_id = $1', [legaId]);
+      console.log('Notifiche eliminate, elimino offerte');
+      
+      // Elimina offerte
+      await db.query('DELETE FROM offerte WHERE lega_id = $1', [legaId]);
+      console.log('Offerte eliminate, elimino log');
+      
+      // Elimina log
+      await db.query('DELETE FROM log WHERE lega_id = $1', [legaId]);
+      console.log('Log eliminati, elimino lega');
+      
+      // Elimina la lega
+      await db.query('DELETE FROM leghe WHERE id = $1', [legaId]);
+      console.log('Lega eliminata, faccio commit');
+      
+      await db.query('COMMIT');
+      console.log('Transazione completata con successo');
+      res.json({ success: true, message: 'Lega eliminata con successo' });
+    } catch (err) {
+      await db.query('ROLLBACK');
+      throw err;
+    }
+  } catch (err) {
+    console.error('Errore eliminazione lega:', err);
+    res.status(500).json({ error: 'Errore interno del server', details: err.message });
+  }
 });
 
 // Aggiorna una lega (solo SuperAdmin)

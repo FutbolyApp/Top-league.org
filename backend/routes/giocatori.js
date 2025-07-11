@@ -8,47 +8,54 @@ const router = express.Router();
 const db = getDb();
 
 // Ottieni i dettagli di un giocatore
-router.get('/:giocatoreId', requireAuth, (req, res) => {
-  const giocatoreId = req.params.giocatoreId;
-  db.get(`
-    SELECT g.*, 
-           COALESCE(g.qa, 0) as qa_scraping,
-           COALESCE(g.qi, 0) as qi_scraping,
-           s.nome as squadra_nome,
-           l.nome as lega_nome,
-           CASE 
-             WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-             ELSE u.nome 
-           END as proprietario_nome
-    FROM giocatori g 
-    LEFT JOIN squadre s ON g.squadra_id = s.id
-    LEFT JOIN leghe l ON g.lega_id = l.id
-    LEFT JOIN users u ON s.proprietario_id = u.id
-    WHERE g.id = ?
-  `, [giocatoreId], (err, giocatore) => {
-    if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-    if (!giocatore) return res.status(404).json({ error: 'Giocatore non trovato' });
-    res.json({ giocatore });
-  });
+router.get('/:giocatoreId', requireAuth, async (req, res) => {
+  try {
+    const giocatoreId = req.params.giocatoreId;
+    const result = await db.query(`
+      SELECT g.*, 
+             COALESCE(g.qa, 0) as qa_scraping,
+             COALESCE(g.qi, 0) as qi_scraping,
+             s.nome as squadra_nome,
+             l.nome as lega_nome,
+             CASE 
+               WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
+               ELSE u.nome 
+             END as proprietario_nome
+      FROM giocatori g 
+      LEFT JOIN squadre s ON g.squadra_id = s.id
+      LEFT JOIN leghe l ON g.lega_id = l.id
+      LEFT JOIN users u ON s.proprietario_id = u.id
+      WHERE g.id = $1
+    `, [giocatoreId]);
+    
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Giocatore non trovato' });
+    res.json({ giocatore: result.rows[0] });
+  } catch (err) {
+    console.error('Errore DB:', err);
+    res.status(500).json({ error: 'Errore DB', details: err.message });
+  }
 });
 
 // Ottieni giocatori di una squadra
-router.get('/squadra/:squadraId', requireAuth, (req, res) => {
-  const squadraId = req.params.squadraId;
-  db.all(`
-    SELECT g.*, 
-           COALESCE(g.qa, g.quotazione_attuale) as quotazione_attuale,
-           g.fvm as fv_mp,
-           COALESCE(g.qa, 0) as qa_scraping,
-           COALESCE(g.qi, 0) as qi_scraping,
-           sp.nome as squadra_prestito_nome
-    FROM giocatori g 
-    LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
-    WHERE g.squadra_id = ?
-  `, [squadraId], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-    res.json({ giocatori: rows });
-  });
+router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
+  try {
+    const squadraId = req.params.squadraId;
+    const result = await db.query(`
+      SELECT g.*, 
+             COALESCE(g.qa, g.quotazione_attuale) as quotazione_attuale,
+             g.fvm as fv_mp,
+             COALESCE(g.qa, 0) as qa_scraping,
+             COALESCE(g.qi, 0) as qi_scraping,
+             sp.nome as squadra_prestito_nome
+      FROM giocatori g 
+      LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
+      WHERE g.squadra_id = $1
+    `, [squadraId]);
+    res.json({ giocatori: result.rows });
+  } catch (err) {
+    console.error('Errore DB:', err);
+    res.status(500).json({ error: 'Errore DB', details: err.message });
+  }
 });
 
 // Rinnovo contratto per uno o più giocatori
@@ -83,382 +90,344 @@ router.post('/update-triggers', requireAuth, (req, res) => {
 });
 
 // Ottieni più giocatori per ID (batch)
-router.post('/batch', requireAuth, (req, res) => {
-  const { ids } = req.body;
-  if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'Nessun ID fornito' });
-  const placeholders = ids.map(() => '?').join(',');
-  db.all(`
-    SELECT *, 
-           COALESCE(qa, quotazione_attuale) as quotazione_attuale,
-           qi
-    FROM giocatori WHERE id IN (${placeholders})
-  `, ids, (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-    res.json({ giocatori: rows });
-  });
+router.post('/batch', requireAuth, async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'Nessun ID fornito' });
+    const placeholders = ids.map((_, index) => `$${index + 1}`).join(',');
+    const result = await db.query(`
+      SELECT *, 
+             COALESCE(qa, quotazione_attuale) as quotazione_attuale,
+             qi
+      FROM giocatori WHERE id IN (${placeholders})
+    `, ids);
+    res.json({ giocatori: result.rows });
+  } catch (err) {
+    console.error('Errore DB:', err);
+    res.status(500).json({ error: 'Errore DB', details: err.message });
+  }
 });
 
 // Ottieni tutti i giocatori di una lega
-router.get('/lega/:legaId', requireAuth, (req, res) => {
-  const legaId = req.params.legaId;
-  db.all(`
-    SELECT g.*, 
-           COALESCE(g.qa, g.quotazione_attuale) as quotazione_attuale,
-           g.fvm as fv_mp,
-           COALESCE(g.qa, 0) as qa_scraping,
-           COALESCE(g.qi, 0) as qi_scraping,
-           sp.nome as squadra_prestito_nome
-    FROM giocatori g 
-    LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
-    WHERE g.lega_id = ?
-  `, [legaId], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-    res.json({ giocatori: rows });
-  });
+router.get('/lega/:legaId', requireAuth, async (req, res) => {
+  try {
+    const legaId = req.params.legaId;
+    const result = await db.query(`
+      SELECT g.*, 
+             COALESCE(g.qa, g.quotazione_attuale) as quotazione_attuale,
+             g.fvm as fv_mp,
+             COALESCE(g.qa, 0) as qa_scraping,
+             COALESCE(g.qi, 0) as qi_scraping,
+             sp.nome as squadra_prestito_nome
+      FROM giocatori g 
+      LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
+      WHERE g.lega_id = $1
+    `, [legaId]);
+    res.json({ giocatori: result.rows });
+  } catch (err) {
+    console.error('Errore DB:', err);
+    res.status(500).json({ error: 'Errore DB', details: err.message });
+  }
 });
 
 // Crea nuovo giocatore (solo trinità: superadmin, admin della lega, subadmin)
-router.post('/', requireAuth, (req, res) => {
-  const utenteId = req.user.id;
-  const userRole = req.user.ruolo;
-  const giocatoreData = req.body;
+router.post('/', requireAuth, async (req, res) => {
+  try {
+    const utenteId = req.user.id;
+    const userRole = req.user.ruolo;
+    const giocatoreData = req.body;
 
-  // Verifica permessi
-  const canCreate = async () => {
-    // Superadmin può creare tutto (gestisce entrambi i casi)
-    if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
-    
-    // Subadmin può creare
-    if (userRole === 'subadmin') return true;
-    
-    // Admin può creare solo nella sua lega (gestisce entrambi i casi)
-    if (userRole === 'admin' || userRole === 'Admin') {
-      const lega = await new Promise((resolve, reject) => {
-        db.get('SELECT admin_id FROM leghe WHERE id = ?', [giocatoreData.lega_id], (err, lega) => {
-          if (err) reject(err);
-          else resolve(lega);
-        });
-      });
+    // Verifica permessi
+    const canCreate = async () => {
+      // Superadmin può creare tutto (gestisce entrambi i casi)
+      if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
       
-      return lega && lega.admin_id === utenteId;
+      // Subadmin può creare
+      if (userRole === 'subadmin') return true;
+      
+      // Admin può creare solo nella sua lega (gestisce entrambi i casi)
+      if (userRole === 'admin' || userRole === 'Admin') {
+        const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [giocatoreData.lega_id]);
+        const lega = legaResult.rows[0];
+        return lega && lega.admin_id === utenteId;
+      }
+      
+      return false;
+    };
+
+    const hasPermission = await canCreate();
+    if (!hasPermission) {
+      return res.status(403).json({ error: 'Non hai i permessi per creare giocatori' });
     }
     
-    return false;
-  };
-
-  canCreate()
-    .then(hasPermission => {
-      if (!hasPermission) {
-        return res.status(403).json({ error: 'Non hai i permessi per creare giocatori' });
-      }
-      
-      // Validazioni
-      if (!giocatoreData.nome || !giocatoreData.ruolo) {
-        return res.status(400).json({ error: 'Nome e ruolo sono obbligatori' });
-      }
-      
-      // Crea il giocatore
-      createGiocatore(giocatoreData, (err, giocatoreId) => {
-        if (err) return res.status(500).json({ error: 'Errore creazione giocatore', details: err.message });
-        res.json({ success: true, message: 'Giocatore creato con successo', giocatoreId });
-      });
-    })
-    .catch(err => {
-      res.status(500).json({ error: 'Errore verifica permessi', details: err.message });
-    });
+    // Validazioni
+    if (!giocatoreData.nome || !giocatoreData.ruolo) {
+      return res.status(400).json({ error: 'Nome e ruolo sono obbligatori' });
+    }
+    
+    // Crea il giocatore
+    const giocatoreId = await createGiocatore(giocatoreData);
+    res.json({ success: true, message: 'Giocatore creato con successo', giocatoreId });
+  } catch (err) {
+    console.error('Errore creazione giocatore:', err);
+    res.status(500).json({ error: 'Errore creazione giocatore', details: err.message });
+  }
 });
 
 // Aggiorna giocatore (solo trinità: superadmin, admin della lega, subadmin)
-router.put('/:id', requireAuth, (req, res) => {
-  const giocatoreId = req.params.id;
-  const utenteId = req.user.id;
-  const userRole = req.user.ruolo;
-  const updateData = req.body;
+router.put('/:id', requireAuth, async (req, res) => {
+  try {
+    const giocatoreId = req.params.id;
+    const utenteId = req.user.id;
+    const userRole = req.user.ruolo;
+    const updateData = req.body;
 
-  // Verifica permessi
-  const canEdit = async () => {
-    console.log('canEdit - userRole:', userRole);
-    console.log('canEdit - utenteId:', utenteId);
-    console.log('canEdit - giocatoreId:', giocatoreId);
-    
-    // Superadmin può modificare tutto (gestisce entrambi i casi)
-    if (userRole === 'superadmin' || userRole === 'SuperAdmin') {
-      console.log('canEdit - Superadmin access granted');
-      return true;
-    }
-    
-    // Subadmin può modificare
-    if (userRole === 'subadmin') {
-      console.log('canEdit - Subadmin access granted');
-      return true;
-    }
-    
-    // Admin può modificare solo i giocatori della sua lega (gestisce entrambi i casi)
-    if (userRole === 'admin' || userRole === 'Admin') {
-      console.log('canEdit - Checking admin permissions for player:', giocatoreId);
+    // Verifica permessi
+    const canEdit = async () => {
+      console.log('canEdit - userRole:', userRole);
+      console.log('canEdit - utenteId:', utenteId);
+      console.log('canEdit - giocatoreId:', giocatoreId);
       
-      const giocatore = await new Promise((resolve, reject) => {
-        db.get('SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = ?', [giocatoreId], (err, result) => {
-          if (err) {
-            console.log('canEdit - DB error:', err);
-            reject(err);
-          } else {
-            console.log('canEdit - DB result:', result);
-            resolve(result);
-          }
-        });
-      });
-      
-      if (!giocatore) {
-        console.log('canEdit - Player not found');
-        return false;
+      // Superadmin può modificare tutto (gestisce entrambi i casi)
+      if (userRole === 'superadmin' || userRole === 'SuperAdmin') {
+        console.log('canEdit - Superadmin access granted');
+        return true;
       }
       
-      console.log('canEdit - Player league_id:', giocatore.lega_id);
-      console.log('canEdit - League admin_id:', giocatore.admin_id);
-      console.log('canEdit - User is admin of this league:', giocatore.admin_id === utenteId);
-      
-      return giocatore.admin_id === utenteId;
-    }
-    
-    console.log('canEdit - No permissions');
-    return false;
-  };
-
-  canEdit()
-    .then(hasPermission => {
-      console.log('PUT /:id - hasPermission:', hasPermission);
-      if (!hasPermission) {
-        console.log('PUT /:id - Permission denied');
-        return res.status(403).json({ error: 'Non hai i permessi per modificare questo giocatore' });
+      // Subadmin può modificare
+      if (userRole === 'subadmin') {
+        console.log('canEdit - Subadmin access granted');
+        return true;
       }
       
-      // Aggiorna il giocatore
-      updateGiocatorePartial(giocatoreId, updateData, (err) => {
-        if (err) return res.status(500).json({ error: 'Errore aggiornamento giocatore', details: err.message });
-        res.json({ success: true, message: 'Giocatore aggiornato con successo' });
-      });
-    })
-    .catch(err => {
-      res.status(500).json({ error: 'Errore verifica permessi', details: err.message });
-    });
+      // Admin può modificare solo i giocatori della sua lega (gestisce entrambi i casi)
+      if (userRole === 'admin' || userRole === 'Admin') {
+        console.log('canEdit - Checking admin permissions for player:', giocatoreId);
+        
+        const result = await db.query(
+          'SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = $1',
+          [giocatoreId]
+        );
+        const giocatore = result.rows[0];
+        
+        if (!giocatore) {
+          console.log('canEdit - Player not found');
+          return false;
+        }
+        
+        const hasPermission = giocatore.admin_id === utenteId;
+        console.log('canEdit - Admin permission check:', hasPermission);
+        return hasPermission;
+      }
+      
+      return false;
+    };
+
+    const hasPermission = await canEdit();
+    if (!hasPermission) {
+      return res.status(403).json({ error: 'Non hai i permessi per modificare questo giocatore' });
+    }
+    
+    // Aggiorna il giocatore
+    await updateGiocatore(giocatoreId, updateData);
+    res.json({ success: true, message: 'Giocatore aggiornato con successo' });
+  } catch (err) {
+    console.error('Errore aggiornamento giocatore:', err);
+    res.status(500).json({ error: 'Errore aggiornamento giocatore', details: err.message });
+  }
 });
 
 // Elimina giocatore (solo trinità: superadmin, admin della lega, subadmin)
-router.delete('/:id', requireAuth, (req, res) => {
-  const giocatoreId = req.params.id;
-  const utenteId = req.user.id;
-  const userRole = req.user.ruolo;
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const giocatoreId = req.params.id;
+    const utenteId = req.user.id;
+    const userRole = req.user.ruolo;
 
-  // Verifica permessi
-  const canDelete = async () => {
-    // Superadmin può eliminare tutto (gestisce entrambi i casi)
-    if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
-    
-    // Subadmin può eliminare
-    if (userRole === 'subadmin') return true;
-    
-    // Admin può eliminare solo i giocatori della sua lega (gestisce entrambi i casi)
-    if (userRole === 'admin' || userRole === 'Admin') {
-      const giocatore = await new Promise((resolve, reject) => {
-        db.get('SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = ?', [giocatoreId], (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
-        });
-      });
+    // Verifica permessi
+    const canDelete = async () => {
+      // Superadmin può eliminare tutto (gestisce entrambi i casi)
+      if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
       
-      if (!giocatore) return false;
+      // Subadmin può eliminare
+      if (userRole === 'subadmin') return true;
       
-      return giocatore.admin_id === utenteId;
-    }
-    
-    return false;
-  };
-
-  canDelete()
-    .then(hasPermission => {
-      if (!hasPermission) {
-        return res.status(403).json({ error: 'Non hai i permessi per eliminare questo giocatore' });
+      // Admin può eliminare solo i giocatori della sua lega (gestisce entrambi i casi)
+      if (userRole === 'admin' || userRole === 'Admin') {
+        const result = await db.query(
+          'SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = $1',
+          [giocatoreId]
+        );
+        const giocatore = result.rows[0];
+        return giocatore && giocatore.admin_id === utenteId;
       }
       
-      // Elimina il giocatore
-      deleteGiocatore(giocatoreId, (err) => {
-        if (err) return res.status(500).json({ error: 'Errore eliminazione giocatore', details: err.message });
-        res.json({ success: true, message: 'Giocatore eliminato con successo' });
-      });
-    })
-    .catch(err => {
-      res.status(500).json({ error: 'Errore verifica permessi', details: err.message });
-    });
+      return false;
+    };
+
+    const hasPermission = await canDelete();
+    if (!hasPermission) {
+      return res.status(403).json({ error: 'Non hai i permessi per eliminare questo giocatore' });
+    }
+    
+    // Elimina il giocatore
+    await deleteGiocatore(giocatoreId);
+    res.json({ success: true, message: 'Giocatore eliminato con successo' });
+  } catch (err) {
+    console.error('Errore eliminazione giocatore:', err);
+    res.status(500).json({ error: 'Errore eliminazione giocatore', details: err.message });
+  }
 });
 
 // Trasferisci giocatore (solo trinità: superadmin, admin della lega, subadmin)
-router.post('/:id/transfer', requireAuth, (req, res) => {
-  const giocatoreId = req.params.id;
-  const utenteId = req.user.id;
-  const userRole = req.user.ruolo;
-  const { squadra_destinazione_id, costo, ingaggio, anni_contratto } = req.body;
+router.post('/:id/transfer', requireAuth, async (req, res) => {
+  try {
+    const giocatoreId = req.params.id;
+    const utenteId = req.user.id;
+    const userRole = req.user.ruolo;
+    const { squadra_destinazione_id, costo, ingaggio, anni_contratto } = req.body;
 
-  // Validazioni
-  if (!squadra_destinazione_id) {
-    return res.status(400).json({ error: 'ID squadra destinazione mancante' });
-  }
-
-  if (costo === undefined || costo < 0) {
-    return res.status(400).json({ error: 'Costo deve essere un numero positivo' });
-  }
-
-  if (ingaggio === undefined || ingaggio < 0) {
-    return res.status(400).json({ error: 'Ingaggio deve essere un numero positivo' });
-  }
-
-  if (anni_contratto === undefined || anni_contratto < 1) {
-    return res.status(400).json({ error: 'Durata contratto deve essere almeno 1 anno' });
-  }
-
-  // Verifica permessi
-  const canTransfer = async () => {
-    // Superadmin può trasferire tutto (gestisce entrambi i casi)
-    if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
-    
-    // Subadmin può trasferire
-    if (userRole === 'subadmin') return true;
-    
-    // Admin può trasferire solo nella sua lega (gestisce entrambi i casi)
-    if (userRole === 'admin' || userRole === 'Admin') {
-      const giocatore = await new Promise((resolve, reject) => {
-        db.get('SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = ?', [giocatoreId], (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
-        });
-      });
-      
-      if (!giocatore) return false;
-      
-      return giocatore.admin_id === utenteId;
+    // Validazioni
+    if (!squadra_destinazione_id) {
+      return res.status(400).json({ error: 'ID squadra destinazione mancante' });
     }
-    
-    return false;
-  };
 
-  canTransfer()
-    .then(hasPermission => {
-      if (!hasPermission) {
-        return res.status(403).json({ error: 'Non hai i permessi per trasferire questo giocatore' });
+    if (costo === undefined || costo < 0) {
+      return res.status(400).json({ error: 'Costo deve essere un numero positivo' });
+    }
+
+    if (ingaggio === undefined || ingaggio < 0) {
+      return res.status(400).json({ error: 'Ingaggio deve essere un numero positivo' });
+    }
+
+    if (anni_contratto === undefined || anni_contratto < 1) {
+      return res.status(400).json({ error: 'Durata contratto deve essere almeno 1 anno' });
+    }
+
+    // Verifica permessi
+    const canTransfer = async () => {
+      // Superadmin può trasferire tutto (gestisce entrambi i casi)
+      if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
+      
+      // Subadmin può trasferire
+      if (userRole === 'subadmin') return true;
+      
+      // Admin può trasferire solo nella sua lega (gestisce entrambi i casi)
+      if (userRole === 'admin' || userRole === 'Admin') {
+        const result = await db.query(
+          'SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = $1',
+          [giocatoreId]
+        );
+        const giocatore = result.rows[0];
+        return giocatore && giocatore.admin_id === utenteId;
       }
       
-      // Verifica che la squadra destinazione esista e sia nella stessa lega
-      db.get('SELECT * FROM squadre WHERE id = ?', [squadra_destinazione_id], (err, squadraDest) => {
-        if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-        if (!squadraDest) return res.status(404).json({ error: 'Squadra destinazione non trovata' });
-        
-        // Verifica che la squadra destinazione abbia fondi sufficienti
-        if (squadraDest.casse_societarie < costo) {
-          return res.status(400).json({ error: 'Squadra destinazione non ha fondi sufficienti' });
-        }
-        
-        // Ottieni il giocatore
-        getGiocatoreById(giocatoreId, (err, giocatore) => {
-          if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-          if (!giocatore) return res.status(404).json({ error: 'Giocatore non trovato' });
-          
-          // Verifica che le squadre siano nella stessa lega
-          if (giocatore.lega_id !== squadraDest.lega_id) {
-            return res.status(400).json({ error: 'Le squadre devono essere nella stessa lega' });
-          }
-          
-          // Verifica che la squadra destinazione abbia slot disponibili
-          db.all('SELECT COUNT(*) as count FROM giocatori WHERE squadra_id = ?', [squadra_destinazione_id], (err, result) => {
-            if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-            
-            const currentPlayers = result[0].count;
-            const maxPlayers = 30; // Default, ma dovrebbe essere preso dalla lega
-            
-            // Ottieni il numero massimo di giocatori dalla lega
-            db.get('SELECT max_giocatori FROM leghe WHERE id = ?', [giocatore.lega_id], (err, lega) => {
-              if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-              
-              const maxGiocatori = lega ? lega.max_giocatori : 30;
-              
-              if (currentPlayers >= maxGiocatori) {
-                return res.status(400).json({ 
-                  error: `Numero massimo di giocatori raggiunto (${maxGiocatori}). Impossibile aggiungere nuovi calciatori.` 
-                });
-              }
-              
-              // Esegui il trasferimento in una transazione
-              db.serialize(() => {
-                db.run('BEGIN TRANSACTION');
-                
-                // Aggiorna il giocatore
-                db.run(
-                  'UPDATE giocatori SET squadra_id = ?, costo_attuale = ?, salario = ?, anni_contratto = ? WHERE id = ?',
-                  [squadra_destinazione_id, costo, ingaggio, anni_contratto, giocatoreId],
-                  function(err) {
-                    if (err) {
-                      db.run('ROLLBACK');
-                      return res.status(500).json({ error: 'Errore aggiornamento giocatore', details: err.message });
-                    }
-                    
-                    // Sottrai il costo dalle casse della squadra destinazione
-                    db.run(
-                      'UPDATE squadre SET casse_societarie = casse_societarie - ? WHERE id = ?',
-                      [costo, squadra_destinazione_id],
-                      function(err) {
-                        if (err) {
-                          db.run('ROLLBACK');
-                          return res.status(500).json({ error: 'Errore aggiornamento casse squadra', details: err.message });
-                        }
-                        
-                        db.run('COMMIT');
-                        res.json({ 
-                          success: true, 
-                          message: 'Giocatore trasferito con successo',
-                          giocatoreId,
-                          squadraDestinazioneId: squadra_destinazione_id,
-                          costo,
-                          ingaggio,
-                          anniContratto: anni_contratto
-                        });
-                      }
-                    );
-                  }
-                );
-              });
-            });
-          });
-        });
+      return false;
+    };
+
+    const hasPermission = await canTransfer();
+    if (!hasPermission) {
+      return res.status(403).json({ error: 'Non hai i permessi per trasferire questo giocatore' });
+    }
+    
+    // Verifica che la squadra destinazione esista e sia nella stessa lega
+    const squadraDestResult = await db.query('SELECT * FROM squadre WHERE id = $1', [squadra_destinazione_id]);
+    const squadraDest = squadraDestResult.rows[0];
+    if (!squadraDest) {
+      return res.status(404).json({ error: 'Squadra destinazione non trovata' });
+    }
+    
+    // Verifica che la squadra destinazione abbia fondi sufficienti
+    if (squadraDest.casse_societarie < costo) {
+      return res.status(400).json({ error: 'Squadra destinazione non ha fondi sufficienti' });
+    }
+    
+    // Ottieni il giocatore
+    const giocatore = await getGiocatoreById(giocatoreId);
+    if (!giocatore) {
+      return res.status(404).json({ error: 'Giocatore non trovato' });
+    }
+    
+    // Verifica che le squadre siano nella stessa lega
+    if (giocatore.lega_id !== squadraDest.lega_id) {
+      return res.status(400).json({ error: 'Le squadre devono essere nella stessa lega' });
+    }
+    
+    // Verifica che la squadra destinazione abbia slot disponibili
+    const giocatoriCountResult = await db.query('SELECT COUNT(*) as count FROM giocatori WHERE squadra_id = $1', [squadra_destinazione_id]);
+    const currentPlayers = parseInt(giocatoriCountResult.rows[0].count);
+    
+    const legaResult = await db.query('SELECT max_giocatori FROM leghe WHERE id = $1', [giocatore.lega_id]);
+    const lega = legaResult.rows[0];
+    
+    const maxGiocatori = lega ? lega.max_giocatori : 30;
+    
+    if (currentPlayers >= maxGiocatori) {
+      return res.status(400).json({ 
+        error: `Numero massimo di giocatori raggiunto (${maxGiocatori}). Impossibile aggiungere nuovi calciatori.` 
       });
-    })
-    .catch(err => {
-      res.status(500).json({ error: 'Errore verifica permessi', details: err.message });
-    });
+    }
+    
+    // Esegui il trasferimento in una transazione
+    await db.query('BEGIN');
+    try {
+      // Aggiorna il giocatore
+      await db.query(
+        'UPDATE giocatori SET squadra_id = $1, costo_attuale = $2, salario = $3, anni_contratto = $4 WHERE id = $5',
+        [squadra_destinazione_id, costo, ingaggio, anni_contratto, giocatoreId]
+      );
+      
+      // Sottrai il costo dalle casse della squadra destinazione
+      await db.query(
+        'UPDATE squadre SET casse_societarie = casse_societarie - $1 WHERE id = $2',
+        [costo, squadra_destinazione_id]
+      );
+      
+      await db.query('COMMIT');
+      res.json({ 
+        success: true, 
+        message: 'Giocatore trasferito con successo',
+        giocatoreId,
+        squadraDestinazioneId: squadra_destinazione_id,
+        costo,
+        ingaggio,
+        anniContratto: anni_contratto
+      });
+    } catch (err) {
+      await db.query('ROLLBACK');
+      throw err;
+    }
+  } catch (err) {
+    console.error('Errore trasferimento giocatore:', err);
+    res.status(500).json({ error: 'Errore trasferimento giocatore', details: err.message });
+  }
 });
 
 // Ottieni cronologia QA di un giocatore
-router.get('/:id/qa-history', requireAuth, (req, res) => {
-  const giocatoreId = req.params.id;
-  
-  db.all(`
-    SELECT qa_value, data_registrazione, fonte 
-    FROM qa_history 
-    WHERE giocatore_id = ? 
-    ORDER BY data_registrazione DESC 
-    LIMIT 50
-  `, [giocatoreId], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: 'Errore DB', details: err.message });
-    }
+router.get('/:id/qa-history', requireAuth, async (req, res) => {
+  try {
+    const giocatoreId = req.params.id;
+    
+    const result = await db.query(`
+      SELECT qa_value, data_registrazione, fonte 
+      FROM qa_history 
+      WHERE giocatore_id = $1 
+      ORDER BY data_registrazione DESC 
+      LIMIT 50
+    `, [giocatoreId]);
     
     // Formatta le date per il frontend
-    const history = rows.map(row => ({
+    const history = result.rows.map(row => ({
       qa_value: row.qa_value,
       data_registrazione: row.data_registrazione,
       fonte: row.fonte
     }));
     
     res.json({ history });
-    });
+  } catch (err) {
+    console.error('Errore DB:', err);
+    res.status(500).json({ error: 'Errore DB', details: err.message });
+  }
 });
 
 export default router; 
