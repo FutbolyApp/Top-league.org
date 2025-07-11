@@ -284,7 +284,7 @@ export async function initDb() {
       await client.query(`
         INSERT INTO users (nome, cognome, username, email, password_hash, ruolo) 
         VALUES ($1, $2, $3, $4, $5, $6)
-      `, ['Admin', 'Test', 'admin', 'admin@topleague.com', password_hash, 'SuperAdmin']);
+      `, ['Futboly', 'Admin', 'futboly', 'admin@topleague.com', password_hash, 'SuperAdmin']);
       
       console.log('✅ Test user created');
       console.log('Email: admin@topleague.com');

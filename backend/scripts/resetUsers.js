@@ -43,9 +43,9 @@ async function createSuperAdmin() {
       `);
       
       stmt.run(
-        'Super',
+        'Futboly',
         'Admin',
-        'superadmin', // username
+        'futboly', // username
         'Roma', // provenienza
         'Roma', // squadra_cuore
         'Setup', // come_conosciuto
