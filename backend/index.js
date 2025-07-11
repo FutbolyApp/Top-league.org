@@ -90,6 +90,27 @@ app.get('/api/test-cors', (req, res) => {
   });
 });
 
+// Test authentication endpoint
+app.get('/api/test-auth', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  console.log('Auth test received, headers:', req.headers);
+  
+  if (!authHeader) {
+    return res.status(401).json({ error: 'No authorization header' });
+  }
+  
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+  
+  res.json({ 
+    message: 'Auth header present',
+    hasToken: !!token,
+    tokenLength: token.length
+  });
+});
+
 // Placeholder: upload file Excel
 app.post('/api/upload/excel', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Nessun file caricato' });
