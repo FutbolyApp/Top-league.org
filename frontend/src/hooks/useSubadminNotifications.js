@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { getPendingChangesBySubadmin } from '../api/subadmin';
-import { api } from '../api/config';
+import { checkSubadminShared } from '../api/sharedApi';
 
 export const useSubadminNotifications = () => {
   const { token, user } = useAuth();
@@ -14,7 +14,7 @@ export const useSubadminNotifications = () => {
     if (!token) return false;
     
     try {
-      const response = await api.get('/subadmin/check-all', token);
+      const response = await checkSubadminShared(token);
       return response.isSubadmin || false;
     } catch (error) {
       console.error('Errore nel controllo subadmin:', error);
@@ -55,12 +55,13 @@ export const useSubadminNotifications = () => {
   useEffect(() => {
     fetchPendingChanges();
     
-    // Aggiorna ogni 120 secondi solo se l'utente è subadmin
+    // Aggiorna ogni 300 secondi solo se l'utente è subadmin (aumentato da 120s)
     const interval = setInterval(() => {
       if (isSubadmin) {
+        console.log('🔄 Polling subadmin changes - timestamp:', new Date().toISOString());
         fetchPendingChanges();
       }
-    }, 120000);
+    }, 300000);
     
     return () => clearInterval(interval);
   }, [token, isSubadmin]);

@@ -4,9 +4,38 @@ import { updateApiStats } from '../components/ApiMonitor.js';
 // Cache per le richieste API
 const apiCache = new Map();
 const pendingRequests = new Map();
+const lastCallTime = new Map();
+
+// Funzione per debounce delle chiamate API
+const debounceCall = (key, minInterval = 1000) => {
+  const now = Date.now();
+  const lastCall = lastCallTime.get(key) || 0;
+  
+  if (now - lastCall < minInterval) {
+    console.log(`⏱️ Debounced call for: ${key} (${minInterval - (now - lastCall)}ms remaining)`);
+    return false;
+  }
+  
+  lastCallTime.set(key, now);
+  return true;
+};
 
 // Funzione per deduplicare le richieste API
 const deduplicateRequest = async (key, requestFn, cacheTime = 30000) => {
+  // Debounce per evitare chiamate troppo frequenti
+  if (!debounceCall(key, 2000)) {
+    // Se la chiamata è stata debounced, restituisci i dati dalla cache se disponibili
+    const cached = apiCache.get(key);
+    if (cached) {
+      console.log(`⏱️ Returning cached data for debounced call: ${key}`);
+      updateApiStats('cache');
+      return cached.data;
+    }
+    // Se non ci sono dati in cache, aspetta un po' e riprova
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    return deduplicateRequest(key, requestFn, cacheTime);
+  }
+
   // Se c'è già una richiesta in corso per questa chiave, restituisci la promise esistente
   if (pendingRequests.has(key)) {
     console.log(`🔄 Request deduplication hit for: ${key}`);

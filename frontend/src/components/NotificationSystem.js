@@ -256,11 +256,13 @@ export const NotificationProvider = ({ children }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [modal, setModal] = useState(null);
     const [showNotification, setShowNotification] = useState(false);
+    const [pollingActive, setPollingActive] = useState(false);
 
     useEffect(() => {
         if (!user || !token) {
             setNotifications([]);
             setUnreadCount(0);
+            setPollingActive(false);
             return;
         }
 
@@ -269,12 +271,23 @@ export const NotificationProvider = ({ children }) => {
 
         // Polling per nuove notifiche ogni 300 secondi (5 minuti invece di 2)
         const interval = setInterval(() => {
+            if (pollingActive) {
+                console.log('⏸️ Skipping notification poll - already active');
+                return;
+            }
+            
             console.log('🔄 Polling notifiche - timestamp:', new Date().toISOString());
-            loadNotifications();
+            setPollingActive(true);
+            loadNotifications().finally(() => {
+                setPollingActive(false);
+            });
         }, 300000);
 
-        return () => clearInterval(interval);
-    }, [user, token]);
+        return () => {
+            clearInterval(interval);
+            setPollingActive(false);
+        };
+    }, [user, token, pollingActive]);
 
     const loadNotifications = async () => {
         if (!user || !token) {

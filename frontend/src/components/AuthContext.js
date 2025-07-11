@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { verifyUser } from '../api/auth';
-import { clearUserCache } from '../api/sharedApi';
+import { clearUserCache, verifyUserShared } from '../api/sharedApi';
 
 const AuthContext = createContext(null);
 
@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
     if (!token) return;
     
     try {
-      const response = await verifyUser(token);
+      const response = await verifyUserShared(token);
       if (response && response.user) {
         setUser(response.user);
         localStorage.setItem('user', JSON.stringify(response.user));
