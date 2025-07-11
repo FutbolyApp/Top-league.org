@@ -1,4 +1,4 @@
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 
 export function addSubadmin(legaId, userId, permissions, callback) {
   const db = getDb();

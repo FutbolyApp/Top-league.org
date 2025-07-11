@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { requireAuth, requireSubadminOrAdmin } from '../middleware/auth.js';
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 import XLSX from 'xlsx';
 
 const router = express.Router();

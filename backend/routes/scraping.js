@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 import { 
   testScraping, 
   scrapeClassifica, 

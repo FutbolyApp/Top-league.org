@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 
 class PlaywrightScraper {
     constructor() {

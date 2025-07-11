@@ -12,7 +12,7 @@ import { getSquadraById, updateSquadraPartial } from '../models/squadra.js';
 import { getGiocatoriBySquadra } from '../models/giocatore.js';
 import { createNotifica } from '../models/notifica.js';
 import { updateGiocatore } from '../models/giocatore.js';
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 
 const router = express.Router();
 

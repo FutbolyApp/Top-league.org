@@ -1,4 +1,4 @@
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 
 export function createRichiestaAdmin(squadra_id, tipo_richiesta, dati_richiesta, callback) {
   const db = getDb();

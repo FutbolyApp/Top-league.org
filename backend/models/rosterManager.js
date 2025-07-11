@@ -1,4 +1,4 @@
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 import { getLegaById } from './lega.js';
 import { getGiocatoriBySquadra } from './giocatore.js';
 

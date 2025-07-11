@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 import archiver from 'archiver';
 import extract from 'extract-zip';
 

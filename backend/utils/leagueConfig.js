@@ -1,4 +1,4 @@
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 
 // Funzione per ottenere le configurazioni di una lega
 export function getLeagueConfig(legaId) {

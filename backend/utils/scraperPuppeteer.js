@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 import cron from 'node-cron';
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 
 const db = getDb();
 

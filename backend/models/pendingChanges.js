@@ -1,4 +1,4 @@
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 
 export function createPendingChange(legaId, subadminId, actionType, actionData, description, details, callback) {
   const db = getDb();

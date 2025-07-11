@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 
 const db = getDb();
 
