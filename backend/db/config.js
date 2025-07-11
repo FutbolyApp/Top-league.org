@@ -5,9 +5,9 @@ import path from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Usa una directory persistente per il database su Render, altrimenti locale
+// Usa database in memoria per test su Render
 const DB_PATH = process.env.DB_PATH || (process.env.NODE_ENV === 'production' 
-  ? '/tmp/topleague.db' 
+  ? ':memory:' 
   : path.join(__dirname, 'topleague.db'));
 console.log('SQLite DB Path:', DB_PATH);
 
