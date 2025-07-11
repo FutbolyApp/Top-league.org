@@ -14,6 +14,20 @@ const router = express.Router();
 const db = getDb();
 const upload = multer({ dest: './backend/uploads/' });
 
+// Middleware per gestire CORS preflight per tutte le route
+router.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 // Crea una lega con upload Excel e popolamento squadre/giocatori
 router.post('/create', requireAuth, upload.single('excel'), async (req, res) => {
   try {

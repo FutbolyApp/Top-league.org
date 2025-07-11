@@ -52,12 +52,43 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept', 'Cache-Control'],
-  exposedHeaders: ['Content-Length', 'X-Requested-With', 'Authorization'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Origin', 
+    'Accept', 
+    'Cache-Control',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Methods'
+  ],
+  exposedHeaders: [
+    'Content-Length', 
+    'X-Requested-With', 
+    'Authorization',
+    'Access-Control-Allow-Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Allow-Methods'
+  ],
   preflightContinue: false,
   optionsSuccessStatus: 200
 }));
 app.use(express.json());
+
+// Middleware aggiuntivo per CORS preflight
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 
 // Servi file statici dalla cartella uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -85,6 +116,25 @@ app.get('/api/test-cors', (req, res) => {
   console.log('CORS test received');
   res.json({ 
     message: 'CORS test successful',
+    timestamp: new Date().toISOString(),
+    origin: req.headers.origin
+  });
+});
+
+// Test CORS preflight endpoint
+app.options('/api/test-cors-preflight', (req, res) => {
+  console.log('CORS preflight test received');
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
+
+app.post('/api/test-cors-preflight', (req, res) => {
+  console.log('CORS preflight POST test received');
+  res.json({ 
+    message: 'CORS preflight POST test successful',
     timestamp: new Date().toISOString(),
     origin: req.headers.origin
   });

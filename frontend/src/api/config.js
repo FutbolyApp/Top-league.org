@@ -23,6 +23,18 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
     console.log('Response status:', response.status, 'for URL:', fullUrl);
     
     if (!response.ok) {
+      // Emetti evento personalizzato per errori di rete
+      const errorEvent = new CustomEvent('fetch-error', {
+        detail: {
+          error: {
+            status: response.status,
+            message: `HTTP ${response.status}: ${response.statusText}`,
+            url: fullUrl
+          }
+        }
+      });
+      window.dispatchEvent(errorEvent);
+      
       let errorMessage = 'Errore del server';
       try {
         // Prova a leggere come JSON
@@ -46,6 +58,19 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
     return response.json();
   } catch (error) {
     console.error('Request failed:', error);
+    
+    // Emetti evento personalizzato per errori di rete
+    const errorEvent = new CustomEvent('fetch-error', {
+      detail: {
+        error: {
+          status: null,
+          message: error.message,
+          url: fullUrl
+        }
+      }
+    });
+    window.dispatchEvent(errorEvent);
+    
     if (retries > 0) {
       console.log(`Retrying... ${retries} attempts left`);
       await new Promise(resolve => setTimeout(resolve, 1000));

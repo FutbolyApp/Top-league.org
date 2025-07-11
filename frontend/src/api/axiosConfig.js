@@ -14,6 +14,18 @@ function autoLogout() {
 api.interceptors.response.use(
   response => response,
   error => {
+    // Emetti evento personalizzato per errori di rete
+    const errorEvent = new CustomEvent('fetch-error', {
+      detail: {
+        error: {
+          status: error.response?.status,
+          message: error.message,
+          url: error.config?.url
+        }
+      }
+    });
+    window.dispatchEvent(errorEvent);
+    
     if (error.response && error.response.status === 401) {
       error.customMessage = 'Sessione scaduta o non autorizzato. Effettua di nuovo il login.';
       autoLogout();

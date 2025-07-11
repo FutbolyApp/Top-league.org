@@ -47,6 +47,8 @@ import GestioneSquadra from './pages/GestioneSquadra';
 import RichiestaAdmin from './pages/RichiestaAdmin';
 import GestioneRichiesteAdmin from './pages/GestioneRichiesteAdmin';
 import GestioneRosterAdmin from './pages/GestioneRosterAdmin';
+import NotFound from './pages/NotFound';
+import NetworkErrorHandler from './components/NetworkErrorHandler';
 import './index.css';
 
 function AppRoutes() {
@@ -97,7 +99,7 @@ function AppRoutes() {
         <Route path="/gestione-roster-admin/:legaId" element={<ProtectedRoute><GestioneRosterAdmin /></ProtectedRoute>} />
         <Route path="/modifica-lega/:id" element={<ProtectedRoute><ModificaLega /></ProtectedRoute>} />
         <Route path="/log-squadra/:squadraId" element={<ProtectedRoute><LogSquadraPage /></ProtectedRoute>} />
-        <Route path="*" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </>
   );
@@ -105,12 +107,14 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <NotificationProvider>
-        <AppRoutes />
-        <ApiMonitor />
-      </NotificationProvider>
-    </AuthProvider>
+    <NetworkErrorHandler>
+      <AuthProvider>
+        <NotificationProvider>
+          <AppRoutes />
+          <ApiMonitor />
+        </NotificationProvider>
+      </AuthProvider>
+    </NetworkErrorHandler>
   );
 }
 
