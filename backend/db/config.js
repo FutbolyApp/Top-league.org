@@ -61,6 +61,29 @@ function addMissingColumns() {
 export function initDb() {
   const db = getDb();
   db.serialize(() => {
+    // Crea un utente di test se non esiste
+    db.get('SELECT COUNT(*) as count FROM users', [], (err, countRow) => {
+      if (countRow && countRow.count === 0) {
+        console.log('Database vuoto, creando utente di test...');
+        const bcrypt = require('bcryptjs');
+        const password_hash = bcrypt.hashSync('admin123', 10);
+        
+        db.run(`INSERT INTO users (nome, cognome, username, email, password_hash, ruolo) 
+                VALUES (?, ?, ?, ?, ?, ?)`, 
+                ['Admin', 'Test', 'admin', 'admin@topleague.com', password_hash, 'SuperAdmin'],
+                function(err) {
+          if (err) {
+            console.error('Errore creazione utente test:', err);
+          } else {
+            console.log('✅ Utente di test creato con successo');
+            console.log('Email: admin@topleague.com');
+            console.log('Password: admin123');
+          }
+        });
+      } else {
+        console.log('Database già contiene utenti:', countRow ? countRow.count : 'errore');
+      }
+    });
     db.run(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nome TEXT NOT NULL,
