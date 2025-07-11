@@ -745,22 +745,22 @@ router.get('/:legaId/squadre-disponibili', requireAuth, async (req, res) => {
 });
 
 // Invia richiesta di ingresso a una lega
-router.post('/:legaId/richiedi-ingresso', requireAuth, (req, res) => {
+router.post('/:legaId/richiedi-ingresso', requireAuth, async (req, res) => {
   const legaId = req.params.legaId;
   const userId = req.user.id;
   const { squadra_id, password, messaggio } = req.body;
   
   console.log(`POST /api/leghe/${legaId}/richiedi-ingresso - User ID: ${userId}`);
   
-  // Verifica che la lega esista
-  getLegaById(legaId, (err, lega) => {
-    if (err) {
-      console.error('Errore nel getLegaById:', err);
-      return res.status(500).json({ error: 'Errore DB', details: err.message });
-    }
-    if (!lega) {
+  try {
+    const db = getDb();
+    
+    // Verifica che la lega esista
+    const legaResult = await db.query('SELECT * FROM leghe WHERE id = $1', [legaId]);
+    if (legaResult.rows.length === 0) {
       return res.status(404).json({ error: 'Lega non trovata' });
     }
+    const lega = legaResult.rows[0];
     
     // Verifica che l'utente non sia già admin di questa lega
     if (lega.admin_id === userId) {
@@ -768,116 +768,90 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, (req, res) => {
     }
     
     // Verifica che l'utente non sia già proprietario di una squadra in questa lega
-    db.get('SELECT id FROM squadre WHERE lega_id = ? AND proprietario_id = ?', [legaId, userId], (err, squadraPosseduta) => {
-      if (err) {
-        console.error('Errore verifica squadra posseduta:', err);
-        return res.status(500).json({ error: 'Errore DB' });
+    const squadraPossedutaResult = await db.query('SELECT id FROM squadre WHERE lega_id = $1 AND proprietario_id = $2', [legaId, userId]);
+    if (squadraPossedutaResult.rows.length > 0) {
+      return res.status(400).json({ error: 'Hai già una squadra in questa lega' });
+    }
+
+    // Verifica che l'utente non abbia già una richiesta (in attesa, accettata o rifiutata) per questa lega
+    const richiestaEsistenteResult = await db.query('SELECT id FROM richieste_ingresso WHERE utente_id = $1 AND lega_id = $2', [userId, legaId]);
+    if (richiestaEsistenteResult.rows.length > 0) {
+      return res.status(400).json({ error: 'Hai già inviato una richiesta per questa lega' });
+    }
+
+    // Verifica che la squadra esista e sia disponibile
+    const squadraResult = await db.query('SELECT id, nome, is_orfana FROM squadre WHERE id = $1 AND lega_id = $2', [squadra_id, legaId]);
+    if (squadraResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Squadra non trovata' });
+    }
+    const squadra = squadraResult.rows[0];
+
+    if (squadra.is_orfana !== true) {
+      return res.status(400).json({ error: 'Squadra non disponibile' });
+    }
+
+    // Se la lega non è pubblica, verifica la password
+    if (!lega.is_pubblica) {
+      if (!password) {
+        return res.status(400).json({ error: 'Password richiesta per unirsi a questa lega' });
       }
-      if (squadraPosseduta) {
-        return res.status(400).json({ error: 'Hai già una squadra in questa lega' });
+      if (lega.password !== password) {
+        return res.status(400).json({ error: 'Password non corretta' });
       }
+    }
 
-      // Verifica che l'utente non abbia già una richiesta (in attesa, accettata o rifiutata) per questa lega
-      db.get('SELECT id FROM richieste_ingresso WHERE utente_id = ? AND lega_id = ?', [userId, legaId], (err, richiestaEsistente) => {
-        if (err) {
-          console.error('Errore verifica richiesta esistente:', err);
-          return res.status(500).json({ error: 'Errore DB' });
-        }
-        if (richiestaEsistente) {
-          return res.status(400).json({ error: 'Hai già inviato una richiesta per questa lega' });
-        }
+    // Inserisci la richiesta
+    const richiestaInsertResult = await db.query(`
+      INSERT INTO richieste_ingresso 
+      (utente_id, lega_id, squadra_id, password_fornita, messaggio_richiesta)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id
+    `, [userId, legaId, squadra_id, password || null, messaggio || null]);
+    
+    const richiestaId = richiestaInsertResult.rows[0].id;
 
-        // Verifica che la squadra esista e sia disponibile
-        db.get('SELECT id, nome, is_orfana FROM squadre WHERE id = ? AND lega_id = ?', [squadra_id, legaId], (err, squadra) => {
-          if (err) {
-            console.error('Errore verifica squadra:', err);
-            return res.status(500).json({ error: 'Errore DB' });
-          }
+    // Crea notifica per l'admin
+    await db.query(`
+      INSERT INTO notifiche (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
+      VALUES ($1, $2, 'richiesta_ingresso', $3, $4, NOW())
+    `, [legaId, lega.admin_id, 'richiesta_ingresso', 'Nuova richiesta di ingresso', `Nuova richiesta di ingresso per la squadra ${squadra.nome} da ${req.user.nome || req.user.username}`]);
 
-          if (!squadra) {
-            return res.status(404).json({ error: 'Squadra non trovata' });
-          }
-
-          if (squadra.is_orfana !== 1) {
-            return res.status(400).json({ error: 'Squadra non disponibile' });
-          }
-
-          // Se la lega non è pubblica, verifica la password
-          if (!lega.is_pubblica) {
-            if (!password) {
-              return res.status(400).json({ error: 'Password richiesta per unirsi a questa lega' });
-            }
-            if (lega.password !== password) {
-              return res.status(400).json({ error: 'Password non corretta' });
-            }
-          }
-
-          // Inserisci la richiesta
-          db.run(`
-            INSERT INTO richieste_ingresso 
-            (utente_id, lega_id, squadra_id, password_fornita, messaggio_richiesta)
-            VALUES (?, ?, ?, ?, ?)
-          `, [userId, legaId, squadra_id, password || null, messaggio || null], function(err) {
-            if (err) {
-              console.error('Errore inserimento richiesta:', err);
-              return res.status(500).json({ error: 'Errore DB' });
-            }
-
-            const richiestaId = this.lastID;
-
-            // Crea notifica per l'admin
-            db.run(`
+    // Crea notifiche per i subadmin con permesso gestione_richieste
+    try {
+      const subadminsResult = await db.query(`
+        SELECT s.utente_id, s.permessi
+        FROM subadmin s
+        WHERE s.lega_id = $1 AND s.attivo = true
+      `, [legaId]);
+      
+      for (const subadmin of subadminsResult.rows) {
+        try {
+          const permessi = JSON.parse(subadmin.permessi || '{}');
+          if (permessi.gestione_richieste) {
+            await db.query(`
               INSERT INTO notifiche (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-              VALUES (?, ?, 'richiesta_ingresso', ?, ?, datetime('now'))
-            `, [legaId, lega.admin_id, 'richiesta_ingresso', 'Nuova richiesta di ingresso', `Nuova richiesta di ingresso per la squadra ${squadra.nome} da ${req.user.nome || req.user.username}`], (err) => {
-              if (err) {
-                console.error('Errore creazione notifica admin:', err);
-              }
-            });
+              VALUES ($1, $2, 'richiesta_ingresso', $3, $4, NOW())
+            `, [legaId, subadmin.utente_id, 'Nuova richiesta di ingresso', `Nuova richiesta di ingresso per la squadra ${squadra.nome} da ${req.user.nome || req.user.username}`]);
+            console.log(`Notifica creata per subadmin ${subadmin.utente_id}`);
+          }
+        } catch (e) {
+          console.error('Errore parsing permessi subadmin:', e);
+        }
+      }
+    } catch (err) {
+      console.error('Errore recupero subadmin per notifiche:', err);
+    }
 
-            // Crea notifiche per i subadmin con permesso gestione_richieste
-            db.all(`
-              SELECT s.utente_id, s.permessi
-              FROM subadmin s
-              WHERE s.lega_id = ? AND s.attivo = 1
-            `, [legaId], (err, subadmins) => {
-              if (err) {
-                console.error('Errore recupero subadmin per notifiche:', err);
-                return;
-              }
-
-              subadmins.forEach(subadmin => {
-                try {
-                  const permessi = JSON.parse(subadmin.permessi || '{}');
-                  if (permessi.gestione_richieste) {
-                    db.run(`
-                      INSERT INTO notifiche (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-                      VALUES (?, ?, 'richiesta_ingresso', ?, ?, datetime('now'))
-                    `, [legaId, subadmin.utente_id, 'Nuova richiesta di ingresso', `Nuova richiesta di ingresso per la squadra ${squadra.nome} da ${req.user.nome || req.user.username}`], (err) => {
-                      if (err) {
-                        console.error('Errore creazione notifica subadmin:', err);
-                      } else {
-                        console.log(`Notifica creata per subadmin ${subadmin.utente_id}`);
-                      }
-                    });
-                  }
-                } catch (e) {
-                  console.error('Errore parsing permessi subadmin:', e);
-                }
-              });
-            });
-
-            console.log('Richiesta di ingresso creata:', richiestaId);
-            res.json({ 
-              success: true, 
-              richiesta_id: richiestaId,
-              message: 'Richiesta inviata con successo. L\'admin della lega riceverà una notifica.'
-            });
-          });
-        });
-      });
+    console.log('Richiesta di ingresso creata:', richiestaId);
+    res.json({ 
+      success: true, 
+      richiesta_id: richiestaId,
+      message: 'Richiesta inviata con successo. L\'admin della lega riceverà una notifica.'
     });
-  });
+  } catch (err) {
+    console.error('Errore richiesta di ingresso:', err);
+    res.status(500).json({ error: 'Errore DB' });
+  }
 });
 
 // Ottieni richieste di ingresso per un utente
