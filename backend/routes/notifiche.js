@@ -3,12 +3,12 @@ import { requireAuth } from '../middleware/auth.js';
 import { getDb } from '../db/postgres.js';
 
 const router = express.Router();
-const db = getDb();
 
 // Ottieni tutte le notifiche dell'utente loggato
 router.get('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
+    const db = getDb();
     const result = await db.query(`
       SELECT *, COALESCE(dati_aggiuntivi, '{}') as dati_aggiuntivi 
       FROM notifiche 
@@ -24,129 +24,199 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // Ottieni tutte le notifiche dell'utente loggato (alias)
-router.get('/utente', requireAuth, (req, res) => {
-  const userId = req.user.id;
-  db.all('SELECT *, COALESCE(dati_aggiuntivi, "{}") as dati_aggiuntivi FROM notifiche WHERE utente_id = ? AND (archiviata = 0 OR archiviata IS NULL) ORDER BY data_creazione DESC', [userId], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Errore DB' });
-    res.json({ notifiche: rows });
-  });
+router.get('/utente', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const db = getDb();
+    const result = await db.query(`
+      SELECT *, COALESCE(dati_aggiuntivi, '{}') as dati_aggiuntivi 
+      FROM notifiche 
+      WHERE utente_id = $1 AND (archiviata = false OR archiviata IS NULL) 
+      ORDER BY data_creazione DESC
+    `, [userId]);
+    
+    res.json({ notifiche: result.rows });
+  } catch (error) {
+    console.error('Errore recupero notifiche utente:', error);
+    res.status(500).json({ error: 'Errore DB', details: error.message });
+  }
 });
 
 // Ottieni notifiche per admin di una lega
-router.get('/admin/:legaId', requireAuth, (req, res) => {
-  const legaId = req.params.legaId;
-  const adminId = req.user.id;
-  
-  // Verifica che l'utente sia admin della lega
-  db.get('SELECT id FROM leghe WHERE id = ? AND admin_id = ?', [legaId, adminId], (err, lega) => {
-    if (err) return res.status(500).json({ error: 'Errore DB' });
-    if (!lega) return res.status(403).json({ error: 'Non autorizzato' });
+router.get('/admin/:legaId', requireAuth, async (req, res) => {
+  try {
+    const legaId = req.params.legaId;
+    const adminId = req.user.id;
+    const db = getDb();
+    
+    // Verifica che l'utente sia admin della lega
+    const legaResult = await db.query('SELECT id FROM leghe WHERE id = $1 AND admin_id = $2', [legaId, adminId]);
+    
+    if (legaResult.rows.length === 0) {
+      return res.status(403).json({ error: 'Non autorizzato' });
+    }
     
     // Ottieni notifiche per admin di questa lega
-    db.all(`
+    const notificheResult = await db.query(`
       SELECT n.*, u.nome as utente_nome, u.cognome as utente_cognome
       FROM notifiche n
-      JOIN utenti u ON n.utente_id = u.id
-      WHERE n.lega_id = ? AND n.tipo IN ('richiesta_trasferimento', 'richiesta_club', 'richiesta_rinnovo', 'richiesta_pagamento', 'richiesta_generale')
+      JOIN users u ON n.utente_id = u.id
+      WHERE n.lega_id = $1 AND n.tipo IN ('richiesta_trasferimento', 'richiesta_club', 'richiesta_rinnovo', 'richiesta_pagamento', 'richiesta_generale')
       ORDER BY n.data_creazione DESC
-    `, [legaId], (err, rows) => {
-      if (err) return res.status(500).json({ error: 'Errore DB' });
-      res.json({ notifiche: rows });
-    });
-  });
+    `, [legaId]);
+    
+    res.json({ notifiche: notificheResult.rows });
+  } catch (error) {
+    console.error('Errore recupero notifiche admin:', error);
+    res.status(500).json({ error: 'Errore DB', details: error.message });
+  }
 });
 
 // Crea notifica per admin
-router.post('/admin', requireAuth, (req, res) => {
-  const { lega_id, tipo, messaggio, giocatore_id, squadra_id } = req.body;
-  const userId = req.user.id;
-  
-  if (!lega_id || !tipo || !messaggio) {
-    return res.status(400).json({ error: 'Dati mancanti' });
-  }
-  
-  // Ottieni admin della lega
-  db.get('SELECT admin_id FROM leghe WHERE id = ?', [lega_id], (err, lega) => {
-    if (err) return res.status(500).json({ error: 'Errore DB' });
-    if (!lega) return res.status(404).json({ error: 'Lega non trovata' });
+router.post('/admin', requireAuth, async (req, res) => {
+  try {
+    const { lega_id, tipo, messaggio, giocatore_id, squadra_id } = req.body;
+    const userId = req.user.id;
+    const db = getDb();
+    
+    if (!lega_id || !tipo || !messaggio) {
+      return res.status(400).json({ error: 'Dati mancanti' });
+    }
+    
+    // Ottieni admin della lega
+    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [lega_id]);
+    
+    if (legaResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Lega non trovata' });
+    }
+    
+    const lega = legaResult.rows[0];
     
     // Crea notifica per l'admin
-    db.run(`
+    const notificaResult = await db.query(`
       INSERT INTO notifiche (utente_id, lega_id, tipo, messaggio, data_creazione)
-      VALUES (?, ?, ?, ?, datetime('now'))
-    `, [lega.admin_id, lega_id, tipo, messaggio], function(err) {
-      if (err) return res.status(500).json({ error: 'Errore creazione notifica' });
-      res.json({ success: true, id: this.lastID });
-    });
-  });
+      VALUES ($1, $2, $3, $4, NOW())
+      RETURNING id
+    `, [lega.admin_id, lega_id, tipo, messaggio]);
+    
+    res.json({ success: true, id: notificaResult.rows[0].id });
+  } catch (error) {
+    console.error('Errore creazione notifica admin:', error);
+    res.status(500).json({ error: 'Errore creazione notifica', details: error.message });
+  }
 });
 
 // Marca notifica come letta
-router.put('/:notificaId/letta', requireAuth, (req, res) => {
-  const notificaId = req.params.notificaId;
-  const userId = req.user.id;
-  
-  db.run('UPDATE notifiche SET letto = 1, data_lettura = datetime("now") WHERE id = ? AND utente_id = ?', [notificaId, userId], function(err) {
-    if (err) return res.status(500).json({ error: 'Errore aggiornamento' });
-    if (this.changes === 0) return res.status(404).json({ error: 'Notifica non trovata' });
+router.put('/:notificaId/letta', requireAuth, async (req, res) => {
+  try {
+    const notificaId = req.params.notificaId;
+    const userId = req.user.id;
+    const db = getDb();
+    
+    const result = await db.query(
+      'UPDATE notifiche SET letto = true, data_lettura = NOW() WHERE id = $1 AND utente_id = $2',
+      [notificaId, userId]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Notifica non trovata' });
+    }
+    
     res.json({ success: true });
-  });
+  } catch (error) {
+    console.error('Errore aggiornamento notifica letta:', error);
+    res.status(500).json({ error: 'Errore aggiornamento', details: error.message });
+  }
 });
 
 // Marca notifica come letta (POST endpoint per compatibilità frontend)
-router.post('/:notificaId/read', requireAuth, (req, res) => {
-  const notificaId = req.params.notificaId;
-  const userId = req.user.id;
-  
-  db.run('UPDATE notifiche SET letto = 1, data_lettura = datetime("now") WHERE id = ? AND utente_id = ?', [notificaId, userId], function(err) {
-    if (err) return res.status(500).json({ error: 'Errore aggiornamento' });
-    if (this.changes === 0) return res.status(404).json({ error: 'Notifica non trovata' });
+router.post('/:notificaId/read', requireAuth, async (req, res) => {
+  try {
+    const notificaId = req.params.notificaId;
+    const userId = req.user.id;
+    const db = getDb();
+    
+    const result = await db.query(
+      'UPDATE notifiche SET letto = true, data_lettura = NOW() WHERE id = $1 AND utente_id = $2',
+      [notificaId, userId]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Notifica non trovata' });
+    }
+    
     res.json({ success: true });
-  });
+  } catch (error) {
+    console.error('Errore aggiornamento notifica letta:', error);
+    res.status(500).json({ error: 'Errore aggiornamento', details: error.message });
+  }
 });
 
 // Marca tutte le notifiche come lette
-router.put('/tutte-lette', requireAuth, (req, res) => {
-  const userId = req.user.id;
-  
-  db.run('UPDATE notifiche SET letto = 1, data_lettura = datetime("now") WHERE utente_id = ?', [userId], function(err) {
-    if (err) return res.status(500).json({ error: 'Errore aggiornamento' });
-    res.json({ success: true, aggiornate: this.changes });
-  });
+router.put('/tutte-lette', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const db = getDb();
+    
+    const result = await db.query(
+      'UPDATE notifiche SET letto = true, data_lettura = NOW() WHERE utente_id = $1',
+      [userId]
+    );
+    
+    res.json({ success: true, aggiornate: result.rowCount });
+  } catch (error) {
+    console.error('Errore aggiornamento tutte notifiche lette:', error);
+    res.status(500).json({ error: 'Errore aggiornamento', details: error.message });
+  }
 });
 
 // Elimina notifica
-router.delete('/:notificaId', requireAuth, (req, res) => {
-  const notificaId = req.params.notificaId;
-  const userId = req.user.id;
-  
-  db.run('DELETE FROM notifiche WHERE id = ? AND utente_id = ?', [notificaId, userId], function(err) {
-    if (err) return res.status(500).json({ error: 'Errore eliminazione' });
-    if (this.changes === 0) return res.status(404).json({ error: 'Notifica non trovata' });
+router.delete('/:notificaId', requireAuth, async (req, res) => {
+  try {
+    const notificaId = req.params.notificaId;
+    const userId = req.user.id;
+    const db = getDb();
+    
+    const result = await db.query(
+      'DELETE FROM notifiche WHERE id = $1 AND utente_id = $2',
+      [notificaId, userId]
+    );
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Notifica non trovata' });
+    }
+    
     res.json({ success: true });
-  });
+  } catch (error) {
+    console.error('Errore eliminazione notifica:', error);
+    res.status(500).json({ error: 'Errore eliminazione', details: error.message });
+  }
 });
 
 // Archivia notifiche (aggiorna il campo archiviata)
-router.put('/archivia', requireAuth, (req, res) => {
-  const userId = req.user.id;
-  const { notifica_ids } = req.body;
-  
-  if (!notifica_ids || !Array.isArray(notifica_ids) || notifica_ids.length === 0) {
-    return res.status(400).json({ error: 'Lista notifiche richiesta' });
-  }
-  
-  const placeholders = notifica_ids.map(() => '?').join(',');
-  const params = [...notifica_ids, userId];
-  
-  db.run(
-    `UPDATE notifiche SET archiviata = 1 WHERE id IN (${placeholders}) AND utente_id = ?`,
-    params,
-    function(err) {
-      if (err) return res.status(500).json({ error: 'Errore archiviazione' });
-      res.json({ success: true, archiviate: this.changes });
+router.put('/archivia', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { notifica_ids } = req.body;
+    const db = getDb();
+    
+    if (!notifica_ids || !Array.isArray(notifica_ids) || notifica_ids.length === 0) {
+      return res.status(400).json({ error: 'Lista notifiche richiesta' });
     }
-  );
+    
+    const placeholders = notifica_ids.map((_, index) => `$${index + 2}`).join(',');
+    const params = [userId, ...notifica_ids];
+    
+    const result = await db.query(
+      `UPDATE notifiche SET archiviata = true WHERE id IN (${placeholders}) AND utente_id = $1`,
+      params
+    );
+    
+    res.json({ success: true, archiviate: result.rowCount });
+  } catch (error) {
+    console.error('Errore archiviazione notifiche:', error);
+    res.status(500).json({ error: 'Errore archiviazione', details: error.message });
+  }
 });
 
 export default router; 
