@@ -1,173 +1,77 @@
-const API_URL = 'http://localhost:3001/api/subadmin';
-
-// Funzione helper per gestire gli errori
-async function handleResponse(res) {
-  if (!res.ok) {
-    let errorMessage = 'Errore del server';
-    try {
-      const errorData = await res.json();
-      errorMessage = errorData.error || errorMessage;
-    } catch (e) {
-      const text = await res.text();
-      if (text.includes('<!DOCTYPE')) {
-        errorMessage = 'Errore del server: risposta non valida';
-      } else {
-        errorMessage = text || errorMessage;
-      }
-    }
-    throw new Error(errorMessage);
-  }
-  return res.json();
-}
+import { api } from './config.js';
 
 // Ottieni tutti i subadmin (solo SuperAdmin)
 export const getAllSubadmins = async (token) => {
-  const res = await fetch(`${API_URL}/all`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get('/subadmin/all', token);
 };
 
 // Ottieni subadmin di una lega
 export const getSubadminsByLega = async (legaId, token) => {
-  const res = await fetch(`${API_URL}/lega/${legaId}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get(`/subadmin/lega/${legaId}`, token);
 };
 
 // Aggiungi subadmin (solo SuperAdmin)
 export const addSubadmin = async (legaId, userId, permissions, token) => {
-  const res = await fetch(`${API_URL}/add`, {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ legaId, userId, permissions })
-  });
-  return handleResponse(res);
+  return api.post('/subadmin/add', { legaId, userId, permissions }, token);
 };
 
 // Rimuovi subadmin (solo SuperAdmin)
 export const removeSubadmin = async (legaId, userId, token) => {
-  const res = await fetch(`${API_URL}/remove`, {
-    method: 'DELETE',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ legaId, userId })
-  });
-  return handleResponse(res);
+  return api.delete('/subadmin/remove', token);
 };
 
 // Verifica se utente è subadmin di una lega
 export const checkSubadmin = async (legaId, token) => {
-  const res = await fetch(`${API_URL}/check/${legaId}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get(`/subadmin/check/${legaId}`, token);
 };
 
 // Verifica permesso specifico
 export const checkPermission = async (legaId, permission, token) => {
-  const res = await fetch(`${API_URL}/permission/${legaId}/${permission}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get(`/subadmin/permission/${legaId}/${permission}`, token);
 };
 
 // Ottieni modifiche in attesa per una lega (admin della lega)
 export const getPendingChangesByLega = async (legaId, token) => {
-  const res = await fetch(`${API_URL}/pending/${legaId}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get(`/subadmin/pending/${legaId}`, token);
 };
 
 // Ottieni modifiche in attesa per un subadmin
 export const getPendingChangesBySubadmin = async (token) => {
-  const res = await fetch(`${API_URL}/pending/subadmin`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get('/subadmin/pending/subadmin', token);
 };
 
 // Approva modifica (admin della lega)
 export const approveChange = async (changeId, adminResponse, token) => {
-  const res = await fetch(`${API_URL}/approve/${changeId}`, {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ adminResponse })
-  });
-  return handleResponse(res);
+  return api.post(`/subadmin/approve/${changeId}`, { adminResponse }, token);
 };
 
 // Rifiuta modifica (admin della lega)
 export const rejectChange = async (changeId, adminResponse, token) => {
-  const res = await fetch(`${API_URL}/reject/${changeId}`, {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ adminResponse })
-  });
-  return handleResponse(res);
+  return api.post(`/subadmin/reject/${changeId}`, { adminResponse }, token);
 };
 
 // Ottieni storico modifiche di una lega (admin della lega)
 export const getChangeHistory = async (legaId, token) => {
-  const url = legaId ? `${API_URL}/history/${legaId}` : `${API_URL}/history`;
-  const res = await fetch(url, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  const url = legaId ? `/subadmin/history/${legaId}` : '/subadmin/history';
+  return api.get(url, token);
 };
 
 // Ottieni le leghe dove l'utente è subadmin
 export const getSubadminLeagues = async (token) => {
-  const res = await fetch(`${API_URL}/check-all`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get('/subadmin/check-all', token);
 };
 
 // Crea una nuova richiesta di modifica
 export const createPendingChange = async (requestData, token) => {
-  const res = await fetch(`${API_URL}/request`, {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(requestData)
-  });
-  return handleResponse(res);
+  return api.post('/subadmin/request', requestData, token);
 }; 
 
 // Annulla una modifica in attesa (solo il subadmin che l'ha creata)
 export const cancelPendingChange = async (changeId, token) => {
-  const res = await fetch(`${API_URL}/cancel/${changeId}`, {
-    method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.delete(`/subadmin/cancel/${changeId}`, token);
 };
 
 // Aggiorna permessi di un subadmin
 export const updateSubadminPermissions = async (legaId, userId, permissions, token) => {
-  const res = await fetch(`${API_URL}/update-permissions`, {
-    method: 'PUT',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ legaId, userId, permissions })
-  });
-  return handleResponse(res);
+  return api.put('/subadmin/update-permissions', { legaId, userId, permissions }, token);
 }; 

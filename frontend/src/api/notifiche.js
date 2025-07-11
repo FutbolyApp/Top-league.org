@@ -1,21 +1,11 @@
-import { apiRequest } from './axiosConfig.js';
-
-const API_URL = 'http://localhost:3001/api/notifiche';
+import { api } from './config.js';
 
 export async function getNotifiche(token) {
-  const res = await fetch(`${API_URL}/`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  if (!res.ok) throw new Error((await res.json()).error || 'Errore caricamento notifiche');
-  return res.json();
+  return api.get('/notifiche', token);
 }
 
 export async function getNotificheByUtente(token) {
-  const res = await fetch(`${API_URL}/utente`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  if (!res.ok) throw new Error((await res.json()).error || 'Errore caricamento notifiche utente');
-  return res.json();
+  return api.get('/notifiche/utente', token);
 }
 
 export const getNotificheAdmin = async (legaId, token) => {
