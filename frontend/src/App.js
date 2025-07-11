@@ -1,3 +1,4 @@
+// Force redeploy - Updated for production deployment
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
