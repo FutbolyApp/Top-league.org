@@ -495,7 +495,7 @@ const LeagueAdminArea = () => {
   // Funzione per recuperare i dati originali delle squadre
   const fetchSquadreOriginali = async (squadraIds) => {
     try {
-      const response = await fetch('http://localhost:3001/api/squadre/original-data', {
+      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/squadre/original-data`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

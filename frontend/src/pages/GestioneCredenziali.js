@@ -177,7 +177,7 @@ const GestioneCredenziali = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/leghe/${legaId}/scraping-credentials`, {
+      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/leghe/${legaId}/scraping-credentials`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -246,7 +246,7 @@ const GestioneCredenziali = () => {
         lega_id: legaId
       };
 
-      const response = await fetch('http://localhost:3001/api/scraping/puppeteer/league', {
+      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/scraping/puppeteer/league`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

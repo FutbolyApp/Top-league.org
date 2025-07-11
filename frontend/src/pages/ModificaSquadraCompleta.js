@@ -557,7 +557,7 @@ const ModificaSquadraCompleta = () => {
         // Carica le squadre della lega per il trasferimento
         if (squadraRes.squadra.lega_id) {
           try {
-            const response = await fetch(`http://localhost:3001/api/squadre/lega/${squadraRes.squadra.lega_id}`, {
+            const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/squadre/lega/${squadraRes.squadra.lega_id}`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -579,7 +579,7 @@ const ModificaSquadraCompleta = () => {
   // Funzione per ottenere il numero di giocatori di una squadra
   const getPlayerCountForTeam = async (squadraId) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/giocatori/squadra/${squadraId}`, {
+      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/giocatori/squadra/${squadraId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {

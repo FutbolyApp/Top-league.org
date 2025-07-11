@@ -278,7 +278,7 @@ const LogSquadraPage = () => {
       if (filtri.data_inizio) params.append('data_inizio', filtri.data_inizio);
       if (filtri.data_fine) params.append('data_fine', filtri.data_fine);
       
-      const response = await fetch(`http://localhost:3001/api/log-squadra/${squadraId}?${params}`, {
+      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/log-squadra/${squadraId}?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       

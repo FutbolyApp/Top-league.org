@@ -277,7 +277,7 @@ const GestioneRichiesteAdmin = () => {
             <strong>Nuovo Logo:</strong>
             <div style={{ marginTop: '10px' }}>
               <img 
-                src={`http://localhost:3001/uploads/${dati.logo_url}`} 
+                src={`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/uploads/${dati.logo_url}`} 
                 alt="Nuovo logo" 
                 style={{ 
                   maxWidth: '100px', 

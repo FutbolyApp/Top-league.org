@@ -367,7 +367,7 @@ const SuperAdminDashboard = () => {
         
         // Carica utenti separatamente con gestione errori migliorata
         try {
-          const usersResponse = await fetch('http://localhost:3001/api/auth/all-users', {
+          const usersResponse = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/auth/all-users`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -500,7 +500,7 @@ const SuperAdminDashboard = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:3001/api/auth/all-users', {
+      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/auth/all-users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -544,7 +544,7 @@ const SuperAdminDashboard = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:3001/api/superadmin/users/${userId}`, {
+      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/superadmin/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -575,7 +575,7 @@ const SuperAdminDashboard = () => {
 
       if (selectedUserForEdit) {
         // Aggiorna utente esistente
-        const response = await fetch(`http://localhost:3001/api/superadmin/users/${selectedUserForEdit.id}/role`, {
+        const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/superadmin/users/${selectedUserForEdit.id}/role`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -596,7 +596,7 @@ const SuperAdminDashboard = () => {
         }
       } else {
         // Crea nuovo utente
-        const response = await fetch('http://localhost:3001/api/auth/register', {
+        const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/auth/register`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

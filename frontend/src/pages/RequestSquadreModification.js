@@ -6,7 +6,7 @@ import { getLegaById } from '../api/leghe';
 import { getSquadreByLega } from '../api/squadre';
 import { getGiocatoriByLega } from '../api/giocatori';
 import { createPendingChange } from '../api/subadmin';
-import api from '../api/api';
+import { api } from '../api/config.js';
 
 const Container = styled.div`
   padding: 2rem;

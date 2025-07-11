@@ -8,7 +8,7 @@ import { getSquadreByLega } from '../api/leghe';
 import { creaOfferta, getLogGiocatore } from '../api/offerte';
 import { splitRoles, getRoleClass } from '../utils/roleUtils';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import api from '../api/api';
+import { api } from '../api/config.js';
 
 const Container = styled.div`
   max-width: 1200px;

@@ -432,7 +432,7 @@ const RichiestaAdmin = () => {
   const handleAnnullaRichiesta = async (richiesta_id) => {
     try {
       // Chiama l'endpoint specifico per annullare la richiesta
-      const response = await fetch(`http://localhost:3001/api/richieste-admin/${richiesta_id}/annulla`, {
+      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/richieste-admin/${richiesta_id}/annulla`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -585,7 +585,7 @@ const RichiestaAdmin = () => {
                         formData.append('logo', file);
                         
                         // Upload del file
-                        const response = await fetch('http://localhost:3001/api/upload/logo', {
+                        const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/upload/logo`, {
                           method: 'POST',
                           headers: {
                             'Authorization': `Bearer ${token}`

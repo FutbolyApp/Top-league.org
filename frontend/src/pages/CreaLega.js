@@ -223,7 +223,7 @@ const CreaLega = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/scraping/puppeteer/league', {
+      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/scraping/puppeteer/league`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

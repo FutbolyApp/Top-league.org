@@ -4,7 +4,7 @@ let socketClient = null;
 let isInitialized = false;
 
 // Initialize WebSocket connection
-export const initSocket = (url = 'ws://localhost:3001/ws') => {
+export const initSocket = (url = (process.env.NODE_ENV === 'development' ? 'ws://localhost:3001/ws' : 'wss://topleaguem.onrender.com/ws')) => {
   if (isInitialized) {
     return socketClient;
   }
