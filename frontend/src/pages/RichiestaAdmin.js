@@ -329,6 +329,9 @@ const RichiestaAdmin = () => {
         case 'generale':
           dati_richiesta.messaggio = formData.messaggio;
           break;
+        default:
+          // Gestione caso di default
+          break;
       }
 
       await createRichiestaAdmin(selectedSquadra.id, modalType, dati_richiesta, token);

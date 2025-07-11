@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
-import { getUserLeghe } from '../api/leghe';
-import { getSquadreByUtente } from '../api/squadre';
-import { getNotificheUtente } from '../api/notifiche';
+// getUserLeghe, getSquadreByUtente, getNotificheUtente imports removed as they're not used
 import { getMovimentiMercato } from '../api/offerte';
 import { 
   getSquadreUtenteShared, 
   getNotificheShared, 
   getLegheUserShared 
 } from '../api/sharedApi';
-import DefaultLogo from '../assets/logo_placeholder.png'; // Assicurati di avere un placeholder
+// DefaultLogo import removed as it's not used
 
 const Container = styled.div`
   max-width: 1200px;
@@ -131,74 +129,7 @@ const SmallCTAButton = styled(Link)`
   }
 `;
 
-const FeaturesSection = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
-`;
-
-const FeatureCard = styled.div`
-  background: white;
-  border-radius: 15px;
-  padding: 2rem;
-  text-align: center;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-5px);
-  }
-`;
-
-const FeatureIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  color: #1e3c72;
-`;
-
-const FeatureTitle = styled.h3`
-  color: #333;
-  margin-bottom: 1rem;
-  font-size: 1.3rem;
-  font-weight: 600;
-`;
-
-const FeatureDescription = styled.p`
-  color: #666;
-  line-height: 1.6;
-`;
-
-const StatsSection = styled.div`
-  background: white;
-  border-radius: 15px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-`;
-
-const StatsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 2rem;
-  text-align: center;
-`;
-
-const StatItem = styled.div`
-  padding: 1rem;
-`;
-
-const StatNumber = styled.div`
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #1e3c72;
-  margin-bottom: 0.5rem;
-`;
-
-const StatLabel = styled.div`
-  color: #666;
-  font-weight: 500;
-`;
+// FeaturesSection, FeatureCard, FeatureIcon, FeatureTitle, FeatureDescription, StatsSection, StatsGrid, StatItem, StatNumber, StatLabel components removed as they're not used
 
 // Stili per la scheda espandibile
 const ExpandedRow = styled.tr`
@@ -306,55 +237,9 @@ const ActionsSection = styled.div`
   justify-content: center;
 `;
 
-const ActionsGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  max-width: 600px;
-  width: 100%;
-  
-  @media (max-width: 600px) {
-    grid-template-columns: 1fr;
-  }
-`;
+// ActionsGrid, ActionCard components removed as they're not used
 
-const ActionCard = styled(Link)`
-  background: ${props => props.$variant === 'crea' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%)'};
-  border: 1px solid #e5e5e7;
-  border-radius: 8px;
-  padding: 1rem;
-  text-decoration: none;
-  color: white;
-  transition: all 0.2s;
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-`;
-
-const ActionIcon = styled.div`
-  font-size: 1.2rem;
-  margin-bottom: 0.5rem;
-  text-align: center;
-  color: white;
-`;
-
-const ActionTitle = styled.h3`
-  color: white;
-  margin: 0 0 0.25rem 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-align: center;
-`;
-
-const ActionDescription = styled.p`
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0;
-  text-align: center;
-  line-height: 1.3;
-  font-size: 0.75rem;
-`;
+// ActionIcon, ActionTitle, ActionDescription components removed as they're not used
 
 const Section = styled.div`
   background: white;
@@ -570,14 +455,7 @@ const Home = () => {
   };
 
   // Funzione per gestire l'ordinamento delle squadre
-  const handleSortSquadre = (field) => {
-    if (sortFieldSquadre === field) {
-      setSortDirectionSquadre(sortDirectionSquadre === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortFieldSquadre(field);
-      setSortDirectionSquadre('asc');
-    }
-  };
+// handleSortSquadre function removed as it's not used
 
   // Funzione per ordinare le leghe
   const sortLeghe = (legheToSort) => {

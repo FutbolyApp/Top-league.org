@@ -134,19 +134,7 @@ const TeamActions = styled.div`
   gap: 0.5rem;
 `;
 
-const InfoItem = styled.div`
-  font-size: 0.9rem;
-`;
-
-const InfoLabel = styled.span`
-  color: #666;
-  font-weight: 500;
-`;
-
-const InfoValue = styled.span`
-  color: #1d1d1f;
-  font-weight: 600;
-`;
+// InfoItem, InfoLabel, InfoValue components removed as they're not used
 
 const ActionButton = styled.button`
   background: #ff9500;

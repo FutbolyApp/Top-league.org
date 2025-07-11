@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { getRichiestePendingByLega, gestisciRichiesta } from '../api/richiesteAdmin';
@@ -166,9 +166,9 @@ const GestioneRichiesteAdmin = () => {
     if (token && legaId) {
       loadRichieste();
     }
-  }, [token, legaId]);
+  }, [token, legaId, loadRichieste]);
 
-  const loadRichieste = async () => {
+  const loadRichieste = useCallback(async () => {
     try {
       setLoading(true);
       const response = await getRichiestePendingByLega(legaId, token);
@@ -178,7 +178,7 @@ const GestioneRichiesteAdmin = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [legaId, token]);
 
   const openModal = (richiesta, action) => {
     setSelectedRichiesta(richiesta);

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import React, { useState, useEffect, useCallback } from 'react';
+import styled, { keyframes } from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { getTorneiLega, createTorneo, updateTorneo, deleteTorneo } from '../api/tornei';
@@ -593,9 +593,9 @@ const GestioneTornei = () => {
 
   useEffect(() => {
     loadData();
-  }, [legaId]);
+  }, [legaId, loadData]);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setErrorMessage('');
@@ -611,7 +611,7 @@ const GestioneTornei = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [legaId, token]);
 
   const validateForm = () => {
     const newErrors = {};

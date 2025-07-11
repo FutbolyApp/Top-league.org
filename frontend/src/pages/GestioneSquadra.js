@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
-import { getMyTeam, getSquadreByUtente, getMyTeamByLeague } from '../api/squadre';
+import { getMyTeamByLeague } from '../api/squadre';
 import { pagaContratto, pagaContrattiMultipli, rinnovaContratto, aggiornaImpostazioniTrasferimento, getLogRinnoviGiocatore } from '../api/contratti';
 import styled from 'styled-components';
 import { getRoleClass } from '../utils/roleUtils';
@@ -19,10 +19,7 @@ const Header = styled.div`
   margin-bottom: 2rem;
 `;
 
-const Title = styled.h1`
-  color: #1d1d1f;
-  margin-bottom: 0.5rem;
-`;
+// Title component removed as it's not used
 
 const Subtitle = styled.p`
   color: #86868b;
@@ -544,22 +541,7 @@ const NoLogs = styled.div`
   padding: 1rem;
 `;
 
-const StatusBadge = styled.span`
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  
-  &.prestito {
-    background: #fff3cd;
-    color: #856404;
-  }
-  
-  &.trasferimento {
-    background: #f3e5f5;
-    color: #7b1fa2;
-  }
-`;
+// StatusBadge component removed as it's not used
 
 const GestioneSquadra = () => {
   const { token } = useAuth();
@@ -604,7 +586,7 @@ const GestioneSquadra = () => {
     }
   }, [squadra, token]);
 
-  const fetchSquadra = async () => {
+  const fetchSquadra = useCallback(async () => {
     if (!token || !legaId) return;
     
     setLoading(true);
@@ -623,9 +605,9 @@ const GestioneSquadra = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, legaId]);
 
-  const fetchRosterData = async () => {
+  const fetchRosterData = useCallback(async () => {
     if (!squadra || !token) return;
     
     try {
@@ -640,7 +622,7 @@ const GestioneSquadra = () => {
     } catch (err) {
       console.error('Errore caricamento dati roster:', err);
     }
-  };
+  }, [squadra, token]);
 
   const handleSelectPlayer = (playerId) => {
     setSelectedPlayers(prev => 
