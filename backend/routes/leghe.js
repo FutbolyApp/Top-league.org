@@ -188,9 +188,13 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/user-leagues', requireAuth, async (req, res) => {
   const userId = req.user.id;
   
+  console.log('GET /api/leghe/user-leagues - User ID:', userId);
+  
   try {
     const db = getDb();
-    const result = await db.query(`
+    console.log('Database connection obtained');
+    
+    const query = `
       SELECT l.*, 
            CASE 
              WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
@@ -204,11 +208,17 @@ router.get('/user-leagues', requireAuth, async (req, res) => {
       LEFT JOIN users u ON l.admin_id = u.id
       WHERE l.admin_id = $1
       ORDER BY l.nome
-    `, [userId]);
+    `;
+    
+    console.log('Executing query with userId:', userId);
+    const result = await db.query(query, [userId]);
+    console.log('Query executed successfully, rows found:', result.rows.length);
     
     res.json({ leghe: result.rows });
   } catch (err) {
     console.error('Errore query user-leagues:', err);
+    console.error('Error details:', err.message);
+    console.error('Error stack:', err.stack);
     res.status(500).json({ error: 'Errore DB', details: err.message });
   }
 });
@@ -889,8 +899,10 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
   
   try {
     const db = getDb();
+    console.log('Database connection obtained for richieste/admin');
     
     // Prima ottieni le richieste di ingresso normali
+    console.log('Executing richieste ingresso query...');
     const richiesteIngressoResult = await db.query(`
       SELECT ri.*, l.nome as lega_nome, l.id as lega_id, s.nome as squadra_nome, 
              u.nome || ' ' || u.cognome as utente_nome, u.email as utente_email,
@@ -901,8 +913,10 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
       JOIN users u ON ri.utente_id = u.id
       WHERE l.admin_id = $1 AND ri.stato = 'in_attesa'
     `, [adminId]);
+    console.log('Richieste ingresso found:', richiesteIngressoResult.rows.length);
 
     // Poi ottieni le richieste admin
+    console.log('Executing richieste admin query...');
     const richiesteAdminResult = await db.query(`
       SELECT ra.*, l.nome as lega_nome, l.id as lega_id, s.nome as squadra_nome,
              COALESCE(u.nome || ' ' || u.cognome, 'N/A') as utente_nome, 
@@ -914,6 +928,7 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
       LEFT JOIN users u ON s.proprietario_id = u.id
       WHERE l.admin_id = $1 AND ra.stato = 'pending'
     `, [adminId]);
+    console.log('Richieste admin found:', richiesteAdminResult.rows.length);
 
     console.log('Richieste admin trovate:', richiesteAdminResult.rows.length);
 
@@ -927,6 +942,8 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
     res.json({ richieste: tutteRichieste });
   } catch (err) {
     console.error('Errore query richieste admin:', err);
+    console.error('Error details:', err.message);
+    console.error('Error stack:', err.stack);
     res.status(500).json({ error: 'Errore DB' });
   }
 });
