@@ -27,9 +27,14 @@ export function getUtenteByEmail(email, callback) {
   console.log('getUtenteByEmail called with email:', email);
   console.log('Database instance:', db ? 'available' : 'not available');
   
-  db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
-    console.log('getUtenteByEmail callback - err:', err, 'row:', row ? 'found' : 'not found');
-    callback(err, row);
+  // Prima controlliamo se la tabella users esiste e ha dati
+  db.get('SELECT COUNT(*) as count FROM users', [], (err, countRow) => {
+    console.log('Total users in database:', countRow ? countRow.count : 'error getting count');
+    
+    db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
+      console.log('getUtenteByEmail callback - err:', err, 'row:', row ? 'found' : 'not found');
+      callback(err, row);
+    });
   });
 }
 
