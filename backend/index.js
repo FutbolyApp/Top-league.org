@@ -35,6 +35,7 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'https://topleaguem-frontend.onrender.com',
+    'https://topleague-frontend-new.onrender.com',
     'https://topleaguem.onrender.com'
   ],
   credentials: true,
