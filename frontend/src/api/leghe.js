@@ -1,52 +1,19 @@
-const API_URL = 'http://localhost:3001/api/leghe';
-
-// Funzione helper per gestire gli errori
-async function handleResponse(res) {
-  if (!res.ok) {
-    let errorMessage = 'Errore del server';
-    try {
-      const errorData = await res.json();
-      errorMessage = errorData.error || errorMessage;
-    } catch (e) {
-      // Se non riesce a parsare JSON, usa il testo della risposta
-      const text = await res.text();
-      if (text.includes('<!DOCTYPE')) {
-        errorMessage = 'Errore del server: risposta non valida';
-      } else {
-        errorMessage = text || errorMessage;
-      }
-    }
-    throw new Error(errorMessage);
-  }
-  return res.json();
-}
+import { api } from './config.js';
 
 export async function getLeghe(token) {
-  const res = await fetch(`${API_URL}/`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get('/leghe', token);
 }
 
 export async function getUserLeghe(token) {
-  const res = await fetch(`${API_URL}/user-leagues`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get('/leghe/user-leagues', token);
 }
 
 export async function getLegaById(id, token) {
-  const res = await fetch(`${API_URL}/${id}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get(`/leghe/${id}`, token);
 }
 
 export async function getSquadreByLega(id, token) {
-  const res = await fetch(`${API_URL}/${id}/squadre`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get(`/leghe/${id}/squadre`, token);
 }
 
 export async function creaLega(data, token) {
@@ -55,81 +22,57 @@ export async function creaLega(data, token) {
   Object.entries(data).forEach(([key, value]) => {
     if (value !== undefined && value !== null) formData.append(key, value);
   });
-  const res = await fetch(`${API_URL}/create`, {
+  
+  // For FormData, we need to use fetch directly since api.post expects JSON
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const API_BASE_URL = isDevelopment 
+    ? 'http://localhost:3001/api'
+    : 'https://topleaguem.onrender.com/api';
+    
+  const response = await fetch(`${API_BASE_URL}/leghe/create`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}` },
     body: formData
   });
-  return handleResponse(res);
+  
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Errore del server');
+  }
+  
+  return response.json();
 }
 
 export async function joinLega(legaId, password, token) {
-  const res = await fetch(`${API_URL}/${legaId}/join`, {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ password })
-  });
-  return handleResponse(res);
+  return api.post(`/leghe/${legaId}/join`, { password }, token);
 }
 
 export async function getSquadraById(id, token) {
-  // Ottiene la squadra e i suoi giocatori
-  const res = await fetch(`${API_URL}/${id}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get(`/leghe/${id}`, token);
 }
 
 export async function joinSquadra(squadra_id, token) {
-  const res = await fetch(`${API_URL}/${squadra_id}/join`, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.post(`/leghe/${squadra_id}/join`, {}, token);
 }
 
 export async function getSquadreByIds(ids, token) {
-  // ids: array di ID
-  const res = await fetch(`${API_URL}/by-ids`, {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ ids })
-  });
-  return handleResponse(res);
+  return api.post('/leghe/by-ids', { ids }, token);
 }
 
 export async function getSquadreByUtente(token) {
-  const res = await fetch(`${API_URL}/utente`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get('/leghe/utente', token);
 }
 
 export async function getGiocatoriSquadra(squadraId, token) {
-  const res = await fetch(`${API_URL}/${squadraId}/giocatori`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get(`/leghe/${squadraId}/giocatori`, token);
 }
 
 export async function getLegheAdmin(token) {
-  const res = await fetch(`${API_URL}/admin`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get('/leghe/admin', token);
 }
 
 export async function getAllLegheAdmin(token) {
-  const res = await fetch(`${API_URL}/all`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get('/leghe/all', token);
 }
 
 export async function updateLega(legaId, data, token) {
@@ -138,107 +81,51 @@ export async function updateLega(legaId, data, token) {
   const userRole = payload.ruolo;
   
   // Usa la rotta appropriata in base al ruolo
-  const endpoint = userRole === 'admin' ? `${API_URL}/${legaId}/admin` : `${API_URL}/${legaId}`;
+  const endpoint = userRole === 'admin' ? `/leghe/${legaId}/admin` : `/leghe/${legaId}`;
   
-  const res = await fetch(endpoint, {
-    method: 'PUT',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-  return handleResponse(res);
+  return api.put(endpoint, data, token);
 }
 
 export async function deleteLeague(legaId, token) {
-  const res = await fetch(`${API_URL}/${legaId}`, {
-    method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.delete(`/leghe/${legaId}`, token);
 }
 
 // Ottieni squadre disponibili per una lega
 export const getSquadreDisponibili = async (legaId, token) => {
-  const res = await fetch(`${API_URL}/${legaId}/squadre-disponibili`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get(`/leghe/${legaId}/squadre-disponibili`, token);
 };
 
 // Invia richiesta di ingresso a una lega
 export const richiediIngresso = async (legaId, data, token) => {
-  const res = await fetch(`${API_URL}/${legaId}/richiedi-ingresso`, {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-  return handleResponse(res);
+  return api.post(`/leghe/${legaId}/richiedi-ingresso`, data, token);
 };
 
 // Ottieni richieste di ingresso dell'utente
 export const getRichiesteUtente = async (token) => {
-  try {
-    const response = await fetch(`${API_URL}/richieste/utente`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    return response.json();
-  } catch (error) {
-    throw new Error(error.response?.data?.error || 'Errore nel caricamento delle richieste');
-  }
+  return api.get('/leghe/richieste/utente', token);
 };
 
 // Ottieni richieste di ingresso per admin di lega
 export const getRichiesteAdmin = async (token) => {
-  const res = await fetch(`${API_URL}/richieste/admin`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get('/leghe/richieste/admin', token);
 };
 
 // Rispondi a una richiesta di ingresso
 export const rispondiRichiesta = async (richiestaId, data, token) => {
-  const res = await fetch(`${API_URL}/richieste/${richiestaId}/rispondi`, {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
-  return handleResponse(res);
+  return api.post(`/leghe/richieste/${richiestaId}/rispondi`, data, token);
 };
 
 // Cancella una richiesta di ingresso
 export const cancellaRichiesta = async (richiestaId, token) => {
-  const res = await fetch(`${API_URL}/richieste/${richiestaId}`, {
-    method: 'DELETE',
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.delete(`/leghe/richieste/${richiestaId}`, token);
 }; 
 
 // Ottieni configurazioni lega
 export const getLeagueConfig = async (legaId, token) => {
-  const res = await fetch(`${API_URL}/${legaId}/config`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  return handleResponse(res);
+  return api.get(`/leghe/${legaId}/config`, token);
 };
 
 // Aggiorna configurazioni lega
 export const updateLeagueConfig = async (legaId, config, token) => {
-  const res = await fetch(`${API_URL}/${legaId}/config`, {
-    method: 'PUT',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(config)
-  });
-  return handleResponse(res);
+  return api.put(`/leghe/${legaId}/config`, config, token);
 }; 

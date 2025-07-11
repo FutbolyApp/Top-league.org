@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationSystem';
 import { checkSubadmin } from '../api/subadmin';
 import { useSubadminNotifications } from '../hooks/useSubadminNotifications';
+import { api } from '../api/config.js';
 
 const Nav = styled.nav`
   background: white;
@@ -193,27 +194,9 @@ const Navigation = () => {
     const fetchPendingAdminRequests = async () => {
       if (user && token && isAdmin) {
         try {
-          const response = await fetch('http://localhost:3001/api/leghe/richieste/admin', {
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            // L'API restituisce { richieste: [...] }, quindi contiamo le richieste
-            setPendingAdminRequests(data.richieste ? data.richieste.length : 0);
-          } else if (response.status === 401) {
-            console.warn('Utente non autorizzato per accedere alle richieste admin');
-            setPendingAdminRequests(0);
-          } else if (response.status === 403) {
-            console.warn('Accesso negato: richiesti privilegi admin');
-            setPendingAdminRequests(0);
-          } else {
-            console.error('Errore nel recupero richieste admin pendenti:', response.status);
-            setPendingAdminRequests(0);
-          }
+          const data = await api.get('/leghe/richieste/admin', token);
+          // L'API restituisce { richieste: [...] }, quindi contiamo le richieste
+          setPendingAdminRequests(data.richieste ? data.richieste.length : 0);
         } catch (error) {
           console.error('Errore nel recupero richieste admin pendenti:', error);
           setPendingAdminRequests(0);
@@ -232,30 +215,9 @@ const Navigation = () => {
       if (user && token) {
         try {
           // Chiamata API per verificare se l'utente è subadmin di qualche lega
-          const response = await fetch('http://localhost:3001/api/subadmin/check-all', {
-            headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            setIsSubadmin(data.isSubadmin || false);
-            setSubadminLeagues(data.leagues || []);
-          } else if (response.status === 401) {
-            console.warn('Utente non autorizzato per verificare status subadmin');
-            setIsSubadmin(false);
-            setSubadminLeagues([]);
-          } else if (response.status === 403) {
-            console.warn('Accesso negato per verificare status subadmin');
-            setIsSubadmin(false);
-            setSubadminLeagues([]);
-          } else {
-            console.error('Errore nel controllo subadmin:', response.status);
-            setIsSubadmin(false);
-            setSubadminLeagues([]);
-          }
+          const data = await api.get('/subadmin/check-all', token);
+          setIsSubadmin(data.isSubadmin || false);
+          setSubadminLeagues(data.leagues || []);
         } catch (error) {
           console.error('Errore nel controllo subadmin:', error);
           setIsSubadmin(false);
