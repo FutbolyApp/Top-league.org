@@ -197,6 +197,7 @@ export async function initDb() {
         lega_id INTEGER NOT NULL REFERENCES leghe(id),
         permessi TEXT DEFAULT '{}',
         attivo BOOLEAN DEFAULT true,
+        data_nomina TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(utente_id, lega_id)
       );
@@ -208,12 +209,13 @@ export async function initDb() {
         id SERIAL PRIMARY KEY,
         lega_id INTEGER NOT NULL REFERENCES leghe(id),
         subadmin_id INTEGER NOT NULL REFERENCES users(id),
-        tipo VARCHAR(50) NOT NULL,
-        modifiche TEXT NOT NULL,
-        descrizione TEXT,
-        dettagli TEXT,
+        action_type VARCHAR(50) NOT NULL,
+        action_data TEXT NOT NULL,
+        description TEXT,
+        details TEXT,
         status VARCHAR(50) DEFAULT 'pending',
         admin_response TEXT,
+        reviewed_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -260,6 +262,17 @@ export async function initDb() {
       console.log('✅ Migration: added missing columns to notifiche table');
     } catch (error) {
       console.log('Migration note: columns may already exist:', error.message);
+    }
+    
+    // Migrazione: aggiungi colonna data_nomina alla tabella subadmin se non esiste
+    try {
+      await client.query(`
+        ALTER TABLE subadmin 
+        ADD COLUMN IF NOT EXISTS data_nomina TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `);
+      console.log('✅ Migration: added data_nomina column to subadmin table');
+    } catch (error) {
+      console.log('Migration note: data_nomina column may already exist:', error.message);
     }
     
     // Crea un utente di test se non esiste
