@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { api } from '../api/config.js';
 
 const Container = styled.div`
   padding: 20px;
@@ -139,26 +140,10 @@ const RosterManager = ({ squadraId, token }) => {
       setLoading(true);
       setError('');
 
-      const [rosterRes, statsRes, leagueRes] = await Promise.all([
-        fetch(`http://localhost:3001/api/offerte/roster/${squadraId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`http://localhost:3001/api/offerte/roster/stats/${squadraId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch(`http://localhost:3001/api/squadre/${squadraId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ]);
-
-      if (!rosterRes.ok || !statsRes.ok || !leagueRes.ok) {
-        throw new Error('Errore nel caricamento dei dati roster');
-      }
-
       const [rosterData, statsData, leagueData] = await Promise.all([
-        rosterRes.json(),
-        statsRes.json(),
-        leagueRes.json()
+        api.get(`/offerte/roster/${squadraId}`, token),
+        api.get(`/offerte/roster/stats/${squadraId}`, token),
+        api.get(`/squadre/${squadraId}`, token)
       ]);
 
       setRosterData(rosterData);

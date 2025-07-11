@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { api } from '../api/config.js';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -206,17 +207,9 @@ const LogManager = () => {
         ...filters
       });
       
-      const response = await fetch(`/api/log?${params}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setLogs(data.logs || []);
-        setTotalPages(data.totalPages || 1);
-      } else {
-        setError('Errore nel caricamento log');
-      }
+      const data = await api.get(`/log?${params}`, token);
+      setLogs(data.logs || []);
+      setTotalPages(data.totalPages || 1);
     } catch (error) {
       setError('Errore di connessione');
     } finally {
@@ -227,14 +220,8 @@ const LogManager = () => {
   const fetchLeghe = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/leghe', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setLeghe(data.leghe || []);
-      }
+      const data = await api.get('/leghe', token);
+      setLeghe(data.leghe || []);
     } catch (error) {
       console.error('Errore nel caricamento leghe:', error);
     }
@@ -243,14 +230,8 @@ const LogManager = () => {
   const fetchUtenti = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/utenti', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setUtenti(data.utenti || []);
-      }
+      const data = await api.get('/utenti', token);
+      setUtenti(data.utenti || []);
     } catch (error) {
       console.error('Errore nel caricamento utenti:', error);
     }
@@ -265,9 +246,7 @@ const LogManager = () => {
     const token = localStorage.getItem('token');
     const params = new URLSearchParams(filters);
     
-    fetch(`/api/log/export?${params}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+    api.get(`/log/export?${params}`, token)
     .then(response => response.blob())
     .then(blob => {
       const url = window.URL.createObjectURL(blob);

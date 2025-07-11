@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { api } from '../api/config.js';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -182,16 +183,8 @@ const NotificheManager = () => {
   const fetchNotifiche = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3001/api/notifiche', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setNotifiche(data.notifiche || []);
-      } else {
-        setError('Errore nel caricamento notifiche');
-      }
+      const data = await api.get('/notifiche', token);
+      setNotifiche(data.notifiche || []);
     } catch (error) {
       setError('Errore di connessione');
     } finally {
@@ -202,17 +195,11 @@ const NotificheManager = () => {
   const handleAccept = async (notificaId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/notifiche/${notificaId}/accept`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        // Aggiorna la notifica localmente
-        setNotifiche(prev => prev.map(n => 
-          n.id === notificaId ? { ...n, stato: 'accettata' } : n
-        ));
-      }
+      await api.post(`/notifiche/${notificaId}/accept`, {}, token);
+      // Aggiorna la notifica localmente
+      setNotifiche(prev => prev.map(n => 
+        n.id === notificaId ? { ...n, stato: 'accettata' } : n
+      ));
     } catch (error) {
       console.error('Errore nell\'accettazione:', error);
     }
@@ -221,16 +208,10 @@ const NotificheManager = () => {
   const handleReject = async (notificaId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/notifiche/${notificaId}/reject`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        setNotifiche(prev => prev.map(n => 
-          n.id === notificaId ? { ...n, stato: 'rifiutata' } : n
-        ));
-      }
+      await api.post(`/notifiche/${notificaId}/reject`, {}, token);
+      setNotifiche(prev => prev.map(n => 
+        n.id === notificaId ? { ...n, stato: 'rifiutata' } : n
+      ));
     } catch (error) {
       console.error('Errore nel rifiuto:', error);
     }
@@ -239,14 +220,8 @@ const NotificheManager = () => {
   const handleArchive = async (notificaId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/notifiche/${notificaId}/archive`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        setNotifiche(prev => prev.filter(n => n.id !== notificaId));
-      }
+      await api.post(`/notifiche/${notificaId}/archive`, {}, token);
+      setNotifiche(prev => prev.filter(n => n.id !== notificaId));
     } catch (error) {
       console.error('Errore nell\'archiviazione:', error);
     }
