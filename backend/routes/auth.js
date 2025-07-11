@@ -45,6 +45,8 @@ router.post('/login', async (req, res) => {
     
     // Prima prova a cercare per email
     getUtenteByEmail(email, async (err, utente) => {
+      console.log('getUtenteByEmail callback - err:', err, 'utente:', utente ? 'found' : 'not found');
+      
       if (err) {
         console.error('Error in getUtenteByEmail:', err);
         return res.status(500).json({ error: 'Errore nel database', details: err.message });
@@ -52,18 +54,23 @@ router.post('/login', async (req, res) => {
       
       // Se non trova per email, prova per username
       if (!utente) {
+        console.log('User not found by email, trying username...');
         getUtenteByUsername(email, async (err, utenteUsername) => {
+          console.log('getUtenteByUsername callback - err:', err, 'utenteUsername:', utenteUsername ? 'found' : 'not found');
+          
           if (err) {
             console.error('Error in getUtenteByUsername:', err);
             return res.status(500).json({ error: 'Errore nel database', details: err.message });
           }
           
           if (!utenteUsername) {
+            console.log('User not found by username either');
             return res.status(400).json({ error: 'Utente non trovato. Verifica email/username o registrati.' });
           }
           
           // Verifica password per username
           if (!bcrypt.compareSync(password, utenteUsername.password_hash)) {
+            console.log('Password incorrect for username');
             return res.status(400).json({ error: 'Password non corretta. Riprova.' });
           }
           
@@ -71,8 +78,10 @@ router.post('/login', async (req, res) => {
           await processLoginSuccess(utenteUsername, res, req);
         });
       } else {
+        console.log('User found by email, checking password...');
         // Verifica password per email
         if (!bcrypt.compareSync(password, utente.password_hash)) {
+          console.log('Password incorrect for email');
           return res.status(400).json({ error: 'Password non corretta. Riprova.' });
         }
         
@@ -89,6 +98,8 @@ router.post('/login', async (req, res) => {
 // Funzione helper per processare il login di successo
 async function processLoginSuccess(utente, res, req) {
   try {
+    console.log('processLoginSuccess started for user:', utente.username);
+    
     // Ottieni le leghe di cui l'utente è admin
     const db = req.app.locals.db;
     if (!db) {
@@ -96,6 +107,7 @@ async function processLoginSuccess(utente, res, req) {
       return res.status(500).json({ error: 'Database non disponibile' });
     }
     
+    console.log('Querying leghe admin for user ID:', utente.id);
     const legheAdmin = await new Promise((resolve, reject) => {
       db.all(
         'SELECT id, nome FROM leghe WHERE admin_id = ?',
@@ -112,9 +124,11 @@ async function processLoginSuccess(utente, res, req) {
       );
     });
     
+    console.log('Generating token for user:', utente.username);
     const token = generateToken(utente);
     console.log('Login successful for:', utente.username, 'Leghe admin:', legheAdmin.length);
     
+    console.log('Sending response to client');
     res.json({ 
       token, 
       user: { 
@@ -127,6 +141,7 @@ async function processLoginSuccess(utente, res, req) {
         leghe_admin: legheAdmin
       } 
     });
+    console.log('Response sent successfully');
   } catch (dbError) {
     console.error('Database error in login:', dbError);
     res.status(500).json({ error: 'Errore nel database durante il login', details: dbError.message });
