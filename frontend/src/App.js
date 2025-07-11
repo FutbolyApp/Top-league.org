@@ -1,4 +1,5 @@
-// Force redeploy - Updated for production deployment
+// Forza nuovo deploy - fix finale URL API
+// Ultima revisione: tutti gli URL localhost rimossi
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
