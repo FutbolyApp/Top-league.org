@@ -5,7 +5,11 @@ import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationSystem';
 import { checkSubadmin } from '../api/subadmin';
 import { useSubadminNotifications } from '../hooks/useSubadminNotifications';
-import { api } from '../api/config.js';
+import { 
+  getRichiesteAdminShared, 
+  verifyUserShared, 
+  checkSubadminShared 
+} from '../api/sharedApi.js';
 
 const Nav = styled.nav`
   background: white;
@@ -194,7 +198,7 @@ const Navigation = () => {
     const fetchPendingAdminRequests = async () => {
       if (user && token && isAdmin) {
         try {
-          const data = await api.get('/leghe/richieste/admin', token);
+          const data = await getRichiesteAdminShared(token, user.id);
           // L'API restituisce { richieste: [...] }, quindi contiamo le richieste
           setPendingAdminRequests(data.richieste ? data.richieste.length : 0);
         } catch (error) {
@@ -215,7 +219,7 @@ const Navigation = () => {
       if (user && token) {
         try {
           // Chiamata API per verificare se l'utente è subadmin di qualche lega
-          const data = await api.get('/subadmin/check-all', token);
+          const data = await checkSubadminShared(token);
           setIsSubadmin(data.isSubadmin || false);
           setSubadminLeagues(data.leagues || []);
         } catch (error) {

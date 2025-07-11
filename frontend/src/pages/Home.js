@@ -6,6 +6,11 @@ import { getUserLeghe } from '../api/leghe';
 import { getSquadreByUtente } from '../api/squadre';
 import { getNotificheUtente } from '../api/notifiche';
 import { getMovimentiMercato } from '../api/offerte';
+import { 
+  getSquadreUtenteShared, 
+  getNotificheShared, 
+  getLegheUserShared 
+} from '../api/sharedApi';
 import DefaultLogo from '../assets/logo_placeholder.png'; // Assicurati di avere un placeholder
 
 const Container = styled.div`
@@ -525,15 +530,15 @@ const Home = () => {
         setLoading(true);
         
         // Carica leghe admin
-        const legheRes = await getUserLeghe(token);
+        const legheRes = await getLegheUserShared(token, user.id);
         setLegheAdmin(legheRes.leghe || []);
         
         // Carica squadre dell'utente
-        const squadreRes = await getSquadreByUtente(token);
+        const squadreRes = await getSquadreUtenteShared(token, user.id);
         setSquadre(squadreRes.squadre || []);
         
         // Carica notifiche
-        const notificheRes = await getNotificheUtente(token);
+        const notificheRes = await getNotificheShared(token, user.id);
         setNotifiche(notificheRes.notifiche || []);
         
         // Carica movimenti di mercato per tutte le squadre

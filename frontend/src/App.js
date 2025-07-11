@@ -6,6 +6,7 @@ import { AuthProvider } from './components/AuthContext';
 import { NotificationProvider } from './components/NotificationSystem';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
+import { ApiMonitor } from './components/ApiMonitor';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
@@ -107,6 +108,7 @@ function App() {
     <AuthProvider>
       <NotificationProvider>
         <AppRoutes />
+        <ApiMonitor />
       </NotificationProvider>
     </AuthProvider>
   );

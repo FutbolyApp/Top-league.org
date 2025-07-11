@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { verifyUser } from '../api/auth';
+import { clearUserCache } from '../api/sharedApi';
 
 const AuthContext = createContext(null);
 
@@ -63,6 +64,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logoutUser = () => {
+    // Pulisci la cache API prima di fare logout
+    clearUserCache(user?.id);
     setUser(null);
     setToken(null);
     localStorage.removeItem('token');

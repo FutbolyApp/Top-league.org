@@ -5,6 +5,10 @@ import { useAuth } from '../components/AuthContext';
 import { getSquadreByUtente } from '../api/squadre';
 import { getNotificheByUtente } from '../api/notifiche';
 import { getMovimentiMercato } from '../api/offerte';
+import { 
+  getSquadreUtenteShared, 
+  getNotificheShared 
+} from '../api/sharedApi';
 
 const Container = styled.div`
   max-width: 1400px;
@@ -253,7 +257,7 @@ const EmptyContainer = styled.div`
 const DefaultLogo = null;
 
 const AreaManager = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
   const [squadre, setSquadre] = useState([]);
   const [notifiche, setNotifiche] = useState([]);
@@ -268,8 +272,8 @@ const AreaManager = () => {
       setError('');
       try {
         const [squadreRes, notificheRes] = await Promise.all([
-          getSquadreByUtente(token),
-          getNotificheByUtente(token)
+          getSquadreUtenteShared(token, user.id),
+          getNotificheShared(token, user.id)
         ]);
         
         setSquadre(squadreRes.squadre || []);

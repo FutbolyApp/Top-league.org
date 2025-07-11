@@ -1,10 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { api } from '../api/config';
+import { getNotificheShared } from '../api/sharedApi';
 
 const NotificationContext = createContext();
+
+
 
 export const useNotification = () => {
     const context = useContext(NotificationContext);
@@ -264,8 +267,11 @@ export const NotificationProvider = ({ children }) => {
         // Carica notifiche iniziali
         loadNotifications();
 
-        // Polling per nuove notifiche ogni 120 secondi (invece di 60)
-        const interval = setInterval(loadNotifications, 120000);
+        // Polling per nuove notifiche ogni 300 secondi (5 minuti invece di 2)
+        const interval = setInterval(() => {
+            console.log('🔄 Polling notifiche - timestamp:', new Date().toISOString());
+            loadNotifications();
+        }, 300000);
 
         return () => clearInterval(interval);
     }, [user, token]);
@@ -278,7 +284,7 @@ export const NotificationProvider = ({ children }) => {
         }
         
         try {
-            const response = await api.get('/notifiche', token);
+            const response = await getNotificheShared(token, user.id);
             const notifiche = response.notifiche || [];
             
             // Normalizza le notifiche per gestire entrambi i campi (letta e letto)
