@@ -32,15 +32,27 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://topleaguem-frontend.onrender.com',
-    'https://topleague-frontend-new.onrender.com',
-    'https://topleaguem.onrender.com'
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://topleaguem-frontend.onrender.com',
+      'https://topleague-frontend-new.onrender.com',
+      'https://topleaguem.onrender.com'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Temporarily allow all origins for debugging
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(express.json());
 
@@ -205,7 +217,12 @@ scheduleCleanup();
 
 // Initialize database and start server
 try {
+  console.log('Starting database initialization...');
+  console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
+  
   await initDb();
+  console.log('Database initialization completed successfully');
+  
   const server = app.listen(PORT, () => {
     console.log(`TopLeague backend listening on port ${PORT}`);
     console.log(`Test the server with: curl http://localhost:${PORT}/api/ping`);
@@ -224,6 +241,8 @@ try {
   });
 } catch (error) {
   console.error('Failed to start server:', error);
+  console.error('Error details:', error.message);
+  console.error('Stack trace:', error.stack);
   process.exit(1);
 }
 
