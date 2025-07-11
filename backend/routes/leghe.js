@@ -151,32 +151,37 @@ router.post('/create', requireAuth, upload.single('excel'), async (req, res) => 
 });
 
 // Ottieni tutte le leghe (protetto)
-router.get('/', requireAuth, (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   const userId = req.user.id;
   
-  db.all(`
-    SELECT l.*, 
+  try {
+    const db = getDb();
+    const result = await db.query(`
+      SELECT l.*, 
            CASE 
              WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
              ELSE u.nome || ' ' || u.cognome 
            END as admin_nome,
            (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id) as numero_squadre_totali,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = 0) as squadre_assegnate,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = 1) as squadre_disponibili,
+           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = false) as squadre_assegnate,
+           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) as squadre_disponibili,
            (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei,
            CASE 
-             WHEN (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = 1) > 0 
-             THEN 1 
-             ELSE 0 
+             WHEN (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) > 0 
+             THEN true 
+             ELSE false 
            END as ha_squadre_disponibili
-    FROM leghe l
-    LEFT JOIN users u ON l.admin_id = u.id
-    WHERE l.admin_id = ? OR l.is_pubblica = 1
-    ORDER BY l.nome
-  `, [userId], (err, leghe) => {
-    if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-    res.json({ leghe });
-  });
+      FROM leghe l
+      LEFT JOIN users u ON l.admin_id = u.id
+      WHERE l.admin_id = $1 OR l.is_pubblica = true
+      ORDER BY l.nome
+    `, [userId]);
+    
+    res.json({ leghe: result.rows });
+  } catch (err) {
+    console.error('Errore query tutte le leghe:', err);
+    res.status(500).json({ error: 'Errore DB', details: err.message });
+  }
 });
 
 // Ottieni solo le leghe a cui l'utente partecipa
@@ -209,37 +214,41 @@ router.get('/user-leagues', requireAuth, async (req, res) => {
 });
 
 // Ottieni leghe amministrate dall'utente (DEVE ESSERE PRIMA DELLE ROUTE CON PARAMETRI)
-router.get('/admin', requireAuth, (req, res) => {
+router.get('/admin', requireAuth, async (req, res) => {
   const adminId = req.user.id;
   console.log('GET /api/leghe/admin - User ID:', adminId);
   
-  db.all(`
-    SELECT l.*, 
+  try {
+    const db = getDb();
+    const result = await db.query(`
+      SELECT l.*, 
            (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id) as numero_squadre_totali,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = 0) as squadre_assegnate,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = 1) as squadre_non_assegnate,
+           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = false) as squadre_assegnate,
+           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) as squadre_non_assegnate,
            (SELECT COUNT(*) FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = l.id) as numero_giocatori,
            (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei,
-           strftime('%d/%m/%Y', l.created_at) as data_creazione_formattata
-    FROM leghe l
-    WHERE l.admin_id = ?
-    ORDER BY l.created_at DESC
-  `, [adminId], (err, leghe) => {
-    if (err) {
-      console.error('Errore query admin leghe:', err);
-      return res.status(500).json({ error: 'Errore DB' });
-    }
-    console.log('Leghe admin trovate:', leghe.length);
-    res.json({ leghe });
-  });
+           TO_CHAR(l.created_at, 'DD/MM/YYYY') as data_creazione_formattata
+      FROM leghe l
+      WHERE l.admin_id = $1
+      ORDER BY l.created_at DESC
+    `, [adminId]);
+    
+    console.log('Leghe admin trovate:', result.rows.length);
+    res.json({ leghe: result.rows });
+  } catch (err) {
+    console.error('Errore query admin leghe:', err);
+    res.status(500).json({ error: 'Errore DB' });
+  }
 });
 
 // Ottieni tutte le leghe (solo SuperAdmin)
-router.get('/all', requireSuperAdmin, (req, res) => {
+router.get('/all', requireSuperAdmin, async (req, res) => {
   console.log('GET /api/leghe/all - SuperAdmin request');
   
-  db.all(`
-    SELECT l.*, 
+  try {
+    const db = getDb();
+    const result = await db.query(`
+      SELECT l.*, 
            CASE 
              WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
              ELSE u.nome || ' ' || u.cognome 
@@ -249,17 +258,17 @@ router.get('/all', requireSuperAdmin, (req, res) => {
            (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.proprietario_id IS NOT NULL) as squadre_con_proprietario,
            (SELECT COUNT(*) FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = l.id) as numero_giocatori,
            (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei
-    FROM leghe l
-    LEFT JOIN users u ON l.admin_id = u.id
-    ORDER BY l.created_at DESC
-  `, [], (err, leghe) => {
-    if (err) {
-      console.error('Errore query tutte le leghe:', err);
-      return res.status(500).json({ error: 'Errore DB' });
-    }
-    console.log('Tutte le leghe trovate:', leghe.length);
-    res.json({ leghe });
-  });
+      FROM leghe l
+      LEFT JOIN users u ON l.admin_id = u.id
+      ORDER BY l.created_at DESC
+    `);
+    
+    console.log('Tutte le leghe trovate:', result.rows.length);
+    res.json({ leghe: result.rows });
+  } catch (err) {
+    console.error('Errore query tutte le leghe:', err);
+    res.status(500).json({ error: 'Errore DB' });
+  }
 });
 
 // Ottieni tutte le squadre e i giocatori di una lega
@@ -708,30 +717,31 @@ router.put('/:legaId/admin', requireLegaAdminOrSuperAdmin, (req, res) => {
 });
 
 // Ottieni squadre disponibili per una lega (per richieste di ingresso)
-router.get('/:legaId/squadre-disponibili', requireAuth, (req, res) => {
+router.get('/:legaId/squadre-disponibili', requireAuth, async (req, res) => {
   const legaId = req.params.legaId;
   
-  db.all(`
-    SELECT s.id, s.nome, s.is_orfana
-    FROM squadre s
-    WHERE s.lega_id = ?
-    ORDER BY s.nome
-  `, [legaId], (err, squadre) => {
-    if (err) {
-      console.error('Errore query squadre disponibili:', err);
-      return res.status(500).json({ error: 'Errore DB' });
-    }
+  try {
+    const db = getDb();
+    const result = await db.query(`
+      SELECT s.id, s.nome, s.is_orfana
+      FROM squadre s
+      WHERE s.lega_id = $1
+      ORDER BY s.nome
+    `, [legaId]);
     
     // Filtra solo squadre non assegnate per la richiesta
-    const squadreDisponibili = squadre.filter(s => s.is_orfana === 1);
-    const squadreAssegnate = squadre.filter(s => s.is_orfana === 0);
+    const squadreDisponibili = result.rows.filter(s => s.is_orfana === true);
+    const squadreAssegnate = result.rows.filter(s => s.is_orfana === false);
     
     res.json({ 
       squadre_disponibili: squadreDisponibili,
       squadre_assegnate: squadreAssegnate,
-      totale_squadre: squadre.length
+      totale_squadre: result.rows.length
     });
-  });
+  } catch (err) {
+    console.error('Errore query squadre disponibili:', err);
+    res.status(500).json({ error: 'Errore DB' });
+  }
 });
 
 // Invia richiesta di ingresso a una lega
@@ -871,28 +881,30 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, (req, res) => {
 });
 
 // Ottieni richieste di ingresso per un utente
-router.get('/richieste/utente', requireAuth, (req, res) => {
+router.get('/richieste/utente', requireAuth, async (req, res) => {
   const userId = req.user.id;
   
-  db.all(`
-    SELECT ri.*, l.nome as lega_nome, s.nome as squadra_nome, 
-           CASE 
-             WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-             ELSE u.nome || ' ' || u.cognome 
-           END as admin_nome
-    FROM richieste_ingresso ri
-    JOIN leghe l ON ri.lega_id = l.id
-    JOIN squadre s ON ri.squadra_id = s.id
-    LEFT JOIN users u ON ri.risposta_admin_id = u.id
-    WHERE ri.utente_id = ?
-    ORDER BY ri.data_richiesta DESC
-  `, [userId], (err, richieste) => {
-    if (err) {
-      console.error('Errore query richieste utente:', err);
-      return res.status(500).json({ error: 'Errore DB' });
-    }
-    res.json({ richieste });
-  });
+  try {
+    const db = getDb();
+    const result = await db.query(`
+      SELECT ri.*, l.nome as lega_nome, s.nome as squadra_nome, 
+             CASE 
+               WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
+               ELSE u.nome || ' ' || u.cognome 
+             END as admin_nome
+      FROM richieste_ingresso ri
+      JOIN leghe l ON ri.lega_id = l.id
+      JOIN squadre s ON ri.squadra_id = s.id
+      LEFT JOIN users u ON ri.risposta_admin_id = u.id
+      WHERE ri.utente_id = $1
+      ORDER BY ri.data_richiesta DESC
+    `, [userId]);
+    
+    res.json({ richieste: result.rows });
+  } catch (err) {
+    console.error('Errore query richieste utente:', err);
+    res.status(500).json({ error: 'Errore DB' });
+  }
 });
 
 // Ottieni richieste di ingresso per admin di lega
@@ -946,26 +958,27 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
 });
 
 // Ottieni richieste di ingresso per subadmin di lega
-router.get('/richieste/subadmin', requireAuth, (req, res) => {
+router.get('/richieste/subadmin', requireAuth, async (req, res) => {
   const subadminId = req.user.id;
   
   console.log('GET /api/leghe/richieste/subadmin - Subadmin ID:', subadminId);
   
-  // Verifica che l'utente sia subadmin con permesso gestione_richieste
-  db.get(`
-    SELECT s.*, l.nome as lega_nome
-    FROM subadmin s
-    JOIN leghe l ON s.lega_id = l.id
-    WHERE s.utente_id = ? AND s.attivo = 1
-  `, [subadminId], (err, subadmin) => {
-    if (err) {
-      console.error('Errore verifica subadmin:', err);
-      return res.status(500).json({ error: 'Errore DB' });
-    }
+  try {
+    const db = getDb();
     
-    if (!subadmin) {
+    // Verifica che l'utente sia subadmin con permesso gestione_richieste
+    const subadminResult = await db.query(`
+      SELECT s.*, l.nome as lega_nome
+      FROM subadmin s
+      JOIN leghe l ON s.lega_id = l.id
+      WHERE s.utente_id = $1 AND s.attivo = true
+    `, [subadminId]);
+    
+    if (subadminResult.rows.length === 0) {
       return res.status(403).json({ error: 'Non sei subadmin di nessuna lega' });
     }
+    
+    const subadmin = subadminResult.rows[0];
     
     try {
       const permessi = JSON.parse(subadmin.permessi || '{}');
@@ -978,7 +991,7 @@ router.get('/richieste/subadmin', requireAuth, (req, res) => {
     }
     
     // Ottieni le richieste per tutte le leghe dove l'utente è subadmin con permesso gestione_richieste
-    db.all(`
+    const richiesteResult = await db.query(`
       SELECT ri.*, l.nome as lega_nome, s.nome as squadra_nome, 
              u.nome || ' ' || u.cognome as utente_nome, u.email as utente_email
       FROM richieste_ingresso ri
@@ -986,17 +999,16 @@ router.get('/richieste/subadmin', requireAuth, (req, res) => {
       JOIN squadre s ON ri.squadra_id = s.id
       JOIN users u ON ri.utente_id = u.id
       JOIN subadmin sub ON sub.lega_id = l.id
-      WHERE sub.utente_id = ? AND sub.attivo = 1 AND ri.stato = 'in_attesa'
+      WHERE sub.utente_id = $1 AND sub.attivo = true AND ri.stato = 'in_attesa'
       ORDER BY ri.data_richiesta ASC
-    `, [subadminId], (err, richieste) => {
-      if (err) {
-        console.error('Errore query richieste subadmin:', err);
-        return res.status(500).json({ error: 'Errore DB' });
-      }
-      console.log('Richieste subadmin trovate:', richieste.length);
-      res.json({ richieste });
-    });
-  });
+    `, [subadminId]);
+    
+    console.log('Richieste subadmin trovate:', richiesteResult.rows.length);
+    res.json({ richieste: richiesteResult.rows });
+  } catch (err) {
+    console.error('Errore query richieste subadmin:', err);
+    res.status(500).json({ error: 'Errore DB' });
+  }
 });
 
 // Rispondi a una richiesta di ingresso (accetta/rifiuta)
