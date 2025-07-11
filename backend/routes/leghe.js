@@ -6,7 +6,7 @@ import { createLega, getAllLeghe, getLegaById, updateLega } from '../models/lega
 import { createSquadra, getSquadreByLega } from '../models/squadra.js';
 import { createGiocatore, getGiocatoriBySquadra } from '../models/giocatore.js';
 import { requireAuth, requireSuperAdmin, requireLegaAdminOrSuperAdmin } from '../middleware/auth.js';
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 import { getLeagueConfig } from '../utils/leagueConfig.js';
 import fs from 'fs';
 

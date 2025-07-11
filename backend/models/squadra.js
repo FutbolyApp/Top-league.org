@@ -1,4 +1,4 @@
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 const db = getDb();
 
 export function createSquadra(data, callback) {

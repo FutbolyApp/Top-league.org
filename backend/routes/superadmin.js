@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 import { authenticateToken, generateToken, requireSuperAdmin } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
 import { getAllUtenti, updateUtente, updateUtenteRole, deleteUtente } from '../models/utente.js';

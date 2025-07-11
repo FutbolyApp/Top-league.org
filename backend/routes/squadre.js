@@ -3,7 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { getSquadraById, updateSquadra, deleteSquadra } from '../models/squadra.js';
 import { getLegaById } from '../models/lega.js';
 import { getGiocatoriBySquadra } from '../models/giocatore.js';
-import { getDb } from '../db/config.js';
+import { getDb } from '../db/postgres.js';
 import { getLeagueConfig, filterDataByConfig } from '../utils/leagueConfig.js';
 
 const router = express.Router();
