@@ -1,204 +1,183 @@
 import { getDb } from '../db/postgres.js';
 
-export function addSubadmin(legaId, userId, permissions, callback) {
+export async function addSubadmin(legaId, userId, permissions) {
   const db = getDb();
   const permissionsJson = JSON.stringify(permissions);
   
   console.log('addSubadmin - Parametri:', { legaId, userId, permissions, permissionsJson });
   
-  db.run(
-    'INSERT OR REPLACE INTO subadmin (lega_id, utente_id, permessi, attivo, data_nomina) VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP)',
-    [legaId, userId, permissionsJson],
-    function(err) {
-      if (err) {
-        console.error('Errore aggiunta subadmin:', err);
-        return callback(err);
-      }
-      console.log('Subadmin inserito nel DB, lastID:', this.lastID, 'changes:', this.changes);
-      callback(null, this.lastID);
-    }
+  const result = await db.query(
+    'INSERT INTO subadmin (lega_id, utente_id, permessi, attivo, data_nomina) VALUES ($1, $2, $3, true, NOW()) ON CONFLICT (lega_id, utente_id) DO UPDATE SET permessi = $3, attivo = true, data_nomina = NOW() RETURNING id',
+    [legaId, userId, permissionsJson]
   );
+  
+  console.log('Subadmin inserito nel DB, ID:', result.rows[0].id);
+  return result.rows[0].id;
 }
 
-export function removeSubadmin(legaId, userId, callback) {
+export async function removeSubadmin(legaId, userId) {
   const db = getDb();
   
-  db.run(
-    'UPDATE subadmin SET attivo = 0 WHERE lega_id = ? AND utente_id = ?',
-    [legaId, userId],
-    function(err) {
-      if (err) {
-        console.error('Errore rimozione subadmin:', err);
-        return callback(err);
-      }
-      callback(null, this.changes);
-    }
+  const result = await db.query(
+    'UPDATE subadmin SET attivo = false WHERE lega_id = $1 AND utente_id = $2',
+    [legaId, userId]
   );
+  
+  return result.rowCount;
 }
 
-export function getSubadminsByLega(legaId, callback) {
+export async function getSubadminsByLega(legaId) {
   const db = getDb();
   
   console.log('getSubadminsByLega - Cercando subadmin per lega:', legaId);
   
-  db.all(`
+  const result = await db.query(`
     SELECT s.*, u.username, u.nome, u.cognome, u.email
     FROM subadmin s
     JOIN users u ON s.utente_id = u.id
-    WHERE s.lega_id = ? AND s.attivo = 1
+    WHERE s.lega_id = $1 AND s.attivo = true
     ORDER BY s.data_nomina DESC
-  `, [legaId], (err, subadmins) => {
-    if (err) {
-      console.error('Errore recupero subadmin:', err);
-      return callback(err);
+  `, [legaId]);
+  
+  console.log('getSubadminsByLega - Subadmin trovati (raw):', result.rows);
+  
+  // Parsa i permessi JSON per ogni subadmin
+  const subadmins = result.rows.map(subadmin => {
+    try {
+      subadmin.permessi = JSON.parse(subadmin.permessi || '{}');
+    } catch (e) {
+      subadmin.permessi = {};
     }
-    
-    console.log('getSubadminsByLega - Subadmin trovati (raw):', subadmins);
-    
-    // Parsa i permessi JSON per ogni subadmin
-    subadmins.forEach(subadmin => {
-      try {
-        subadmin.permessi = JSON.parse(subadmin.permessi || '{}');
-      } catch (e) {
-        subadmin.permessi = {};
-      }
-    });
-    
-    console.log('getSubadminsByLega - Subadmin trovati (parsed):', subadmins);
-    callback(null, subadmins);
+    return subadmin;
   });
+  
+  console.log('getSubadminsByLega - Subadmin trovati (parsed):', subadmins);
+  return subadmins;
 }
 
-export function isSubadmin(legaId, userId, callback) {
+export async function isSubadmin(legaId, userId) {
   const db = getDb();
   
-  db.get(
-    'SELECT * FROM subadmin WHERE lega_id = ? AND utente_id = ? AND attivo = 1',
-    [legaId, userId],
-    (err, subadmin) => {
-      if (err) {
-        console.error('Errore verifica subadmin:', err);
-        return callback(err);
-      }
-      
-      if (!subadmin) {
-        return callback(null, false, null);
-      }
-      
-      try {
-        const permissions = JSON.parse(subadmin.permessi || '{}');
-        callback(null, true, permissions);
-      } catch (e) {
-        callback(null, true, {});
-      }
-    }
+  const result = await db.query(
+    'SELECT * FROM subadmin WHERE lega_id = $1 AND utente_id = $2 AND attivo = true',
+    [legaId, userId]
   );
+  
+  if (result.rows.length === 0) {
+    return false;
+  }
+  
+  return true;
 }
 
-export function hasPermission(legaId, userId, permission, callback) {
-  isSubadmin(legaId, userId, (err, isSub, permissions) => {
-    if (err) return callback(err);
-    if (!isSub) return callback(null, false);
-    
-    const hasPerm = permissions[permission] === true;
-    callback(null, hasPerm);
-  });
+export async function hasPermission(legaId, userId, permission) {
+  const isSub = await isSubadmin(legaId, userId);
+  if (!isSub) return false;
+  
+  const db = getDb();
+  const result = await db.query(
+    'SELECT permessi FROM subadmin WHERE lega_id = $1 AND utente_id = $2 AND attivo = true',
+    [legaId, userId]
+  );
+  
+  if (result.rows.length === 0) return false;
+  
+  try {
+    const permissions = JSON.parse(result.rows[0].permessi || '{}');
+    return permissions[permission] === true;
+  } catch (e) {
+    return false;
+  }
 }
 
-export function getAllSubadmins(callback) {
+export async function getAllSubadmins() {
   const db = getDb();
   
-  db.all(`
+  const result = await db.query(`
     SELECT s.*, u.username, u.nome, u.cognome, u.email, l.nome as lega_nome
     FROM subadmin s
     JOIN users u ON s.utente_id = u.id
     JOIN leghe l ON s.lega_id = l.id
-    WHERE s.attivo = 1
+    WHERE s.attivo = true
     ORDER BY l.nome, s.data_nomina DESC
-  `, [], (err, subadmins) => {
-    if (err) {
-      console.error('Errore recupero tutti subadmin:', err);
-      return callback(err);
+  `);
+  
+  // Parsa i permessi JSON per ogni subadmin
+  const subadmins = result.rows.map(subadmin => {
+    try {
+      subadmin.permessi = JSON.parse(subadmin.permessi || '{}');
+    } catch (e) {
+      subadmin.permessi = {};
     }
-    
-    // Parsa i permessi JSON per ogni subadmin
-    subadmins.forEach(subadmin => {
-      try {
-        subadmin.permessi = JSON.parse(subadmin.permessi || '{}');
-      } catch (e) {
-        subadmin.permessi = {};
-      }
-    });
-    
-    callback(null, subadmins);
+    return subadmin;
   });
+  
+  return subadmins;
 }
 
-export function createSubAdmin(data, callback) {
+export async function createSubAdmin(data) {
   const sql = `INSERT INTO subadmin (lega_id, utente_id, attivo)
-    VALUES (?, ?, ?)`;
+    VALUES ($1, $2, $3) RETURNING id`;
   const db = getDb();
-  db.run(sql, [
+  const result = await db.query(sql, [
     data.lega_id,
     data.utente_id,
-    data.attivo ? 1 : 0
-  ], function(err) {
-    callback(err, this ? this.lastID : null);
-  });
+    data.attivo ? true : false
+  ]);
+  return result.rows[0].id;
 }
 
-export function getSubAdminById(id, callback) {
+export async function getSubAdminById(id) {
   const db = getDb();
-  db.get('SELECT * FROM subadmin WHERE id = ?', [id], callback);
+  const result = await db.query('SELECT * FROM subadmin WHERE id = $1', [id]);
+  return result.rows[0] || null;
 }
 
-export function getSubAdminByLega(lega_id, callback) {
+export async function getSubAdminByLega(lega_id) {
   const db = getDb();
-  db.all('SELECT * FROM subadmin WHERE lega_id = ?', [lega_id], callback);
+  const result = await db.query('SELECT * FROM subadmin WHERE lega_id = $1', [lega_id]);
+  return result.rows;
 }
 
-export function getSubAdminByUtente(utente_id, callback) {
+export async function getSubAdminByUtente(utente_id) {
   const db = getDb();
-  db.all('SELECT * FROM subadmin WHERE utente_id = ?', [utente_id], callback);
+  const result = await db.query('SELECT * FROM subadmin WHERE utente_id = $1', [utente_id]);
+  return result.rows;
 }
 
-export function getAllSubAdmin(callback) {
+export async function getAllSubAdmin() {
   const db = getDb();
-  db.all('SELECT * FROM subadmin', [], callback);
+  const result = await db.query('SELECT * FROM subadmin');
+  return result.rows;
 }
 
-export function updateSubAdmin(id, data, callback) {
-  const sql = `UPDATE subadmin SET lega_id=?, utente_id=?, attivo=? WHERE id=?`;
+export async function updateSubAdmin(id, data) {
+  const sql = `UPDATE subadmin SET lega_id=$1, utente_id=$2, attivo=$3 WHERE id=$4`;
   const db = getDb();
-  db.run(sql, [
+  await db.query(sql, [
     data.lega_id,
     data.utente_id,
-    data.attivo ? 1 : 0,
+    data.attivo ? true : false,
     id
-  ], callback);
+  ]);
 }
 
-export function deleteSubAdmin(id, callback) {
+export async function deleteSubAdmin(id) {
   const db = getDb();
-  db.run('DELETE FROM subadmin WHERE id = ?', [id], callback);
-} 
+  await db.query('DELETE FROM subadmin WHERE id = $1', [id]);
+}
 
-export function updateSubadminPermissions(legaId, userId, permissions, callback) {
+export async function updateSubadminPermissions(legaId, userId, permissions) {
   const db = getDb();
   const permissionsJson = JSON.stringify(permissions);
   
   console.log('updateSubadminPermissions - Parametri:', { legaId, userId, permissions, permissionsJson });
   
-  db.run(
-    'UPDATE subadmin SET permessi = ? WHERE lega_id = ? AND utente_id = ? AND attivo = 1',
-    [permissionsJson, legaId, userId],
-    function(err) {
-      if (err) {
-        console.error('Errore aggiornamento permessi subadmin:', err);
-        return callback(err);
-      }
-      console.log('Permessi subadmin aggiornati nel DB, changes:', this.changes);
-      callback(null, this.changes);
-    }
+  const result = await db.query(
+    'UPDATE subadmin SET permessi = $1 WHERE lega_id = $2 AND utente_id = $3 AND attivo = true',
+    [permissionsJson, legaId, userId]
   );
+  
+  console.log('Permessi subadmin aggiornati nel DB, changes:', result.rowCount);
+  return result.rowCount;
 } 

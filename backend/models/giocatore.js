@@ -1,10 +1,10 @@
 import { getDb } from '../db/postgres.js';
-const db = getDb();
 
-export function createGiocatore(data, callback) {
+export async function createGiocatore(data) {
+  const db = getDb();
   const sql = `INSERT INTO giocatori (lega_id, squadra_id, nome, cognome, ruolo, squadra_reale, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-  db.run(sql, [
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`;
+  const result = await db.query(sql, [
     data.lega_id,
     data.squadra_id,
     data.nome,
@@ -15,59 +15,71 @@ export function createGiocatore(data, callback) {
     data.salario || null,
     data.costo_attuale || null,
     data.costo_precedente || null,
-    data.prestito ? 1 : 0,
+    data.prestito ? true : false,
     data.anni_contratto || null,
-    data.cantera ? 1 : 0,
+    data.cantera ? true : false,
     data.triggers || null,
     data.valore_prestito || 0,
     data.valore_trasferimento || 0,
     data.roster || 'A'
-  ], function(err) {
-    callback(err, this ? this.lastID : null);
-  });
+  ]);
+  return result.rows[0].id;
 }
 
-export function getGiocatoreById(id, callback) {
-  db.get(`
+export async function getGiocatoreById(id) {
+  const db = getDb();
+  const result = await db.query(`
     SELECT *, 
            COALESCE(qa, quotazione_attuale) as quotazione_attuale,
            qi
-    FROM giocatori WHERE id = ?
-  `, [id], callback);
+    FROM giocatori WHERE id = $1
+  `, [id]);
+  
+  return result.rows[0] || null;
 }
 
-export function getGiocatoriBySquadra(squadra_id, callback) {
-  db.all(`
+export async function getGiocatoriBySquadra(squadra_id) {
+  const db = getDb();
+  const result = await db.query(`
     SELECT *, 
            COALESCE(qa, quotazione_attuale) as quotazione_attuale,
            fvm as fv_mp,
            qi
-    FROM giocatori WHERE squadra_id = ?
-  `, [squadra_id], callback);
+    FROM giocatori WHERE squadra_id = $1
+  `, [squadra_id]);
+  
+  return result.rows;
 }
 
-export function getGiocatoriByLega(lega_id, callback) {
-  db.all(`
+export async function getGiocatoriByLega(lega_id) {
+  const db = getDb();
+  const result = await db.query(`
     SELECT *, 
            COALESCE(qa, quotazione_attuale) as quotazione_attuale,
            qi
-    FROM giocatori WHERE lega_id = ?
-  `, [lega_id], callback);
+    FROM giocatori WHERE lega_id = $1
+  `, [lega_id]);
+  
+  return result.rows;
 }
 
-export function getAllGiocatori(callback) {
-  db.all(`
+export async function getAllGiocatori() {
+  const db = getDb();
+  const result = await db.query(`
     SELECT *, 
            COALESCE(qa, quotazione_attuale) as quotazione_attuale,
            qi
     FROM giocatori
-  `, [], callback);
+  `);
+  
+  return result.rows;
 }
 
-export function updateGiocatore(id, data, callback) {
+export async function updateGiocatore(id, data) {
+  const db = getDb();
   // Aggiornamento completo con tutti i campi
-  const sql = `UPDATE giocatori SET lega_id=?, squadra_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione_attuale=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
-  db.run(sql, [
+  const sql = `UPDATE giocatori SET lega_id=$1, squadra_id=$2, nome=$3, cognome=$4, ruolo=$5, squadra_reale=$6, quotazione_attuale=$7, salario=$8, costo_attuale=$9, costo_precedente=$10, prestito=$11, anni_contratto=$12, cantera=$13, triggers=$14, valore_prestito=$15, valore_trasferimento=$16, roster=$17 WHERE id=$18`;
+  await db.query(sql, [
     data.lega_id,
     data.squadra_id,
     data.nome,
@@ -78,110 +90,101 @@ export function updateGiocatore(id, data, callback) {
     data.salario || null,
     data.costo_attuale || null,
     data.costo_precedente || null,
-    data.prestito ? 1 : 0,
+    data.prestito ? true : false,
     data.anni_contratto || null,
-    data.cantera ? 1 : 0,
+    data.cantera ? true : false,
     data.triggers || null,
     data.valore_prestito || 0,
     data.valore_trasferimento || 0,
     data.roster || 'A',
     id
-  ], callback);
+  ]);
 }
 
-export function updateGiocatorePartial(id, data, callback) {
+export async function updateGiocatorePartial(id, data) {
   console.log('=== DEBUG UPDATE GIOCATORE PARTIAL ===');
   console.log('Giocatore ID:', id);
   console.log('Dati da aggiornare:', JSON.stringify(data, null, 2));
   
   // Prima ottieni i dati attuali del giocatore
-  getGiocatoreById(id, (err, giocatore) => {
-    if (err) {
-      console.error('Errore recupero giocatore:', err);
-      return callback(err);
-    }
-    
-    if (!giocatore) {
-      console.error('Giocatore non trovato con ID:', id);
-      return callback(new Error('Giocatore non trovato'));
-    }
-    
-    console.log('Giocatore trovato:', JSON.stringify(giocatore, null, 2));
-    
-    // Mappa i nomi dei campi dal frontend al database
-    const fieldMapping = {
-      'quotazione_attuale': 'qa',
-      'fanta_valore_mercato': 'fvm',
-      'media_voto': 'media_voto',
-      'fantamedia_voto': 'fantamedia_voto',
-      'costo_attuale': 'costo_attuale',
-      'quotazione_iniziale': 'qi',
-      'anni_contratto': 'anni_contratto',
-      'prestito': 'prestito',
-      'triggers': 'triggers',
-      'nome': 'nome',
-      'cognome': 'cognome',
-      'ruolo': 'ruolo',
-      'squadra_reale': 'squadra_reale',
-      'cantera': 'cantera',
-      'valore_prestito': 'valore_prestito',
-      'valore_trasferimento': 'valore_trasferimento',
-      'ingaggio': 'costo_attuale',
-      'roster': 'roster'
-    };
-    
-    // Prepara i dati per l'aggiornamento
-    const updateData = { ...giocatore };
-    
-    console.log('Dati originali giocatore:', JSON.stringify(giocatore, null, 2));
-    
-    Object.entries(data).forEach(([key, value]) => {
-      const dbField = fieldMapping[key] || key;
-      updateData[dbField] = value;
-      console.log(`Aggiornamento campo: ${key} -> ${dbField} = ${value}`);
-    });
-    
-    console.log('Dati finali per aggiornamento:', JSON.stringify(updateData, null, 2));
-    
-    // Esegui l'aggiornamento completo
-    const sql = `UPDATE giocatori SET lega_id=?, squadra_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione_attuale=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
-    
-    const params = [
-      updateData.lega_id,
-      updateData.squadra_id,
-      updateData.nome,
-      updateData.cognome || null,
-      updateData.ruolo,
-      updateData.squadra_reale || null,
-      updateData.quotazione_attuale || null,
-      updateData.salario || null,
-      updateData.costo_attuale || null,
-      updateData.costo_precedente || null,
-      updateData.prestito ? 1 : 0,
-      updateData.anni_contratto || null,
-      updateData.cantera ? 1 : 0,
-      updateData.triggers || null,
-      updateData.valore_prestito || 0,
-      updateData.valore_trasferimento || 0,
-      updateData.roster || 'A',
-      id
-    ];
-    
-    console.log('SQL Query:', sql);
-    console.log('Parametri:', JSON.stringify(params, null, 2));
-    
-    db.run(sql, params, function(err) {
-      if (err) {
-        console.error('Errore esecuzione query UPDATE:', err);
-        return callback(err);
-      }
-      
-      console.log(`Query eseguita con successo. Righe modificate: ${this.changes}`);
-      callback(null, this.changes);
-    });
+  const giocatore = await getGiocatoreById(id);
+  
+  if (!giocatore) {
+    console.error('Giocatore non trovato con ID:', id);
+    throw new Error('Giocatore non trovato');
+  }
+  
+  console.log('Giocatore trovato:', JSON.stringify(giocatore, null, 2));
+  
+  // Mappa i nomi dei campi dal frontend al database
+  const fieldMapping = {
+    'quotazione_attuale': 'qa',
+    'fanta_valore_mercato': 'fvm',
+    'media_voto': 'media_voto',
+    'fantamedia_voto': 'fantamedia_voto',
+    'costo_attuale': 'costo_attuale',
+    'quotazione_iniziale': 'qi',
+    'anni_contratto': 'anni_contratto',
+    'prestito': 'prestito',
+    'triggers': 'triggers',
+    'nome': 'nome',
+    'cognome': 'cognome',
+    'ruolo': 'ruolo',
+    'squadra_reale': 'squadra_reale',
+    'cantera': 'cantera',
+    'valore_prestito': 'valore_prestito',
+    'valore_trasferimento': 'valore_trasferimento',
+    'ingaggio': 'costo_attuale',
+    'roster': 'roster'
+  };
+  
+  // Prepara i dati per l'aggiornamento
+  const updateData = { ...giocatore };
+  
+  console.log('Dati originali giocatore:', JSON.stringify(giocatore, null, 2));
+  
+  Object.entries(data).forEach(([key, value]) => {
+    const dbField = fieldMapping[key] || key;
+    updateData[dbField] = value;
+    console.log(`Aggiornamento campo: ${key} -> ${dbField} = ${value}`);
   });
+  
+  console.log('Dati finali per aggiornamento:', JSON.stringify(updateData, null, 2));
+  
+  // Esegui l'aggiornamento completo
+  const sql = `UPDATE giocatori SET lega_id=$1, squadra_id=$2, nome=$3, cognome=$4, ruolo=$5, squadra_reale=$6, quotazione_attuale=$7, salario=$8, costo_attuale=$9, costo_precedente=$10, prestito=$11, anni_contratto=$12, cantera=$13, triggers=$14, valore_prestito=$15, valore_trasferimento=$16, roster=$17 WHERE id=$18`;
+  
+  const params = [
+    updateData.lega_id,
+    updateData.squadra_id,
+    updateData.nome,
+    updateData.cognome || null,
+    updateData.ruolo,
+    updateData.squadra_reale || null,
+    updateData.quotazione_attuale || null,
+    updateData.salario || null,
+    updateData.costo_attuale || null,
+    updateData.costo_precedente || null,
+    updateData.prestito ? true : false,
+    updateData.anni_contratto || null,
+    updateData.cantera ? true : false,
+    updateData.triggers || null,
+    updateData.valore_prestito || 0,
+    updateData.valore_trasferimento || 0,
+    updateData.roster || 'A',
+    id
+  ];
+  
+  console.log('SQL Query:', sql);
+  console.log('Parametri:', JSON.stringify(params, null, 2));
+  
+  const result = await db.query(sql, params);
+  console.log(`Query eseguita con successo. Righe modificate: ${result.rowCount}`);
+  
+  return result.rowCount;
 }
 
-export function deleteGiocatore(id, callback) {
-  db.run('DELETE FROM giocatori WHERE id = ?', [id], callback);
+export async function deleteGiocatore(id) {
+  const db = getDb();
+  await db.query('DELETE FROM giocatori WHERE id = $1', [id]);
 } 
