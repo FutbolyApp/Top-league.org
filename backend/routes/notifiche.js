@@ -6,12 +6,21 @@ const router = express.Router();
 const db = getDb();
 
 // Ottieni tutte le notifiche dell'utente loggato
-router.get('/', requireAuth, (req, res) => {
-  const userId = req.user.id;
-  db.all('SELECT *, COALESCE(dati_aggiuntivi, "{}") as dati_aggiuntivi FROM notifiche WHERE utente_id = ? AND (archiviata = 0 OR archiviata IS NULL) ORDER BY data_creazione DESC', [userId], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Errore DB' });
-    res.json({ notifiche: rows });
-  });
+router.get('/', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const result = await db.query(`
+      SELECT *, COALESCE(dati_aggiuntivi, '{}') as dati_aggiuntivi 
+      FROM notifiche 
+      WHERE utente_id = $1 AND (archiviata = false OR archiviata IS NULL) 
+      ORDER BY data_creazione DESC
+    `, [userId]);
+    
+    res.json({ notifiche: result.rows });
+  } catch (error) {
+    console.error('Errore recupero notifiche:', error);
+    res.status(500).json({ error: 'Errore DB', details: error.message });
+  }
 });
 
 // Ottieni tutte le notifiche dell'utente loggato (alias)

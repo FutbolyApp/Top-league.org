@@ -1,4 +1,5 @@
 import express from 'express';
+import { getDb } from '../db/postgres.js';
 import { requireAuth, requireSuperAdmin } from '../middleware/auth.js';
 import { 
   addSubadmin, 
@@ -481,21 +482,19 @@ router.get('/history', requireAuth, (req, res) => {
 });
 
 // Verifica se utente è subadmin di qualche lega
-router.get('/check-all', requireAuth, (req, res) => {
-  const userId = req.user.id;
-  
-  const db = req.app.locals.db;
-  db.all(`
-    SELECT s.*, l.nome as lega_nome, l.id as lega_id
-    FROM subadmin s
-    JOIN leghe l ON s.lega_id = l.id
-    WHERE s.utente_id = ? AND s.attivo = 1
-  `, [userId], (err, subadminLeagues) => {
-    if (err) {
-      console.error('Errore verifica subadmin globale:', err);
-      return res.status(500).json({ error: 'Errore DB', details: err.message });
-    }
+router.get('/check-all', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id;
     
+    const db = getDb();
+    const result = await db.query(`
+      SELECT s.*, l.nome as lega_nome, l.id as lega_id
+      FROM subadmin s
+      JOIN leghe l ON s.lega_id = l.id
+      WHERE s.utente_id = $1 AND s.attivo = true
+    `, [userId]);
+    
+    const subadminLeagues = result.rows;
     const isSubadmin = subadminLeagues.length > 0;
     const leagues = subadminLeagues.map(sl => ({
       id: sl.lega_id,
@@ -507,7 +506,10 @@ router.get('/check-all', requireAuth, (req, res) => {
       isSubadmin, 
       leagues 
     });
-  });
+  } catch (error) {
+    console.error('Errore verifica subadmin globale:', error);
+    res.status(500).json({ error: 'Errore DB', details: error.message });
+  }
 });
 
 // Crea una nuova richiesta di modifica (subadmin)
