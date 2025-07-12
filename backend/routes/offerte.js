@@ -9,49 +9,56 @@ import { validateRoleLimits, isClassicLeague } from '../utils/leagueConfig.js';
 import { getLegaById } from '../models/lega.js';
 
 const router = express.Router();
-const db = getDb();
 
 // Crea una nuova offerta (trasferimento/prestito)
-router.post('/create', requireAuth, (req, res) => {
-  const { lega_id, squadra_mittente_id, squadra_destinatario_id, giocatore_id, tipo, valore, cantera } = req.body;
-  if (!lega_id || !squadra_mittente_id || !squadra_destinatario_id || !giocatore_id || !tipo || !valore) {
-    return res.status(400).json({ error: 'Parametri mancanti' });
-  }
-  
-  // Calcola il salario in base al campo cantera
-  let salario = valore;
-  if (cantera) {
-    salario = Math.floor(valore / 2); // Arrotondamento per difetto
-  }
-  
-  createOfferta({
-    lega_id,
-    squadra_mittente_id,
-    squadra_destinatario_id,
-    giocatore_id,
-    tipo,
-    valore,
-    cantera: cantera || false,
-    stato: 'inviata'
-  }, (err, offertaId) => {
-    if (err) return res.status(500).json({ error: 'Errore creazione offerta', details: err.message });
+router.post('/create', requireAuth, async (req, res) => {
+  try {
+    const { lega_id, squadra_mittente_id, squadra_destinatario_id, giocatore_id, tipo, valore, cantera } = req.body;
+    if (!lega_id || !squadra_mittente_id || !squadra_destinatario_id || !giocatore_id || !tipo || !valore) {
+      return res.status(400).json({ error: 'Parametri mancanti' });
+    }
+    
+    // Calcola il salario in base al campo cantera
+    let salario = valore;
+    if (cantera) {
+      salario = Math.floor(valore / 2); // Arrotondamento per difetto
+    }
+    
+    const offertaId = await createOfferta({
+      lega_id,
+      squadra_mittente_id,
+      squadra_destinatario_id,
+      giocatore_id,
+      tipo,
+      valore,
+      cantera: cantera || false,
+      stato: 'inviata'
+    });
+    
     res.json({ success: true, offertaId, salario });
-  });
+  } catch (error) {
+    console.error('Errore creazione offerta:', error);
+    res.status(500).json({ error: 'Errore creazione offerta', details: error.message });
+  }
 });
 
 // Ottieni tutte le offerte di una lega
-router.get('/lega/:legaId', requireAuth, (req, res) => {
-  const legaId = req.params.legaId;
-  getOfferteByLega(legaId, (err, offerte) => {
-    if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
+router.get('/lega/:legaId', requireAuth, async (req, res) => {
+  try {
+    const legaId = req.params.legaId;
+    const offerte = await getOfferteByLega(legaId);
     res.json({ offerte });
-  });
+  } catch (error) {
+    console.error('Errore recupero offerte:', error);
+    res.status(500).json({ error: 'Errore DB', details: error.message });
+  }
 });
 
 // Ottieni movimenti di mercato per una lega (offerte completate)
 router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
   try {
     const { legaId } = req.params;
+    const db = getDb();
     
     const query = `
       SELECT o.id, o.tipo, o.valore, o.cantera, o.data_invio as data,
@@ -100,6 +107,7 @@ router.get('/roster/stats/:squadraId', authenticateToken, async (req, res) => {
   try {
     const { squadraId } = req.params;
     const { id: userId, ruolo } = req.user;
+    const db = getDb();
 
     // Verifica che l'utente sia proprietario della squadra O sia admin
     let squadra;
@@ -134,6 +142,7 @@ router.get('/roster/:squadraId', authenticateToken, async (req, res) => {
   try {
     const { squadraId } = req.params;
     const { id: userId, ruolo } = req.user;
+    const db = getDb();
 
     // Verifica che l'utente sia proprietario della squadra O sia admin
     let squadra;
@@ -168,6 +177,7 @@ router.post('/roster/loan-return', authenticateToken, async (req, res) => {
   try {
     const { giocatoreId } = req.body;
     const { id: userId } = req.user;
+    const db = getDb();
 
     // Verifica che il giocatore appartenga a una squadra dell'utente
     const result = await db.query(
@@ -198,6 +208,7 @@ router.post('/termina-prestito/:giocatoreId', authenticateToken, async (req, res
   try {
     const { giocatoreId } = req.params;
     const { id: userId } = req.user;
+    const db = getDb();
 
     // Verifica che il giocatore sia in prestito e appartenga a una squadra dell'utente
     const result = await db.query(
@@ -227,28 +238,25 @@ router.post('/termina-prestito/:giocatoreId', authenticateToken, async (req, res
 });
 
 // Ottieni log contratti
-router.get('/log/:squadraId', requireAuth, (req, res) => {
-  const { squadraId } = req.params;
-  
+router.get('/log/:squadraId', requireAuth, async (req, res) => {
   try {
+    const { squadraId } = req.params;
+    const db = getDb();
+    
     const sql = `
       SELECT lc.*, g.nome as giocatore_nome
       FROM log_contratti lc
       JOIN giocatori g ON lc.giocatore_id = g.id
-      WHERE lc.squadra_id = ?
+      WHERE lc.squadra_id = $1
       ORDER BY lc.data_pagamento DESC
       LIMIT 50
     `;
     
-    db.all(sql, [squadraId], (err, log) => {
-      if (err) {
-        return res.status(500).json({ error: 'Errore nel recupero log' });
-      }
-      
-      res.json({ log });
-    });
+    const result = await db.query(sql, [squadraId]);
+    res.json({ log: result.rows });
   } catch (error) {
-    res.status(500).json({ error: 'Errore del server' });
+    console.error('Errore nel recupero log:', error);
+    res.status(500).json({ error: 'Errore nel recupero log' });
   }
 });
 
@@ -257,12 +265,12 @@ router.get('/log/:squadraId', requireAuth, (req, res) => {
 router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
   const { offerta_id } = req.params;
   const { id: giocatore_id } = req.user;
+  const db = getDb();
 
   try {
     // Ottieni l'offerta
-    const offerta = await new Promise((resolve, reject) => {
-      db.get(
-        `SELECT o.*, g.nome as giocatore_nome, g.cognome as giocatore_cognome,
+    const offerta = await db.query(
+      `SELECT o.*, g.nome as giocatore_nome, g.cognome as giocatore_cognome,
                 gs.nome as giocatore_scambio_nome, gs.cognome as giocatore_scambio_cognome,
                 sm.nome as squadra_mittente_nome, sd.nome as squadra_destinatario_nome
          FROM offerte o
@@ -270,48 +278,35 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
          LEFT JOIN giocatori gs ON o.giocatore_scambio_id = gs.id
          JOIN squadre sm ON o.squadra_mittente_id = sm.id
          JOIN squadre sd ON o.squadra_destinatario_id = sd.id
-         WHERE o.id = ? AND sd.proprietario_id = ?`,
-        [offerta_id, giocatore_id],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
+         WHERE o.id = $1 AND sd.proprietario_id = $2`,
+      [offerta_id, giocatore_id]
+    );
 
-    if (!offerta) {
+    if (offerta.rows.length === 0) {
       return res.status(404).json({ error: 'Offerta non trovata' });
     }
 
-    if (offerta.stato !== 'in_attesa') {
+    const offertaData = offerta.rows[0];
+
+    if (offertaData.stato !== 'in_attesa') {
       return res.status(400).json({ error: 'Offerta già processata' });
     }
 
     // Gestisci il sistema Roster A/B se attivato
-    const rosterManager = createRosterManager(offerta.lega_id);
+    const rosterManager = createRosterManager(offertaData.lega_id);
     const isRosterABEnabled = await rosterManager.isRosterABEnabled();
 
     // Verifica spazio nel roster prima di accettare
     if (isRosterABEnabled) {
       // Conta giocatori attuali nella squadra destinataria
-      const giocatoriAttuali = await new Promise((resolve, reject) => {
-        db.get('SELECT COUNT(*) as count FROM giocatori WHERE squadra_id = ?', [offerta.squadra_mittente_id], (err, result) => {
-          if (err) reject(err);
-          else resolve(result.count);
-        });
-      });
+      const giocatoriAttuali = await db.query('SELECT COUNT(*) as count FROM giocatori WHERE squadra_id = $1', [offertaData.squadra_mittente_id]);
+      const giocatoriAttualiCount = giocatoriAttuali.rows[0].count;
 
       // Ottieni limite massimo dalla lega
-      const lega = await new Promise((resolve, reject) => {
-        getLegaById(offerta.lega_id, (err, lega) => {
-          if (err) reject(err);
-          else resolve(lega);
-        });
-      });
-
+      const lega = await getLegaById(offertaData.lega_id);
       const maxGiocatori = lega.max_giocatori || 30;
       
-      if (giocatoriAttuali >= maxGiocatori) {
+      if (giocatoriAttualiCount >= maxGiocatori) {
         return res.status(400).json({ 
           error: `Impossibile accettare l'offerta. La squadra ha già raggiunto il limite massimo di ${maxGiocatori} giocatori.` 
         });
@@ -319,32 +314,24 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
     }
 
     // Validazione limiti di ruolo per leghe Classic
-    const isClassic = await isClassicLeague(offerta.lega_id);
+    const isClassic = await isClassicLeague(offertaData.lega_id);
     if (isClassic) {
       // Ottieni i dati del giocatore che viene trasferito
-      const giocatoreIn = await new Promise((resolve, reject) => {
-        db.get('SELECT * FROM giocatori WHERE id = ?', [offerta.giocatore_id], (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        });
-      });
+      const giocatoreIn = await db.query('SELECT * FROM giocatori WHERE id = $1', [offertaData.giocatore_id]);
+      const giocatoreInData = giocatoreIn.rows[0];
 
       // Ottieni i dati del giocatore scambio se presente
       let giocatoreOut = null;
-      if (offerta.tipo === 'scambio' && offerta.giocatore_scambio_id) {
-        giocatoreOut = await new Promise((resolve, reject) => {
-          db.get('SELECT * FROM giocatori WHERE id = ?', [offerta.giocatore_scambio_id], (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          });
-        });
+      if (offertaData.tipo === 'scambio' && offertaData.giocatore_scambio_id) {
+        giocatoreOut = await db.query('SELECT * FROM giocatori WHERE id = $1', [offertaData.giocatore_scambio_id]);
+        giocatoreOut = giocatoreOut.rows[0];
       }
 
       // Valida i limiti di ruolo per la squadra destinataria
       const validazioneDestinataria = await validateRoleLimits(
-        offerta.lega_id, 
-        offerta.squadra_mittente_id, 
-        giocatoreIn, 
+        offertaData.lega_id, 
+        offertaData.squadra_mittente_id, 
+        giocatoreInData, 
         giocatoreOut
       );
 
@@ -355,12 +342,12 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
       }
 
       // Se è uno scambio, valida anche per la squadra mittente
-      if (offerta.tipo === 'scambio' && giocatoreOut) {
+      if (offertaData.tipo === 'scambio' && giocatoreOut) {
         const validazioneMittente = await validateRoleLimits(
-          offerta.lega_id, 
-          offerta.squadra_destinatario_id, 
+          offertaData.lega_id, 
+          offertaData.squadra_destinatario_id, 
           giocatoreOut, 
-          giocatoreIn
+          giocatoreInData
         );
 
         if (!validazioneMittente.valid) {
@@ -372,127 +359,103 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
     }
 
     // Inizia transazione
-    db.serialize(() => {
-      db.run('BEGIN TRANSACTION');
+    await db.query('BEGIN TRANSACTION');
 
-      try {
-        // Aggiorna stato offerta
-        db.run('UPDATE offerte SET stato = ?, data_accettazione = ? WHERE id = ?', 
-          ['accettata', new Date().toISOString(), offerta_id]);
+    try {
+      // Aggiorna stato offerta
+      await db.query('UPDATE offerte SET stato = $1, data_accettazione = $2 WHERE id = $3', 
+        ['accettata', new Date().toISOString(), offerta_id]);
 
-        // Sposta il giocatore target
-        console.log(`Spostamento giocatore ${offerta.giocatore_id} da squadra ${offerta.squadra_destinatario_id} a squadra ${offerta.squadra_mittente_id}`);
+      // Sposta il giocatore target
+      console.log(`Spostamento giocatore ${offertaData.giocatore_id} da squadra ${offertaData.squadra_destinatario_id} a squadra ${offertaData.squadra_mittente_id}`);
+      
+      // Se è un prestito, imposta il campo prestito = 1 e gestisci i roster
+      if (offertaData.tipo === 'prestito') {
+        console.log(`Impostazione prestito = 1 per giocatore ${offertaData.giocatore_id}`);
+        await db.query('UPDATE giocatori SET squadra_id = $1, prestito = 1, squadra_prestito_id = $2 WHERE id = $3', 
+          [offertaData.squadra_mittente_id, offertaData.squadra_destinatario_id, offertaData.giocatore_id]);
         
-        // Se è un prestito, imposta il campo prestito = 1 e gestisci i roster
-        if (offerta.tipo === 'prestito') {
-          console.log(`Impostazione prestito = 1 per giocatore ${offerta.giocatore_id}`);
-          db.run('UPDATE giocatori SET squadra_id = ?, prestito = 1, squadra_prestito_id = ? WHERE id = ?', 
-            [offerta.squadra_mittente_id, offerta.squadra_destinatario_id, offerta.giocatore_id]);
-          
-          // Se il sistema Roster A/B è attivato:
-          if (isRosterABEnabled) {
-            // Il giocatore va in Roster A della squadra che lo riceve (può giocare)
-            console.log(`Spostamento giocatore ${offerta.giocatore_id} in Roster A della squadra ricevente (prestito)`);
-            db.run('UPDATE giocatori SET roster = ? WHERE id = ?', ['A', offerta.giocatore_id]);
-          }
-        } else {
-          // Per trasferimenti normali, non impostare prestito = 1
-        db.run('UPDATE giocatori SET squadra_id = ? WHERE id = ?', 
-          [offerta.squadra_mittente_id, offerta.giocatore_id]);
+        // Se il sistema Roster A/B è attivato:
+        if (isRosterABEnabled) {
+          // Il giocatore va in Roster A della squadra che lo riceve (può giocare)
+          console.log(`Spostamento giocatore ${offertaData.giocatore_id} in Roster A della squadra ricevente (prestito)`);
+          await db.query('UPDATE giocatori SET roster = $1 WHERE id = $2', ['A', offertaData.giocatore_id]);
         }
-
-        // Se è uno scambio, sposta anche il giocatore scambio
-        if (offerta.tipo === 'scambio' && offerta.giocatore_scambio_id) {
-          console.log(`Spostamento giocatore scambio ${offerta.giocatore_scambio_id} da squadra ${offerta.squadra_mittente_id} a squadra ${offerta.squadra_destinatario_id}`);
-          db.run('UPDATE giocatori SET squadra_id = ? WHERE id = ?', 
-            [offerta.squadra_destinatario_id, offerta.giocatore_scambio_id]);
-        }
-
-        // Aggiorna casse societarie
-        if (offerta.valore_offerta > 0) {
-          console.log(`Aggiornamento casse: +${offerta.valore_offerta} per squadra ${offerta.squadra_destinatario_id}, -${offerta.valore_offerta} per squadra ${offerta.squadra_mittente_id}`);
-          db.run('UPDATE squadre SET casse_societarie = casse_societarie + ? WHERE id = ?', 
-            [offerta.valore_offerta, offerta.squadra_destinatario_id]);
-          db.run('UPDATE squadre SET casse_societarie = casse_societarie - ? WHERE id = ?', 
-            [offerta.valore_offerta, offerta.squadra_mittente_id]);
-        }
-
-        // Log operazioni
-        const dettagliTarget = `${offerta.giocatore_nome} ${offerta.giocatore_cognome} trasferito da ${offerta.squadra_destinatario_nome} a ${offerta.squadra_mittente_nome}`;
-        db.run(
-          'INSERT INTO log_operazioni_giocatori (giocatore_id, lega_id, tipo_operazione, squadra_mittente_id, squadra_destinatario_id, valore, dettagli, utente_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [offerta.giocatore_id, offerta.lega_id, offerta.tipo, offerta.squadra_destinatario_id, offerta.squadra_mittente_id, offerta.valore_offerta, dettagliTarget, giocatore_id]
-        );
-
-        if (offerta.tipo === 'scambio' && offerta.giocatore_scambio_id) {
-          const dettagliScambio = `${offerta.giocatore_scambio_nome} ${offerta.giocatore_scambio_cognome} trasferito da ${offerta.squadra_mittente_nome} a ${offerta.squadra_destinatario_nome}`;
-          db.run(
-            'INSERT INTO log_operazioni_giocatori (giocatore_id, lega_id, tipo_operazione, squadra_mittente_id, squadra_destinatario_id, valore, dettagli, utente_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [offerta.giocatore_scambio_id, offerta.lega_id, offerta.tipo, offerta.squadra_mittente_id, offerta.squadra_destinatario_id, offerta.valore_offerta, dettagliScambio, giocatore_id]
-          );
-        }
-
-        // Ottieni l'ID dell'utente proprietario della squadra mittente
-        db.get('SELECT proprietario_id FROM squadre WHERE id = ?', [offerta.squadra_mittente_id], (err, row) => {
-          if (err || !row) {
-            console.error('Errore nel recupero proprietario squadra mittente:', err);
-            db.run('ROLLBACK');
-            return res.status(500).json({ error: 'Errore interno del server' });
-          }
-          const proprietarioMittenteId = row.proprietario_id;
-
-          // Recupera i dati_aggiuntivi dalle notifiche originali
-          db.get(
-            'SELECT dati_aggiuntivi FROM notifiche WHERE dati_aggiuntivi LIKE ? LIMIT 1',
-            [`%"offerta_id":${offerta_id}%`],
-            (err, row) => {
-              if (err) {
-                console.error('Errore recupero dati aggiuntivi:', err);
-              }
-              
-              const datiAggiuntivi = row ? row.dati_aggiuntivi : null;
-
-          // Notifica al mittente
-          const messaggioNotifica = `La tua offerta per ${offerta.giocatore_nome} ${offerta.giocatore_cognome || ''} è stata accettata!`;
-          db.run(
-                'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES (?, ?, ?, ?, ?, ?)',
-                [offerta.lega_id, proprietarioMittenteId, 'Offerta Accettata', messaggioNotifica, offerta.tipo, datiAggiuntivi]
-          );
-
-          // Notifica anche al destinatario (squadra che ha accettato)
-          const messaggioNotificaDestinatario = `Hai accettato l'offerta per ${offerta.giocatore_nome} ${offerta.giocatore_cognome || ''}`;
-          db.run(
-                'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES (?, ?, ?, ?, ?, ?)',
-                [offerta.lega_id, giocatore_id, 'Offerta Accettata', messaggioNotificaDestinatario, offerta.tipo, datiAggiuntivi]
-              );
-            }
-          );
-
-          // Aggiorna la notifica originale per indicare che è stata accettata
-          // Mantieni i dati_aggiuntivi per preservare le informazioni del popup
-          db.run(
-            'UPDATE notifiche SET messaggio = messaggio || " - ACCETTATA" WHERE dati_aggiuntivi LIKE ? ',
-            [`%"offerta_id":${offerta_id}%`],
-            function(err) {
-              if (err) {
-                console.error('Errore aggiornamento notifica accettata:', err);
-              } else {
-                console.log('Notifica originale aggiornata (accettata), righe modificate:', this.changes);
-                
-                // NON rimuovere le notifiche originali per mantenere i dati_aggiuntivi
-                // Le notifiche con " - ACCETTATA" manterranno i dati per il popup
-              }
-            }
-          );
-
-          db.run('COMMIT');
-          res.json({ success: true });
-        });
-      } catch (error) {
-        db.run('ROLLBACK');
-        throw error;
+      } else {
+        // Per trasferimenti normali, non impostare prestito = 1
+        await db.query('UPDATE giocatori SET squadra_id = $1 WHERE id = $2', 
+          [offertaData.squadra_mittente_id, offertaData.giocatore_id]);
       }
-    });
+
+      // Se è uno scambio, sposta anche il giocatore scambio
+      if (offertaData.tipo === 'scambio' && offertaData.giocatore_scambio_id) {
+        console.log(`Spostamento giocatore scambio ${offertaData.giocatore_scambio_id} da squadra ${offertaData.squadra_mittente_id} a squadra ${offertaData.squadra_destinatario_id}`);
+        await db.query('UPDATE giocatori SET squadra_id = $1 WHERE id = $2', 
+          [offertaData.squadra_destinatario_id, offertaData.giocatore_scambio_id]);
+      }
+
+      // Aggiorna casse societarie
+      if (offertaData.valore_offerta > 0) {
+        console.log(`Aggiornamento casse: +${offertaData.valore_offerta} per squadra ${offertaData.squadra_destinatario_id}, -${offertaData.valore_offerta} per squadra ${offertaData.squadra_mittente_id}`);
+        await db.query('UPDATE squadre SET casse_societarie = casse_societarie + $1 WHERE id = $2', 
+          [offertaData.valore_offerta, offertaData.squadra_destinatario_id]);
+        await db.query('UPDATE squadre SET casse_societarie = casse_societarie - $1 WHERE id = $2', 
+          [offertaData.valore_offerta, offertaData.squadra_mittente_id]);
+      }
+
+      // Log operazioni
+      const dettagliTarget = `${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} trasferito da ${offertaData.squadra_destinatario_nome} a ${offertaData.squadra_mittente_nome}`;
+      await db.query(
+        'INSERT INTO log_operazioni_giocatori (giocatore_id, lega_id, tipo_operazione, squadra_mittente_id, squadra_destinatario_id, valore, dettagli, utente_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [offertaData.giocatore_id, offertaData.lega_id, offertaData.tipo, offertaData.squadra_destinatario_id, offertaData.squadra_mittente_id, offertaData.valore_offerta, dettagliTarget, giocatore_id]
+      );
+
+      if (offertaData.tipo === 'scambio' && offertaData.giocatore_scambio_id) {
+        const dettagliScambio = `${offertaData.giocatore_scambio_nome} ${offertaData.giocatore_scambio_cognome} trasferito da ${offertaData.squadra_mittente_nome} a ${offertaData.squadra_destinatario_nome}`;
+        await db.query(
+          'INSERT INTO log_operazioni_giocatori (giocatore_id, lega_id, tipo_operazione, squadra_mittente_id, squadra_destinatario_id, valore, dettagli, utente_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          [offertaData.giocatore_scambio_id, offertaData.lega_id, offertaData.tipo, offertaData.squadra_mittente_id, offertaData.squadra_destinatario_id, offertaData.valore_offerta, dettagliScambio, giocatore_id]
+        );
+      }
+
+      // Ottieni l'ID dell'utente proprietario della squadra mittente
+      const proprietarioMittente = await db.query('SELECT proprietario_id FROM squadre WHERE id = $1', [offertaData.squadra_mittente_id]);
+      const proprietarioMittenteId = proprietarioMittente.rows[0].proprietario_id;
+
+      // Recupera i dati_aggiuntivi dalle notifiche originali
+      const notificaOriginal = await db.query(
+        'SELECT dati_aggiuntivi FROM notifiche WHERE dati_aggiuntivi LIKE $1 LIMIT 1',
+        [`%"offerta_id":${offerta_id}%`]
+      );
+      const datiAggiuntivi = notificaOriginal.rows[0] ? notificaOriginal.rows[0].dati_aggiuntivi : null;
+
+      // Notifica al mittente
+      const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome || ''} è stata accettata!`;
+      await db.query(
+            'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5, $6)',
+            [offertaData.lega_id, proprietarioMittenteId, 'Offerta Accettata', messaggioNotifica, offertaData.tipo, datiAggiuntivi]
+      );
+
+      // Notifica anche al destinatario (squadra che ha accettato)
+      const messaggioNotificaDestinatario = `Hai accettato l'offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome || ''}`;
+      await db.query(
+            'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5, $6)',
+            [offertaData.lega_id, giocatore_id, 'Offerta Accettata', messaggioNotificaDestinatario, offertaData.tipo, datiAggiuntivi]
+          );
+
+      // Aggiorna la notifica originale per indicare che è stata accettata
+      // Mantieni i dati_aggiuntivi per preservare le informazioni del popup
+      await db.query(
+        'UPDATE notifiche SET messaggio = messaggio || " - ACCETTATA" WHERE dati_aggiuntivi LIKE $1 ',
+        [`%"offerta_id":${offerta_id}%`]
+      );
+
+      await db.query('COMMIT');
+      res.json({ success: true });
+    } catch (error) {
+      await db.query('ROLLBACK');
+      throw error;
+    }
   } catch (error) {
     console.error('Errore accettazione offerta:', error);
     res.status(500).json({ error: 'Errore interno del server' });
@@ -503,98 +466,54 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
 router.post('/rifiuta/:offerta_id', authenticateToken, async (req, res) => {
   const { offerta_id } = req.params;
   const { id: giocatore_id } = req.user;
+  const db = getDb();
 
   try {
-    const offerta = await new Promise((resolve, reject) => {
-      db.get(
-        `SELECT o.*, g.nome as giocatore_nome, g.cognome as giocatore_cognome
+    const offerta = await db.query(
+      `SELECT o.*, g.nome as giocatore_nome, g.cognome as giocatore_cognome
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
          JOIN squadre sd ON o.squadra_destinatario_id = sd.id
-         WHERE o.id = ? AND sd.proprietario_id = ?`,
-        [offerta_id, giocatore_id],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
+         WHERE o.id = $1 AND sd.proprietario_id = $2`,
+      [offerta_id, giocatore_id]
+    );
 
-    if (!offerta) {
+    if (offerta.rows.length === 0) {
       return res.status(404).json({ error: 'Offerta non trovata' });
     }
 
-    if (offerta.stato !== 'in_attesa') {
+    const offertaData = offerta.rows[0];
+
+    if (offertaData.stato !== 'in_attesa') {
       return res.status(400).json({ error: 'Offerta già processata' });
     }
 
     // Aggiorna stato offerta
-    await new Promise((resolve, reject) => {
-      db.run('UPDATE offerte SET stato = ? WHERE id = ?', ['rifiutata', offerta_id], (err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+    await db.query('UPDATE offerte SET stato = $1 WHERE id = $2', ['rifiutata', offerta_id]);
 
     // Ottieni l'ID dell'utente proprietario della squadra mittente
-    db.get('SELECT proprietario_id FROM squadre WHERE id = ?', [offerta.squadra_mittente_id], (err, row) => {
-      if (err || !row) {
-        console.error('Errore nel recupero proprietario squadra mittente:', err);
-        return res.status(500).json({ error: 'Errore interno del server' });
-      }
-      const proprietarioMittenteId = row.proprietario_id;
+    const proprietarioMittente = await db.query('SELECT proprietario_id FROM squadre WHERE id = $1', [offertaData.squadra_mittente_id]);
+    const proprietarioMittenteId = proprietarioMittente.rows[0].proprietario_id;
 
-      // Recupera i dati_aggiuntivi dalle notifiche originali
-      db.get(
-        'SELECT dati_aggiuntivi FROM notifiche WHERE dati_aggiuntivi LIKE ? LIMIT 1',
-        [`%"offerta_id":${offerta_id}%`],
-        (err, row) => {
-          if (err) {
-            console.error('Errore recupero dati aggiuntivi:', err);
-          }
-          
-          const datiAggiuntivi = row ? row.dati_aggiuntivi : null;
+    // Recupera i dati_aggiuntivi dalle notifiche originali
+    const notificaOriginal = await db.query(
+      'SELECT dati_aggiuntivi FROM notifiche WHERE dati_aggiuntivi LIKE $1 LIMIT 1',
+      [`%"offerta_id":${offerta_id}%`]
+    );
+    const datiAggiuntivi = notificaOriginal.rows[0] ? notificaOriginal.rows[0].dati_aggiuntivi : null;
 
-      // Notifica al mittente
-      const messaggioNotifica = `La tua offerta per ${offerta.giocatore_nome} ${offerta.giocatore_cognome || ''} è stata rifiutata.`;
-      db.run(
-            'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES (?, ?, ?, ?, ?, ?)',
-            [offerta.lega_id, proprietarioMittenteId, 'Offerta Rifiutata', messaggioNotifica, offerta.tipo, datiAggiuntivi],
-        (err) => {
-          if (err) {
-            console.error('Errore creazione notifica:', err);
-            return res.status(500).json({ error: 'Errore interno del server' });
-          }
-          res.json({ 
-            success: true, 
-            message: `Offerta rifiutata con successo`
-          });
-            }
-          );
-        }
-      );
-    });
+    // Notifica al mittente
+    const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome || ''} è stata rifiutata.`;
+    await db.query(
+            'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5, $6)',
+            [offertaData.lega_id, proprietarioMittenteId, 'Offerta Rifiutata', messaggioNotifica, offertaData.tipo, datiAggiuntivi],
+        );
 
     // Aggiorna la notifica originale per indicare che è stata rifiutata
-    await new Promise((resolve, reject) => {
-      console.log('Aggiornamento notifica originale per offerta:', offerta_id);
-      db.run(
-        'UPDATE notifiche SET messaggio = messaggio || \' - RIFIUTATA\' WHERE dati_aggiuntivi LIKE \'%"offerta_id":\' || ? || \'%\'',
-        [offerta_id],
-        function(err) {
-          if (err) {
-            console.error('Errore aggiornamento notifica:', err);
-            reject(err);
-          } else {
-            console.log('Notifica originale aggiornata, righe modificate:', this.changes);
-            
-            // NON rimuovere le notifiche originali per mantenere i dati_aggiuntivi
-            // Le notifiche con " - RIFIUTATA" manterranno i dati per il popup
-            resolve();
-          }
-        }
-      );
-    });
+    await db.query(
+      'UPDATE notifiche SET messaggio = messaggio || \' - RIFIUTATA\' WHERE dati_aggiuntivi LIKE $1',
+      [`%"offerta_id":${offerta_id}%`]
+    );
 
     res.json({ success: true });
   } catch (error) {
@@ -604,204 +523,157 @@ router.post('/rifiuta/:offerta_id', authenticateToken, async (req, res) => {
 });
 
 // Accetta o rifiuta un'offerta (endpoint generico - deve essere dopo quelli specifici)
-router.post('/:offertaId/risposta', requireAuth, (req, res) => {
+router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
   const { offertaId } = req.params;
   const { risposta } = req.body; // 'accetta' o 'rifiuta'
+  const db = getDb();
   
   if (!risposta || !['accetta', 'rifiuta'].includes(risposta)) {
     return res.status(400).json({ error: 'Risposta non valida' });
   }
   
   try {
-    db.serialize(() => {
-      // Prima ottieni i dettagli dell'offerta
-      db.get(
-        `SELECT o.*, g.nome as giocatore_nome, g.cognome as giocatore_cognome, g.quotazione_attuale
+    // Prima ottieni i dettagli dell'offerta
+    const offerta = await db.query(
+      `SELECT o.*, g.nome as giocatore_nome, g.cognome as giocatore_cognome, g.quotazione_attuale
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
-         WHERE o.id = ?`,
-        [offertaId],
-        (err, offerta) => {
-          if (err) {
-            return res.status(500).json({ error: 'Errore nel recupero offerta' });
-          }
-          if (!offerta) {
-            return res.status(404).json({ error: 'Offerta non trovata' });
-          }
-          
-          const nuovoStato = risposta === 'accetta' ? 'accettata' : 'rifiutata';
-          const dataAccettazione = risposta === 'accetta' ? new Date().toISOString() : null;
-          
-          // Calcola il salario in base al campo cantera
-          let salario = offerta.valore;
-          if (offerta.cantera) {
-            salario = Math.floor(offerta.valore / 2); // Arrotondamento per difetto
-          }
-          
-          // Aggiorna lo stato dell'offerta
-          db.run(
-            `UPDATE offerte 
-             SET stato = ?, data_accettazione = ?
-             WHERE id = ?`,
-            [nuovoStato, dataAccettazione, offertaId],
-            function(err) {
-              if (err) {
-                return res.status(500).json({ error: 'Errore nell\'aggiornamento offerta' });
-              }
-              
-              if (risposta === 'accetta') {
-                // Se l'offerta è accettata, trasferisci il giocatore
-                db.run(
-                  `UPDATE giocatori 
-                   SET squadra_id = ?, salario = ?, cantera = ?
-                   WHERE id = ?`,
-                  [offerta.squadra_destinatario_id, salario, offerta.cantera ? 1 : 0, offerta.giocatore_id],
-                  function(err) {
-                    if (err) {
-                      return res.status(500).json({ error: 'Errore nel trasferimento giocatore' });
-                    }
-                    
-                    // Crea notifica per il mittente
-                    const messaggioNotifica = `La tua offerta per ${offerta.giocatore_nome} ${offerta.giocatore_cognome} è stata accettata!`;
-                    db.run(
-                      `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
-                       VALUES (?, 'offerta_accettata', ?, datetime('now'))`,
-                      [offerta.squadra_mittente_id, messaggioNotifica],
-                      function(err) {
-                        if (err) {
-                          console.log('Errore creazione notifica:', err);
-                        }
-                        
-                        // Crea log per la squadra mittente
-                        createLogSquadra({
-                          squadra_id: offerta.squadra_mittente_id,
-                          lega_id: offerta.lega_id,
-                          tipo_evento: TIPI_EVENTI.OFFERTA_ACCETTATA,
-                          categoria: CATEGORIE_EVENTI.OFFERTA,
-                          titolo: 'Offerta accettata',
-                          descrizione: `Offerta accettata da ${offerta.squadra_destinatario_nome} per ${offerta.giocatore_nome} ${offerta.giocatore_cognome} - Valore: ${offerta.valore_offerta} FM`,
-                          dati_aggiuntivi: {
-                            offerta_id: offertaId,
-                            giocatore_id: offerta.giocatore_id,
-                            squadra_destinatario_id: offerta.squadra_destinatario_id,
-                            valore: offerta.valore_offerta
-                          },
-                          utente_id: offerta.squadra_mittente_proprietario_id,
-                          giocatore_id: offerta.giocatore_id
-                        }, (err, logId) => {
-                          if (err) {
-                            console.error('Errore creazione log offerta accettata:', err);
-                          } else {
-                            console.log('Log offerta accettata creato con ID:', logId);
-                          }
-                        });
+         WHERE o.id = $1`,
+      [offertaId]
+    );
 
-                        // Crea log per la squadra destinataria
-                        createLogSquadra({
-                          squadra_id: offerta.squadra_destinatario_id,
-                          lega_id: offerta.lega_id,
-                          tipo_evento: TIPI_EVENTI.OFFERTA_ACCETTATA,
-                          categoria: CATEGORIE_EVENTI.OFFERTA,
-                          titolo: 'Offerta accettata',
-                          descrizione: `Hai accettato l'offerta da ${offerta.squadra_mittente_nome} per ${offerta.giocatore_nome} ${offerta.giocatore_cognome} - Valore: ${offerta.valore_offerta} FM`,
-                          dati_aggiuntivi: {
-                            offerta_id: offertaId,
-                            giocatore_id: offerta.giocatore_id,
-                            squadra_mittente_id: offerta.squadra_mittente_id,
-                            valore: offerta.valore_offerta
-                          },
-                          utente_id: req.user.id,
-                          giocatore_id: offerta.giocatore_id
-                        }, (err, logId) => {
-                          if (err) {
-                            console.error('Errore creazione log offerta accettata destinatario:', err);
-                          } else {
-                            console.log('Log offerta accettata destinatario creato con ID:', logId);
-                          }
-                        });
-                        
-                        res.json({ 
-                          success: true, 
-                          message: `Offerta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo`,
-                          salario: risposta === 'accetta' ? salario : null
-                        });
-                      }
-                    );
-                  }
-                );
-              } else {
-                // Se l'offerta è rifiutata, crea solo la notifica
-                const messaggioNotifica = `La tua offerta per ${offerta.giocatore_nome} ${offerta.giocatore_cognome} è stata rifiutata.`;
-                db.run(
-                  `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
-                   VALUES (?, 'offerta_rifiutata', ?, datetime('now'))`,
-                  [offerta.squadra_mittente_id, messaggioNotifica],
-                  function(err) {
-                    if (err) {
-                      console.log('Errore creazione notifica:', err);
-                    }
-                    
-                    // Crea log per la squadra mittente
-                    createLogSquadra({
-                      squadra_id: offerta.squadra_mittente_id,
-                      lega_id: offerta.lega_id,
-                      tipo_evento: TIPI_EVENTI.OFFERTA_RIFIUTATA,
-                      categoria: CATEGORIE_EVENTI.OFFERTA,
-                      titolo: 'Offerta rifiutata',
-                      descrizione: `Offerta rifiutata da ${offerta.squadra_destinatario_nome} per ${offerta.giocatore_nome} ${offerta.giocatore_cognome} - Valore: ${offerta.valore_offerta} FM`,
-                      dati_aggiuntivi: {
-                        offerta_id: offertaId,
-                        giocatore_id: offerta.giocatore_id,
-                        squadra_destinatario_id: offerta.squadra_destinatario_id,
-                        valore: offerta.valore_offerta
-                      },
-                      utente_id: offerta.squadra_mittente_proprietario_id,
-                      giocatore_id: offerta.giocatore_id
-                    }, (err, logId) => {
-                      if (err) {
-                        console.error('Errore creazione log offerta rifiutata:', err);
-                      } else {
-                        console.log('Log offerta rifiutata creato con ID:', logId);
-                      }
-                    });
-
-                    // Crea log per la squadra destinataria
-                    createLogSquadra({
-                      squadra_id: offerta.squadra_destinatario_id,
-                      lega_id: offerta.lega_id,
-                      tipo_evento: TIPI_EVENTI.OFFERTA_RIFIUTATA,
-                      categoria: CATEGORIE_EVENTI.OFFERTA,
-                      titolo: 'Offerta rifiutata',
-                      descrizione: `Hai rifiutato l'offerta da ${offerta.squadra_mittente_nome} per ${offerta.giocatore_nome} ${offerta.giocatore_cognome} - Valore: ${offerta.valore_offerta} FM`,
-                      dati_aggiuntivi: {
-                        offerta_id: offertaId,
-                        giocatore_id: offerta.giocatore_id,
-                        squadra_mittente_id: offerta.squadra_mittente_id,
-                        valore: offerta.valore_offerta
-                      },
-                      utente_id: req.user.id,
-                      giocatore_id: offerta.giocatore_id
-                    }, (err, logId) => {
-                      if (err) {
-                        console.error('Errore creazione log offerta rifiutata destinatario:', err);
-                      } else {
-                        console.log('Log offerta rifiutata destinatario creato con ID:', logId);
-                      }
-                    });
-                    
-                    res.json({ 
-                      success: true, 
-                      message: `Offerta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo`
-                    });
-                  }
-                );
-              }
-            }
-          );
-        }
+    if (offerta.rows.length === 0) {
+      return res.status(404).json({ error: 'Offerta non trovata' });
+    }
+    const offertaData = offerta.rows[0];
+    
+    const nuovoStato = risposta === 'accetta' ? 'accettata' : 'rifiutata';
+    const dataAccettazione = risposta === 'accetta' ? new Date().toISOString() : null;
+    
+    // Calcola il salario in base al campo cantera
+    let salario = offertaData.valore;
+    if (offertaData.cantera) {
+      salario = Math.floor(offertaData.valore / 2); // Arrotondamento per difetto
+    }
+    
+    // Aggiorna lo stato dell'offerta
+    await db.query(
+      `UPDATE offerte 
+             SET stato = $1, data_accettazione = $2
+             WHERE id = $3`,
+      [nuovoStato, dataAccettazione, offertaId]
+    );
+    
+    if (risposta === 'accetta') {
+      // Se l'offerta è accettata, trasferisci il giocatore
+      await db.query(
+        `UPDATE giocatori 
+                   SET squadra_id = $1, salario = $2, cantera = $3
+                   WHERE id = $4`,
+        [offertaData.squadra_destinatario_id, salario, offertaData.cantera ? 1 : 0, offertaData.giocatore_id]
       );
-    });
+
+      // Crea notifica per il mittente
+      const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} è stata accettata!`;
+      await db.query(
+        `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
+         VALUES ($1, 'offerta_accettata', $2, datetime('now'))`,
+        [offertaData.squadra_mittente_id, messaggioNotifica]
+      );
+
+      // Crea log per la squadra mittente
+      await createLogSquadra({
+        squadra_id: offertaData.squadra_mittente_id,
+        lega_id: offertaData.lega_id,
+        tipo_evento: TIPI_EVENTI.OFFERTA_ACCETTATA,
+        categoria: CATEGORIE_EVENTI.OFFERTA,
+        titolo: 'Offerta accettata',
+        descrizione: `Offerta accettata da ${offertaData.squadra_destinatario_nome} per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} - Valore: ${offertaData.valore_offerta} FM`,
+        dati_aggiuntivi: {
+          offerta_id: offertaId,
+          giocatore_id: offertaData.giocatore_id,
+          squadra_destinatario_id: offertaData.squadra_destinatario_id,
+          valore: offertaData.valore_offerta
+        },
+        utente_id: offertaData.squadra_mittente_proprietario_id,
+        giocatore_id: offertaData.giocatore_id
+      });
+
+      // Crea log per la squadra destinataria
+      await createLogSquadra({
+        squadra_id: offertaData.squadra_destinatario_id,
+        lega_id: offertaData.lega_id,
+        tipo_evento: TIPI_EVENTI.OFFERTA_ACCETTATA,
+        categoria: CATEGORIE_EVENTI.OFFERTA,
+        titolo: 'Offerta accettata',
+        descrizione: `Hai accettato l'offerta da ${offertaData.squadra_mittente_nome} per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} - Valore: ${offertaData.valore_offerta} FM`,
+        dati_aggiuntivi: {
+          offerta_id: offertaId,
+          giocatore_id: offertaData.giocatore_id,
+          squadra_mittente_id: offertaData.squadra_mittente_id,
+          valore: offertaData.valore_offerta
+        },
+        utente_id: req.user.id,
+        giocatore_id: offertaData.giocatore_id
+      });
+      
+      res.json({ 
+        success: true, 
+        message: `Offerta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo`,
+        salario: risposta === 'accetta' ? salario : null
+      });
+    } else {
+      // Se l'offerta è rifiutata, crea solo la notifica
+      const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} è stata rifiutata.`;
+      await db.query(
+        `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
+         VALUES ($1, 'offerta_rifiutata', $2, datetime('now'))`,
+        [offertaData.squadra_mittente_id, messaggioNotifica]
+      );
+
+      // Crea log per la squadra mittente
+      await createLogSquadra({
+        squadra_id: offertaData.squadra_mittente_id,
+        lega_id: offertaData.lega_id,
+        tipo_evento: TIPI_EVENTI.OFFERTA_RIFIUTATA,
+        categoria: CATEGORIE_EVENTI.OFFERTA,
+        titolo: 'Offerta rifiutata',
+        descrizione: `Offerta rifiutata da ${offertaData.squadra_destinatario_nome} per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} - Valore: ${offertaData.valore_offerta} FM`,
+        dati_aggiuntivi: {
+          offerta_id: offertaId,
+          giocatore_id: offertaData.giocatore_id,
+          squadra_destinatario_id: offertaData.squadra_destinatario_id,
+          valore: offertaData.valore_offerta
+        },
+        utente_id: offertaData.squadra_mittente_proprietario_id,
+        giocatore_id: offertaData.giocatore_id
+      });
+
+      // Crea log per la squadra destinataria
+      await createLogSquadra({
+        squadra_id: offertaData.squadra_destinatario_id,
+        lega_id: offertaData.lega_id,
+        tipo_evento: TIPI_EVENTI.OFFERTA_RIFIUTATA,
+        categoria: CATEGORIE_EVENTI.OFFERTA,
+        titolo: 'Offerta rifiutata',
+        descrizione: `Hai rifiutato l'offerta da ${offertaData.squadra_mittente_nome} per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} - Valore: ${offertaData.valore_offerta} FM`,
+        dati_aggiuntivi: {
+          offerta_id: offertaId,
+          giocatore_id: offertaData.giocatore_id,
+          squadra_mittente_id: offertaData.squadra_mittente_id,
+          valore: offertaData.valore_offerta
+        },
+        utente_id: req.user.id,
+        giocatore_id: offertaData.giocatore_id
+      });
+      
+      res.json({ 
+        success: true, 
+        message: `Offerta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo`
+      });
+    }
   } catch (error) {
+    console.error('Errore risposta offerta:', error);
     res.status(500).json({ error: 'Errore del server' });
   }
 });
@@ -810,47 +682,38 @@ router.post('/:offertaId/risposta', requireAuth, (req, res) => {
 router.post('/crea', authenticateToken, async (req, res) => {
   const { giocatore_id, tipo, valore_offerta, richiesta_fm, giocatore_scambio_id } = req.body;
   const utente_id = req.user.id;
+  const db = getDb();
 
   try {
     // Ottieni la squadra dell'utente
-    const squadraUtente = await new Promise((resolve, reject) => {
-      db.get(
-        'SELECT s.* FROM squadre s JOIN leghe l ON s.lega_id = l.id JOIN giocatori g ON g.lega_id = l.id WHERE g.id = ? AND s.proprietario_id = ?',
-        [giocatore_id, utente_id],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
+    const squadraUtente = await db.query(
+      'SELECT s.* FROM squadre s JOIN leghe l ON s.lega_id = l.id JOIN giocatori g ON g.lega_id = l.id WHERE g.id = $1 AND s.proprietario_id = $2',
+      [giocatore_id, utente_id]
+    );
 
-    if (!squadraUtente) {
+    if (squadraUtente.rows.length === 0) {
       return res.status(400).json({ error: 'Squadra non trovata o giocatore non nella tua lega' });
     }
+    const squadraUtenteData = squadraUtente.rows[0];
 
     // Ottieni informazioni sul giocatore target
-    const giocatoreTarget = await new Promise((resolve, reject) => {
-      db.get(
-        'SELECT g.*, s.proprietario_id, s.nome as squadra_nome FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = ?',
-        [giocatore_id],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
+    const giocatoreTarget = await db.query(
+      'SELECT g.*, s.proprietario_id, s.nome as squadra_nome FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1',
+      [giocatore_id]
+    );
 
-    if (!giocatoreTarget) {
+    if (giocatoreTarget.rows.length === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato' });
     }
+    const giocatoreTargetData = giocatoreTarget.rows[0];
 
     // Verifica che il giocatore non sia in prestito (non può essere offerto)
-    if (giocatoreTarget.prestito) {
+    if (giocatoreTargetData.prestito) {
       return res.status(400).json({ error: 'Non puoi fare offerte per un giocatore che è in prestito' });
     }
 
     // Verifica che il giocatore non sia già nella squadra dell'utente
-    if (giocatoreTarget.squadra_id === squadraUtente.id) {
+    if (giocatoreTargetData.squadra_id === squadraUtenteData.id) {
       return res.status(400).json({ error: 'Non puoi fare offerte per un giocatore della tua squadra' });
     }
 
@@ -865,232 +728,173 @@ router.post('/crea', authenticateToken, async (req, res) => {
 
     // Se è uno scambio, verifica che il giocatore scambio sia nella squadra dell'utente
     if (tipo === 'scambio' && giocatore_scambio_id) {
-      const giocatoreScambio = await new Promise((resolve, reject) => {
-        db.get(
-          'SELECT * FROM giocatori WHERE id = ? AND squadra_id = ?',
-          [giocatore_scambio_id, squadraUtente.id],
-          (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-          }
-        );
-      });
+      const giocatoreScambio = await db.query(
+        'SELECT * FROM giocatori WHERE id = $1 AND squadra_id = $2',
+        [giocatore_scambio_id, squadraUtenteData.id]
+      );
 
-      if (!giocatoreScambio) {
+      if (giocatoreScambio.rows.length === 0) {
         return res.status(400).json({ error: 'Giocatore scambio non trovato nella tua squadra' });
       }
     }
 
     // Crea l'offerta
-    const offertaId = await new Promise((resolve, reject) => {
-      db.run(
-        `INSERT INTO offerte (lega_id, squadra_mittente_id, squadra_destinatario_id, giocatore_id, giocatore_scambio_id, tipo, valore_offerta, richiesta_fm, stato) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'in_attesa')`,
-        [giocatoreTarget.lega_id, squadraUtente.id, giocatoreTarget.squadra_id, giocatore_id, giocatore_scambio_id || null, tipo, valore_offerta, richiesta_fm],
-        function(err) {
-          if (err) reject(err);
-          else resolve(this.lastID);
-        }
-      );
-    });
+    const offertaId = await db.query(
+      `INSERT INTO offerte (lega_id, squadra_mittente_id, squadra_destinatario_id, giocatore_id, giocatore_scambio_id, tipo, valore_offerta, richiesta_fm, stato) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'in_attesa')`,
+      [giocatoreTargetData.lega_id, squadraUtenteData.id, giocatoreTargetData.squadra_id, giocatore_id, giocatore_scambio_id || null, tipo, valore_offerta, richiesta_fm]
+    );
 
     // Ottieni le casse societarie attuali delle squadre
-    const casseMittente = await new Promise((resolve, reject) => {
-      db.get('SELECT casse_societarie, proprietario_id, nome FROM squadre WHERE id = ?', [squadraUtente.id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+    const casseMittente = await db.query('SELECT casse_societarie, proprietario_id, nome FROM squadre WHERE id = $1', [squadraUtenteData.id]);
+    const casseMittenteData = casseMittente.rows[0];
 
-    const casseDestinatario = await new Promise((resolve, reject) => {
-      db.get('SELECT casse_societarie, proprietario_id, nome FROM squadre WHERE id = ?', [giocatoreTarget.squadra_id], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+    const casseDestinatario = await db.query('SELECT casse_societarie, proprietario_id, nome FROM squadre WHERE id = $1', [giocatoreTargetData.squadra_id]);
+    const casseDestinatarioData = casseDestinatario.rows[0];
 
     // Prendi info proprietario mittente
-    const proprietarioMittente = await new Promise((resolve, reject) => {
-      db.get('SELECT nome, cognome FROM users WHERE id = ?', [casseMittente.proprietario_id], (err, row) => {
-        if (err) resolve({ nome: '', cognome: '' });
-        else resolve(row || { nome: '', cognome: '' });
-      });
-    });
+    const proprietarioMittente = await db.query('SELECT nome, cognome FROM users WHERE id = $1', [casseMittenteData.proprietario_id]);
+    const proprietarioMittenteData = proprietarioMittente.rows[0] || { nome: '', cognome: '' };
 
     // Prendi info proprietario destinatario
-    const proprietarioDestinatario = await new Promise((resolve, reject) => {
-      db.get('SELECT nome, cognome FROM users WHERE id = ?', [casseDestinatario.proprietario_id], (err, row) => {
-        if (err) resolve({ nome: '', cognome: '' });
-        else resolve(row || { nome: '', cognome: '' });
-      });
-    });
+    const proprietarioDestinatario = await db.query('SELECT nome, cognome FROM users WHERE id = $1', [casseDestinatarioData.proprietario_id]);
+    const proprietarioDestinatarioData = proprietarioDestinatario.rows[0] || { nome: '', cognome: '' };
 
     // Prendi info giocatore in scambio (se presente)
     let giocatoreScambio = { nome: '', cognome: '' };
     if (giocatore_scambio_id) {
-      giocatoreScambio = await new Promise((resolve, reject) => {
-        db.get('SELECT nome, cognome FROM giocatori WHERE id = ?', [giocatore_scambio_id], (err, row) => {
-          if (err) resolve({ nome: '', cognome: '' });
-          else resolve(row || { nome: '', cognome: '' });
-        });
-      });
+      giocatoreScambio = await db.query('SELECT nome, cognome FROM giocatori WHERE id = $1', [giocatore_scambio_id]);
+      giocatoreScambio = giocatoreScambio.rows[0] || { nome: '', cognome: '' };
     }
 
     // Calcola l'impatto sulle casse societarie
     const valoreOfferta = valore_offerta || 0;
     const richiestaFM = richiesta_fm || 0;
-    const casseMittenteDopo = (casseMittente.casse_societarie || 0) - valoreOfferta + richiestaFM;
-    const casseDestinatarioDopo = (casseDestinatario.casse_societarie || 0) + valoreOfferta - richiestaFM;
+    const casseMittenteDopo = (casseMittenteData.casse_societarie || 0) - valoreOfferta + richiestaFM;
+    const casseDestinatarioDopo = (casseDestinatarioData.casse_societarie || 0) + valoreOfferta - richiestaFM;
 
     // Crea messaggio dettagliato
     const messaggioNotifica = tipo === 'scambio'
-      ? `Offerta di scambio ricevuta per ${giocatoreTarget.nome}${giocatoreTarget.cognome ? ` ${giocatoreTarget.cognome}` : ''} da ${casseMittente.nome} (${proprietarioMittente.nome} ${proprietarioMittente.cognome}). In scambio: ${giocatoreScambio.nome}${giocatoreScambio.cognome ? ` ${giocatoreScambio.cognome}` : ''}`
-      : `Offerta di ${tipo} ricevuta per ${giocatoreTarget.nome}${giocatoreTarget.cognome ? ` ${giocatoreTarget.cognome}` : ''} da ${casseMittente.nome} (${proprietarioMittente.nome} ${proprietarioMittente.cognome}) - Valore: ${valoreOfferta} FM`;
+      ? `Offerta di scambio ricevuta per ${giocatoreTargetData.nome}${giocatoreTargetData.cognome ? ` ${giocatoreTargetData.cognome}` : ''} da ${casseMittenteData.nome} (${proprietarioMittenteData.nome} ${proprietarioMittenteData.cognome}). In scambio: ${giocatoreScambio.nome}${giocatoreScambio.cognome ? ` ${giocatoreScambio.cognome}` : ''}`
+      : `Offerta di ${tipo} ricevuta per ${giocatoreTargetData.nome}${giocatoreTargetData.cognome ? ` ${giocatoreTargetData.cognome}` : ''} da ${casseMittenteData.nome} (${proprietarioMittenteData.nome} ${proprietarioMittenteData.cognome}) - Valore: ${valoreOfferta} FM`;
 
     // Crea messaggio di conferma per il mittente
     const messaggioConfermaMittente = tipo === 'scambio'
-      ? `Hai inviato un'offerta di scambio per ${giocatoreTarget.nome}${giocatoreTarget.cognome ? ` ${giocatoreTarget.cognome}` : ''} a ${casseDestinatario.nome}. In scambio: ${giocatoreScambio.nome}${giocatoreScambio.cognome ? ` ${giocatoreScambio.cognome}` : ''}`
-      : `Hai inviato un'offerta di ${tipo} per ${giocatoreTarget.nome}${giocatoreTarget.cognome ? ` ${giocatoreTarget.cognome}` : ''} a ${casseDestinatario.nome} - Valore: ${valoreOfferta} FM${richiestaFM > 0 ? ` - Richiesta: ${richiestaFM} FM` : ''}`;
+      ? `Hai inviato un'offerta di scambio per ${giocatoreTargetData.nome}${giocatoreTargetData.cognome ? ` ${giocatoreTargetData.cognome}` : ''} a ${casseDestinatarioData.nome}. In scambio: ${giocatoreScambio.nome}${giocatoreScambio.cognome ? ` ${giocatoreScambio.cognome}` : ''}`
+      : `Hai inviato un'offerta di ${tipo} per ${giocatoreTargetData.nome}${giocatoreTargetData.cognome ? ` ${giocatoreTargetData.cognome}` : ''} a ${casseDestinatarioData.nome} - Valore: ${valoreOfferta} FM${richiestaFM > 0 ? ` - Richiesta: ${richiestaFM} FM` : ''}`;
 
     console.log('Creazione notifica offerta:');
-    console.log('- Lega ID:', giocatoreTarget.lega_id);
-    console.log('- Utente destinatario ID:', casseDestinatario.proprietario_id);
+    console.log('- Lega ID:', giocatoreTargetData.lega_id);
+    console.log('- Utente destinatario ID:', casseDestinatarioData.proprietario_id);
     console.log('- Messaggio:', messaggioNotifica);
     console.log('- Tipo:', tipo);
 
     // Crea notifica per il destinatario
-      db.run(
-      'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES (?, ?, ?, ?, ?)',
-        [
-          casseDestinatario.proprietario_id,
-        `Offerta ricevuta per ${giocatoreTarget.nome}${giocatoreTarget.cognome ? ` ${giocatoreTarget.cognome}` : ''}`,
-          messaggioNotifica,
+    await db.query(
+      'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5)',
+      [
+        casseDestinatarioData.proprietario_id,
+        `Offerta ricevuta per ${giocatoreTargetData.nome}${giocatoreTargetData.cognome ? ` ${giocatoreTargetData.cognome}` : ''}`,
+        messaggioNotifica,
         'offerta_ricevuta',
-          JSON.stringify({
-          offerta_id: offertaId,
-          giocatore_id: giocatoreTarget.id,
-          squadra_mittente_id: casseMittente.id,
-          squadra_destinatario_id: casseDestinatario.id,
+        JSON.stringify({
+          offerta_id: offertaId.rows[0].id,
+          giocatore_id: giocatoreTargetData.id,
+          squadra_mittente_id: casseMittenteData.id,
+          squadra_destinatario_id: casseDestinatarioData.id,
           tipo_offerta: tipo,
           valore: valoreOfferta,
           richiesta_fm: richiestaFM,
           giocatore_scambio_id: giocatore_scambio_id,
-            giocatore_scambio_nome: giocatoreScambio.nome,
-            giocatore_scambio_cognome: giocatoreScambio.cognome,
-          proprietario_destinatario: `${proprietarioDestinatario.nome} ${proprietarioDestinatario.cognome}`,
-            squadra_destinatario: casseDestinatario.nome,
-            proprietario_mittente: `${proprietarioMittente.nome} ${proprietarioMittente.cognome}`,
-          squadra_mittente: casseMittente.nome,
-          giocatore_nome: giocatoreTarget.nome,
-          giocatore_cognome: giocatoreTarget.cognome,
-          casse_mittente_prima: casseMittente.casse_societarie,
+          giocatore_scambio_nome: giocatoreScambio.nome,
+          giocatore_scambio_cognome: giocatoreScambio.cognome,
+          proprietario_destinatario: `${proprietarioDestinatarioData.nome} ${proprietarioDestinatarioData.cognome}`,
+          squadra_destinatario: casseDestinatarioData.nome,
+          proprietario_mittente: `${proprietarioMittenteData.nome} ${proprietarioMittenteData.cognome}`,
+          squadra_mittente: casseMittenteData.nome,
+          giocatore_nome: giocatoreTargetData.nome,
+          giocatore_cognome: giocatoreTargetData.cognome,
+          casse_mittente_prima: casseMittenteData.casse_societarie,
           casse_mittente_dopo: casseMittenteDopo,
-          casse_destinatario_prima: casseDestinatario.casse_societarie,
+          casse_destinatario_prima: casseDestinatarioData.casse_societarie,
           casse_destinatario_dopo: casseDestinatarioDopo
         })
-      ],
-      function(err) {
-        if (err) {
-          console.error('Errore creazione notifica:', err);
-        } else {
-          console.log('Notifica creata con ID:', this.lastID);
-        }
-      }
+      ]
     );
-
     // Crea notifica di conferma per il mittente
-    db.run(
-      'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES (?, ?, ?, ?, ?)',
+    await db.query(
+      'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5)',
       [
-        casseMittente.proprietario_id,
-        `Offerta inviata per ${giocatoreTarget.nome} ${giocatoreTarget.cognome}`,
+        casseMittenteData.proprietario_id,
+        `Offerta inviata per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome}`,
         messaggioConfermaMittente,
         'offerta_inviata',
         JSON.stringify({
-          offerta_id: offertaId,
-          giocatore_id: giocatoreTarget.id,
-          squadra_mittente_id: casseMittente.id,
-          squadra_destinatario_id: casseDestinatario.id,
+          offerta_id: offertaId.rows[0].id,
+          giocatore_id: giocatoreTargetData.id,
+          squadra_mittente_id: casseMittenteData.id,
+          squadra_destinatario_id: casseDestinatarioData.id,
           tipo_offerta: tipo,
           valore: valoreOfferta,
-            richiesta_fm: richiestaFM,
-            giocatore_scambio_id: giocatore_scambio_id,
+          richiesta_fm: richiestaFM,
+          giocatore_scambio_id: giocatore_scambio_id,
           giocatore_scambio_nome: giocatoreScambio.nome,
           giocatore_scambio_cognome: giocatoreScambio.cognome,
-          proprietario_destinatario: `${proprietarioDestinatario.nome} ${proprietarioDestinatario.cognome}`, // ID del proprietario destinatario
-          squadra_destinatario: casseDestinatario.nome,
-          proprietario_mittente: `${proprietarioMittente.nome} ${proprietarioMittente.cognome}`,
-          squadra_mittente: casseMittente.nome,
-          giocatore_nome: giocatoreTarget.nome,
-          giocatore_cognome: giocatoreTarget.cognome,
-          casse_mittente_prima: casseMittente.casse_societarie,
-            casse_mittente_dopo: casseMittenteDopo,
-          casse_destinatario_prima: casseDestinatario.casse_societarie,
-            casse_destinatario_dopo: casseDestinatarioDopo
-          })
-        ],
-      function(err) {
-        if (err) {
-          console.error('Errore creazione notifica conferma mittente:', err);
-        } else {
-          console.log('Notifica conferma mittente creata con ID:', this.lastID);
-        }
-      }
+          proprietario_destinatario: `${proprietarioDestinatarioData.nome} ${proprietarioDestinatarioData.cognome}`,
+          squadra_destinatario: casseDestinatarioData.nome,
+          proprietario_mittente: `${proprietarioMittenteData.nome} ${proprietarioMittenteData.cognome}`,
+          squadra_mittente: casseMittenteData.nome,
+          giocatore_nome: giocatoreTargetData.nome,
+          giocatore_cognome: giocatoreTargetData.cognome,
+          casse_mittente_prima: casseMittenteData.casse_societarie,
+          casse_mittente_dopo: casseMittenteDopo,
+          casse_destinatario_prima: casseDestinatarioData.casse_societarie,
+          casse_destinatario_dopo: casseDestinatarioDopo
+        })
+      ]
     );
 
     // Crea log per la squadra mittente
-    createLogSquadra({
-      squadra_id: casseMittente.id,
-      lega_id: giocatoreTarget.lega_id,
+    await createLogSquadra({
+      squadra_id: casseMittenteData.id,
+      lega_id: giocatoreTargetData.lega_id,
       tipo_evento: TIPI_EVENTI.OFFERTA_INVIATA,
       categoria: CATEGORIE_EVENTI.OFFERTA,
-      titolo: `Offerta inviata per ${giocatoreTarget.nome} ${giocatoreTarget.cognome}`,
-      descrizione: `Offerta di ${tipo} inviata a ${casseDestinatario.nome} per ${giocatoreTarget.nome} ${giocatoreTarget.cognome} - Valore: ${valoreOfferta} FM`,
+      titolo: `Offerta inviata per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome}`,
+      descrizione: `Offerta di ${tipo} inviata a ${casseDestinatarioData.nome} per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome} - Valore: ${valoreOfferta} FM`,
       dati_aggiuntivi: {
-        offerta_id: offertaId,
-        giocatore_id: giocatoreTarget.id,
-        squadra_destinatario_id: casseDestinatario.id,
+        offerta_id: offertaId.rows[0].id,
+        giocatore_id: giocatoreTargetData.id,
+        squadra_destinatario_id: casseDestinatarioData.id,
         tipo_offerta: tipo,
         valore: valoreOfferta
       },
       utente_id: req.user.id,
-      giocatore_id: giocatoreTarget.id
-    }, (err, logId) => {
-      if (err) {
-        console.error('Errore creazione log offerta inviata:', err);
-      } else {
-        console.log('Log offerta inviata creato con ID:', logId);
-      }
+      giocatore_id: giocatoreTargetData.id
     });
 
     // Crea log per la squadra destinataria
-    createLogSquadra({
-      squadra_id: casseDestinatario.id,
-      lega_id: giocatoreTarget.lega_id,
+    await createLogSquadra({
+      squadra_id: casseDestinatarioData.id,
+      lega_id: giocatoreTargetData.lega_id,
       tipo_evento: TIPI_EVENTI.OFFERTA_RICEVUTA,
       categoria: CATEGORIE_EVENTI.OFFERTA,
-      titolo: `Offerta ricevuta per ${giocatoreTarget.nome} ${giocatoreTarget.cognome}`,
-      descrizione: `Offerta di ${tipo} ricevuta da ${casseMittente.nome} per ${giocatoreTarget.nome} ${giocatoreTarget.cognome} - Valore: ${valoreOfferta} FM`,
+      titolo: `Offerta ricevuta per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome}`,
+      descrizione: `Offerta di ${tipo} ricevuta da ${casseMittenteData.nome} per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome} - Valore: ${valoreOfferta} FM`,
       dati_aggiuntivi: {
-        offerta_id: offertaId,
-        giocatore_id: giocatoreTarget.id,
-        squadra_mittente_id: casseMittente.id,
+        offerta_id: offertaId.rows[0].id,
+        giocatore_id: giocatoreTargetData.id,
+        squadra_mittente_id: casseMittenteData.id,
         tipo_offerta: tipo,
         valore: valoreOfferta
       },
-      utente_id: casseDestinatario.proprietario_id,
-      giocatore_id: giocatoreTarget.id
-    }, (err, logId) => {
-      if (err) {
-        console.error('Errore creazione log offerta ricevuta:', err);
-      } else {
-        console.log('Log offerta ricevuta creato con ID:', logId);
-      }
+      utente_id: casseDestinatarioData.proprietario_id,
+      giocatore_id: giocatoreTargetData.id
     });
 
     // Notifica già creata sopra, non serve duplicarla
 
-    res.json({ success: true, offerta_id: offertaId });
+    res.json({ success: true, offerta_id: offertaId.rows[0].id });
   } catch (error) {
     console.error('Errore creazione offerta:', error);
     res.status(500).json({ error: 'Errore interno del server' });
@@ -1100,11 +904,11 @@ router.post('/crea', authenticateToken, async (req, res) => {
 // Ottieni offerte ricevute dall'utente
 router.get('/ricevute', authenticateToken, async (req, res) => {
   const { giocatore_id } = req.user;
+  const db = getDb();
 
   try {
-    const offerte = await new Promise((resolve, reject) => {
-      db.all(
-        `SELECT o.*, 
+    const offerte = await db.query(
+      `SELECT o.*, 
                 g.nome as giocatore_nome, g.cognome as giocatore_cognome, g.ruolo as giocatore_ruolo,
                 gs.nome as giocatore_scambio_nome, gs.cognome as giocatore_scambio_cognome, gs.ruolo as giocatore_scambio_ruolo,
                 sm.nome as squadra_mittente_nome,
@@ -1114,17 +918,12 @@ router.get('/ricevute', authenticateToken, async (req, res) => {
          LEFT JOIN giocatori gs ON o.giocatore_scambio_id = gs.id
          JOIN squadre sm ON o.squadra_mittente_id = sm.id
          JOIN squadre sd ON o.squadra_destinatario_id = sd.id
-         WHERE sd.proprietario_id = ? AND o.stato = 'in_attesa'
+         WHERE sd.proprietario_id = $1 AND o.stato = 'in_attesa'
          ORDER BY o.data_invio DESC`,
-        [giocatore_id],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        }
-      );
-    });
+      [giocatore_id]
+    );
 
-    res.json(offerte);
+    res.json(offerte.rows);
   } catch (error) {
     console.error('Errore recupero offerte:', error);
     res.status(500).json({ error: 'Errore interno del server' });
@@ -1134,11 +933,11 @@ router.get('/ricevute', authenticateToken, async (req, res) => {
 // Ottieni log operazioni per un giocatore
 router.get('/log-giocatore/:giocatore_id', authenticateToken, async (req, res) => {
   const { giocatore_id } = req.params;
+  const db = getDb();
 
   try {
-    const log = await new Promise((resolve, reject) => {
-      db.all(
-        `SELECT l.*, 
+    const log = await db.query(
+      `SELECT l.*, 
                 sm.nome as squadra_mittente_nome,
                 sd.nome as squadra_destinatario_nome,
                 u.nome as utente_nome, u.cognome as utente_cognome
@@ -1146,17 +945,12 @@ router.get('/log-giocatore/:giocatore_id', authenticateToken, async (req, res) =
          LEFT JOIN squadre sm ON l.squadra_mittente_id = sm.id
          LEFT JOIN squadre sd ON l.squadra_destinatario_id = sd.id
          LEFT JOIN utenti u ON l.utente_id = u.id
-         WHERE l.giocatore_id = ?
+         WHERE l.giocatore_id = $1
          ORDER BY l.data_operazione DESC`,
-        [giocatore_id],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        }
-      );
-    });
+      [giocatore_id]
+    );
 
-    res.json(log);
+    res.json(log.rows);
   } catch (error) {
     console.error('Errore recupero log:', error);
     res.status(500).json({ error: 'Errore interno del server' });
@@ -1167,6 +961,7 @@ router.get('/log-giocatore/:giocatore_id', authenticateToken, async (req, res) =
 router.post('/roster/move-player', authenticateToken, async (req, res) => {
   const { giocatoreId, targetRoster, squadraId, legaId } = req.body;
   const { id: userId, ruolo } = req.user;
+  const db = getDb();
 
   try {
     // Verifica che l'utente sia admin, superadmin o subadmin
@@ -1176,27 +971,21 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
     }
 
     // Verifica che il giocatore esista e appartenga alla squadra specificata
-    const giocatore = await new Promise((resolve, reject) => {
-      db.get(
-        `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id
+    const giocatore = await db.query(
+      `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id
          FROM giocatori g 
          JOIN squadre s ON g.squadra_id = s.id 
-         WHERE g.id = ? AND g.squadra_id = ?`,
-        [giocatoreId, squadraId],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
+         WHERE g.id = $1 AND g.squadra_id = $2`,
+      [giocatoreId, squadraId]
+    );
 
-    if (!giocatore) {
+    if (giocatore.rows.length === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato nella squadra specificata' });
     }
 
     // Verifica che la lega sia corretta
-    console.log('Comparing lega_id:', giocatore.lega_id, 'with legaId:', legaId);
-    if (parseInt(giocatore.lega_id) !== parseInt(legaId)) {
+    console.log('Comparing lega_id:', giocatore.rows[0].lega_id, 'with legaId:', legaId);
+    if (parseInt(giocatore.rows[0].lega_id) !== parseInt(legaId)) {
       return res.status(400).json({ error: 'Lega non corrispondente' });
     }
 
@@ -1212,13 +1001,7 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
       
       if (isRosterABEnabled) {
         // Ottieni il numero massimo di giocatori dalla lega
-        const lega = await new Promise((resolve, reject) => {
-          getLegaById(legaId, (err, lega) => {
-            if (err) reject(err);
-            else resolve(lega);
-          });
-        });
-
+        const lega = await getLegaById(legaId);
         const maxGiocatori = lega.max_giocatori || 30;
         const giocatori = await rosterManager.getGiocatoriByRoster(squadraId);
         
@@ -1231,16 +1014,10 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
     }
 
     // Sposta il giocatore nel roster specificato
-    await new Promise((resolve, reject) => {
-      db.run(
-        'UPDATE giocatori SET roster = ? WHERE id = ?',
-        [targetRoster, giocatoreId],
-        function(err) {
-          if (err) reject(err);
-          else resolve(this);
-        }
-      );
-    });
+    await db.query(
+      'UPDATE giocatori SET roster = $1 WHERE id = $2',
+      [targetRoster, giocatoreId]
+    );
 
     console.log(`Giocatore ${giocatoreId} spostato in Roster ${targetRoster} da ${ruolo} ${userId}`);
 

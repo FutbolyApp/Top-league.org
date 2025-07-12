@@ -1,131 +1,137 @@
 import { getDb } from '../db/postgres.js';
 
-const db = getDb();
-
 // Crea un nuovo log per una squadra
-export function createLogSquadra(logData, callback) {
-  const {
-    squadra_id,
-    lega_id,
-    tipo_evento,
-    categoria,
-    titolo,
-    descrizione,
-    dati_aggiuntivi,
-    utente_id,
-    giocatore_id
-  } = logData;
-
-  db.run(
-    `INSERT INTO log_squadre 
-     (squadra_id, lega_id, tipo_evento, categoria, titolo, descrizione, dati_aggiuntivi, utente_id, giocatore_id) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
+export async function createLogSquadra(logData) {
+  try {
+    const {
       squadra_id,
       lega_id,
       tipo_evento,
       categoria,
       titolo,
       descrizione,
-      dati_aggiuntivi ? JSON.stringify(dati_aggiuntivi) : null,
+      dati_aggiuntivi,
       utente_id,
       giocatore_id
-    ],
-    function(err) {
-      if (err) {
-        console.error('Errore creazione log squadra:', err);
-        callback(err);
-      } else {
-        console.log('Log squadra creato con ID:', this.lastID);
-        callback(null, this.lastID);
-      }
-    }
-  );
+    } = logData;
+
+    const db = getDb();
+    const result = await db.query(
+      `INSERT INTO log_squadre 
+       (squadra_id, lega_id, tipo_evento, categoria, titolo, descrizione, dati_aggiuntivi, utente_id, giocatore_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+      [
+        squadra_id,
+        lega_id,
+        tipo_evento,
+        categoria,
+        titolo,
+        descrizione,
+        dati_aggiuntivi ? JSON.stringify(dati_aggiuntivi) : null,
+        utente_id,
+        giocatore_id
+      ]
+    );
+    
+    console.log('Log squadra creato con ID:', result.rows[0].id);
+    return result.rows[0].id;
+  } catch (err) {
+    console.error('Errore creazione log squadra:', err);
+    throw err;
+  }
 }
 
 // Ottieni tutti i log di una squadra
-export function getLogSquadra(squadraId, callback) {
-  db.all(
-    `SELECT ls.*, 
-            u.nome as utente_nome, u.cognome as utente_cognome,
-            g.nome as giocatore_nome, g.cognome as giocatore_cognome,
-            g.ruolo as giocatore_ruolo
-     FROM log_squadre ls
-     LEFT JOIN users u ON ls.utente_id = u.id
-     LEFT JOIN giocatori g ON ls.giocatore_id = g.id
-     WHERE ls.squadra_id = ?
-     ORDER BY ls.data_evento DESC`,
-    [squadraId],
-    (err, rows) => {
-      if (err) {
-        console.error('Errore recupero log squadra:', err);
-        callback(err);
-      } else {
-        // Parsa i dati_aggiuntivi se presenti
-        const logs = rows.map(row => ({
-          ...row,
-          dati_aggiuntivi: row.dati_aggiuntivi ? JSON.parse(row.dati_aggiuntivi) : null
-        }));
-        callback(null, logs);
-      }
-    }
-  );
+export async function getLogSquadra(squadraId) {
+  try {
+    const db = getDb();
+    const result = await db.query(
+      `SELECT ls.*, 
+              u.nome as utente_nome, u.cognome as utente_cognome,
+              g.nome as giocatore_nome, g.cognome as giocatore_cognome,
+              g.ruolo as giocatore_ruolo
+       FROM log_squadre ls
+       LEFT JOIN users u ON ls.utente_id = u.id
+       LEFT JOIN giocatori g ON ls.giocatore_id = g.id
+       WHERE ls.squadra_id = $1
+       ORDER BY ls.data_evento DESC`,
+      [squadraId]
+    );
+    
+    // Parsa i dati_aggiuntivi se presenti
+    const logs = result.rows.map(row => ({
+      ...row,
+      dati_aggiuntivi: row.dati_aggiuntivi ? JSON.parse(row.dati_aggiuntivi) : null
+    }));
+    
+    return logs;
+  } catch (err) {
+    console.error('Errore recupero log squadra:', err);
+    throw err;
+  }
 }
 
 // Ottieni log di una squadra con filtri
-export function getLogSquadraFiltrati(squadraId, filtri, callback) {
-  let query = `
-    SELECT ls.*, 
-            u.nome as utente_nome, u.cognome as utente_cognome,
-            g.nome as giocatore_nome, g.cognome as giocatore_cognome,
-            g.ruolo as giocatore_ruolo
-     FROM log_squadre ls
-     LEFT JOIN users u ON ls.utente_id = u.id
-     LEFT JOIN giocatori g ON ls.giocatore_id = g.id
-     WHERE ls.squadra_id = ?
-  `;
-  
-  const params = [squadraId];
-  
-  if (filtri.categoria) {
-    query += ' AND ls.categoria = ?';
-    params.push(filtri.categoria);
-  }
-  
-  if (filtri.tipo_evento) {
-    query += ' AND ls.tipo_evento = ?';
-    params.push(filtri.tipo_evento);
-  }
-  
-  if (filtri.data_inizio) {
-    query += ' AND ls.data_evento >= ?';
-    params.push(filtri.data_inizio);
-  }
-  
-  if (filtri.data_fine) {
-    query += ' AND ls.data_evento <= ?';
-    params.push(filtri.data_fine);
-  }
-  
-  query += ' ORDER BY ls.data_evento DESC';
-  
-  if (filtri.limit) {
-    query += ' LIMIT ?';
-    params.push(filtri.limit);
-  }
-  
-  db.all(query, params, (err, rows) => {
-    if (err) {
-      console.error('Errore recupero log squadra filtrati:', err);
-      callback(err);
-    } else {
-      const logs = rows.map(row => ({
-        ...row,
-        dati_aggiuntivi: row.dati_aggiuntivi ? JSON.parse(row.dati_aggiuntivi) : null
-      }));
-      callback(null, logs);
+export async function getLogSquadraFiltrati(squadraId, filtri) {
+  try {
+    let query = `
+      SELECT ls.*, 
+              u.nome as utente_nome, u.cognome as utente_cognome,
+              g.nome as giocatore_nome, g.cognome as giocatore_cognome,
+              g.ruolo as giocatore_ruolo
+       FROM log_squadre ls
+       LEFT JOIN users u ON ls.utente_id = u.id
+       LEFT JOIN giocatori g ON ls.giocatore_id = g.id
+       WHERE ls.squadra_id = $1
+    `;
+    
+    const params = [squadraId];
+    let paramIndex = 2;
+    
+    if (filtri.categoria) {
+      query += ` AND ls.categoria = $${paramIndex}`;
+      params.push(filtri.categoria);
+      paramIndex++;
     }
-  });
+    
+    if (filtri.tipo_evento) {
+      query += ` AND ls.tipo_evento = $${paramIndex}`;
+      params.push(filtri.tipo_evento);
+      paramIndex++;
+    }
+    
+    if (filtri.data_inizio) {
+      query += ` AND ls.data_evento >= $${paramIndex}`;
+      params.push(filtri.data_inizio);
+      paramIndex++;
+    }
+    
+    if (filtri.data_fine) {
+      query += ` AND ls.data_evento <= $${paramIndex}`;
+      params.push(filtri.data_fine);
+      paramIndex++;
+    }
+    
+    query += ' ORDER BY ls.data_evento DESC';
+    
+    if (filtri.limit) {
+      query += ` LIMIT $${paramIndex}`;
+      params.push(filtri.limit);
+    }
+    
+    const db = getDb();
+    const result = await db.query(query, params);
+    
+    const logs = result.rows.map(row => ({
+      ...row,
+      dati_aggiuntivi: row.dati_aggiuntivi ? JSON.parse(row.dati_aggiuntivi) : null
+    }));
+    
+    return logs;
+  } catch (err) {
+    console.error('Errore recupero log squadra filtrati:', err);
+    throw err;
+  }
 }
 
 // Categorie di eventi disponibili

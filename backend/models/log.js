@@ -1,31 +1,61 @@
 import { getDb } from '../db/postgres.js';
-const db = getDb();
 
-export function createLog(data, callback) {
-  const sql = `INSERT INTO log (lega_id, azione, dettagli, utente_id)
-    VALUES (?, ?, ?, ?)`;
-  db.run(sql, [
-    data.lega_id || null,
-    data.azione,
-    data.dettagli || null,
-    data.utente_id || null
-  ], function(err) {
-    callback(err, this ? this.lastID : null);
-  });
+export async function createLog(data) {
+  try {
+    const sql = `INSERT INTO log (user_id, azione, dettagli)
+      VALUES ($1, $2, $3) RETURNING id`;
+    const db = getDb();
+    const result = await db.query(sql, [
+      data.utente_id || null,
+      data.azione,
+      data.dettagli || null
+    ]);
+    return result.rows[0].id;
+  } catch (err) {
+    console.error('createLog error:', err);
+    throw err;
+  }
 }
 
-export function getLogById(id, callback) {
-  db.get('SELECT * FROM log WHERE id = ?', [id], callback);
+export async function getLogById(id) {
+  try {
+    const db = getDb();
+    const result = await db.query('SELECT * FROM log WHERE id = $1', [id]);
+    return result.rows[0] || null;
+  } catch (err) {
+    console.error('getLogById error:', err);
+    throw err;
+  }
 }
 
-export function getLogByLega(lega_id, callback) {
-  db.all('SELECT * FROM log WHERE lega_id = ?', [lega_id], callback);
+export async function getLogByLega(lega_id) {
+  try {
+    const db = getDb();
+    const result = await db.query('SELECT * FROM log WHERE lega_id = $1 ORDER BY created_at DESC', [lega_id]);
+    return result.rows;
+  } catch (err) {
+    console.error('getLogByLega error:', err);
+    throw err;
+  }
 }
 
-export function getAllLog(callback) {
-  db.all('SELECT * FROM log', [], callback);
+export async function getAllLog() {
+  try {
+    const db = getDb();
+    const result = await db.query('SELECT * FROM log ORDER BY created_at DESC');
+    return result.rows;
+  } catch (err) {
+    console.error('getAllLog error:', err);
+    throw err;
+  }
 }
 
-export function deleteLog(id, callback) {
-  db.run('DELETE FROM log WHERE id = ?', [id], callback);
+export async function deleteLog(id) {
+  try {
+    const db = getDb();
+    await db.query('DELETE FROM log WHERE id = $1', [id]);
+  } catch (err) {
+    console.error('deleteLog error:', err);
+    throw err;
+  }
 } 
