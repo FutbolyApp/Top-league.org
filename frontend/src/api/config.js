@@ -102,4 +102,36 @@ export const api = {
     method: 'DELETE',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   }),
+  
+  // Special method for FormData requests
+  postFormData: (url, formData, token) => {
+    const fullUrl = `${API_BASE_URL}${url}`;
+    console.log('Making FormData request to:', fullUrl);
+    
+    return fetch(fullUrl, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+      mode: 'cors',
+      credentials: 'include'
+    }).then(async (response) => {
+      console.log('Response status:', response.status, 'for URL:', fullUrl);
+      
+      if (!response.ok) {
+        let errorMessage = 'Errore del server';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      return response.json();
+    }).catch((error) => {
+      console.error('FormData request failed:', error);
+      throw error;
+    });
+  },
 }; 

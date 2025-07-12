@@ -23,35 +23,7 @@ export async function creaLega(data, token) {
     if (value !== undefined && value !== null) formData.append(key, value);
   });
   
-  // Use the API base URL from config
-  const API_BASE_URL = process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:3001/api'
-    : 'https://topleaguem.onrender.com/api';
-    
-  const response = await fetch(`${API_BASE_URL}/leghe/create`, {
-    method: 'POST',
-    headers: { 
-      'Authorization': `Bearer ${token}`,
-      // Don't set Content-Type for FormData, let the browser set it with boundary
-    },
-    body: formData,
-    mode: 'cors',
-    credentials: 'include'
-  });
-  
-  if (!response.ok) {
-    let errorMessage = 'Errore del server';
-    try {
-      const errorData = await response.json();
-      errorMessage = errorData.error || errorData.message || errorMessage;
-    } catch (e) {
-      // If response is not JSON, use status text
-      errorMessage = response.statusText || errorMessage;
-    }
-    throw new Error(errorMessage);
-  }
-  
-  return response.json();
+  return api.postFormData('/leghe/create', formData, token);
 }
 
 export async function joinLega(legaId, password, token) {
