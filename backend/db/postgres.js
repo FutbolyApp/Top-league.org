@@ -2,30 +2,48 @@ import { Pool } from 'pg';
 import bcrypt from 'bcryptjs';
 
 // Configurazione PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+let pool;
 
-// Test della connessione
-pool.on('connect', () => {
-  console.log('✅ Connected to PostgreSQL database');
-});
+try {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+  });
 
-pool.on('error', (err) => {
-  console.error('❌ Unexpected error on idle client', err);
-  process.exit(-1);
-});
+  // Test della connessione
+  pool.on('connect', () => {
+    console.log('✅ Connected to PostgreSQL database');
+  });
+
+  pool.on('error', (err) => {
+    console.error('❌ Unexpected error on idle client', err);
+    // Don't exit the process, just log the error
+    console.log('Database connection error, but continuing...');
+  });
+} catch (error) {
+  console.error('Failed to create database pool:', error);
+  console.log('Database will not be available');
+  pool = null;
+}
 
 export function getDb() {
+  if (!pool) {
+    console.log('Database not available');
+    return null;
+  }
   return pool;
 }
 
 // Funzione per inizializzare le tabelle
 export async function initDb() {
+  if (!pool) {
+    console.log('Database not available, skipping initialization');
+    return;
+  }
+  
   const client = await pool.connect();
   
   try {
