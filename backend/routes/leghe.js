@@ -356,13 +356,13 @@ router.get('/all', requireSuperAdmin, async (req, res) => {
 });
 
 // Ottieni tutte le squadre e i giocatori di una lega
-router.get('/:legaId/squadre', requireAuth, (req, res) => {
-  const legaId = req.params.legaId;
-  getSquadreByLega(legaId, async (err, squadre) => {
-    if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
+router.get('/:legaId/squadre', requireAuth, async (req, res) => {
+  try {
+    const legaId = req.params.legaId;
+    const squadre = await getSquadreByLega(legaId);
     
     // Processa le informazioni sui tornei per ogni squadra
-    squadre.forEach(squadra => {
+    for (const squadra of squadre) {
       // Converti le stringhe concatenate in array
       if (squadra.tornei_nomi) {
         squadra.tornei = squadra.tornei_nomi.split(',').map((nome, index) => ({
@@ -376,31 +376,39 @@ router.get('/:legaId/squadre', requireAuth, (req, res) => {
       // Rimuovi i campi concatenati
       delete squadra.tornei_nomi;
       delete squadra.tornei_ids;
-    });
+      
+      // Aggiungi i giocatori per questa squadra
+      try {
+        const giocatori = await getGiocatoriBySquadra(squadra.id);
+        squadra.giocatori = giocatori || [];
+      } catch (error) {
+        console.log(`⚠️ Error getting players for team ${squadra.id}: ${error.message}`);
+        squadra.giocatori = [];
+      }
+    }
     
-    // Per ogni squadra, aggiungi i giocatori
-    let count = 0;
-    squadre.forEach((sq, idx) => {
-      getGiocatoriBySquadra(sq.id, (err, giocatori) => {
-        squadre[idx].giocatori = giocatori || [];
-        count++;
-        if (count === squadre.length) {
-          res.json({ squadre });
-        }
-      });
-    });
-    if (squadre.length === 0) res.json({ squadre: [] });
-  });
+    res.json({ squadre });
+  } catch (error) {
+    console.error('Errore recupero squadre:', error);
+    res.status(500).json({ error: 'Errore DB', details: error.message });
+  }
 });
 
 // Ottieni i dettagli di una singola lega
-router.get('/:legaId', requireAuth, (req, res) => {
-  const legaId = req.params.legaId;
-  getLegaById(legaId, (err, lega) => {
-    if (err) return res.status(500).json({ error: 'Errore DB', details: err.message });
-    if (!lega) return res.status(404).json({ error: 'Lega non trovata' });
+router.get('/:legaId', requireAuth, async (req, res) => {
+  try {
+    const legaId = req.params.legaId;
+    const lega = await getLegaById(legaId);
+    
+    if (!lega) {
+      return res.status(404).json({ error: 'Lega non trovata' });
+    }
+    
     res.json({ lega });
-  });
+  } catch (error) {
+    console.error('Errore recupero lega:', error);
+    res.status(500).json({ error: 'Errore DB', details: error.message });
+  }
 });
 
 // Upload regolamento PDF per una lega
