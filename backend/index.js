@@ -34,7 +34,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({
   origin: 'https://topleague-frontend-new.onrender.com', // il tuo frontend
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
+  allowedHeaders: ['Content-Type','Authorization','Cache-Control','Pragma','Expires'],
   credentials: true
 }));
 
