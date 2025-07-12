@@ -30,18 +30,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware CORS semplificato
+// Configurazione CORS ottimizzata
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://topleaguem-frontend.onrender.com',
-    'https://topleague-frontend-new.onrender.com',
-    'https://topleaguem.onrender.com'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept', 'Cache-Control', 'Content-Length']
+  origin: 'https://topleague-frontend-new.onrender.com', // il tuo frontend
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+  credentials: true
 }));
+
+app.options('*', cors()); // abilita le richieste preflight
 
 // Logging middleware per debugging
 app.use((req, res, next) => {
@@ -184,34 +181,6 @@ app.post('/api/upload/logo', upload.single('logo'), (req, res) => {
 });
 
 // API Routes
-// Middleware per gestire OPTIONS su tutte le route API
-app.use('/api', (req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    console.log('API OPTIONS request for:', req.url);
-    const origin = req.headers.origin;
-    
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://topleaguem-frontend.onrender.com',
-      'https://topleague-frontend-new.onrender.com',
-      'https://topleaguem.onrender.com'
-    ];
-    
-    if (origin && allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
-    } else {
-      res.header('Access-Control-Allow-Origin', '*');
-    }
-    
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Content-Length');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-    
-    return res.sendStatus(200);
-  }
-  next();
-});
 
 app.use('/api/leghe', legheRouter);
 app.use('/api/auth', authRouter);
