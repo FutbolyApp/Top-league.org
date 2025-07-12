@@ -23,6 +23,12 @@ export async function createLega(data) {
     throw new Error('Esiste già una lega con questo nome');
   }
   
+  // Validazione e conversione dei valori integer
+  const max_squadre = parseInt(data.max_squadre) || 0;
+  const min_giocatori = parseInt(data.min_giocatori) || 0;
+  const max_giocatori = parseInt(data.max_giocatori) || 0;
+  const admin_id = parseInt(data.admin_id) || 1;
+  
   // Se non esiste, procedi con la creazione
   const sql = `INSERT INTO leghe (nome, modalita, admin_id, is_pubblica, password, max_squadre, min_giocatori, max_giocatori, roster_ab, cantera, contratti, triggers, regolamento_pdf, excel_originale, excel_modificato)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`;
@@ -30,12 +36,12 @@ export async function createLega(data) {
   const result = await db.query(sql, [
     data.nome,
     data.modalita,
-    data.admin_id,
+    admin_id,
     data.is_pubblica ? true : false,
     data.password || null,
-    data.max_squadre,
-    data.min_giocatori,
-    data.max_giocatori,
+    max_squadre,
+    min_giocatori,
+    max_giocatori,
     data.roster_ab ? true : false,
     data.cantera ? true : false,
     data.contratti ? true : false,
@@ -71,18 +77,24 @@ export async function updateLega(id, data) {
     }
   }
   
+  // Validazione e conversione dei valori integer
+  const max_squadre = parseInt(data.max_squadre) || 0;
+  const min_giocatori = parseInt(data.min_giocatori) || 0;
+  const max_giocatori = parseInt(data.max_giocatori) || 0;
+  const admin_id = parseInt(data.admin_id) || 1;
+  
   // Procedi con l'aggiornamento
   const sql = `UPDATE leghe SET nome=$1, modalita=$2, admin_id=$3, is_pubblica=$4, password=$5, max_squadre=$6, min_giocatori=$7, max_giocatori=$8, roster_ab=$9, cantera=$10, contratti=$11, triggers=$12, regolamento_pdf=$13, excel_originale=$14, excel_modificato=$15 WHERE id=$16`;
   const db = getDb();
   await db.query(sql, [
     data.nome,
     data.modalita,
-    data.admin_id,
+    admin_id,
     data.is_pubblica ? true : false,
     data.password || null,
-    data.max_squadre,
-    data.min_giocatori,
-    data.max_giocatori,
+    max_squadre,
+    min_giocatori,
+    max_giocatori,
     data.roster_ab ? true : false,
     data.cantera ? true : false,
     data.contratti ? true : false,

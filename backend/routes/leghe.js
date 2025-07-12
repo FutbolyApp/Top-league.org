@@ -94,6 +94,34 @@ router.post('/create', requireAuth, (req, res, next) => {
       fantacalcio_url, fantacalcio_username, fantacalcio_password, scraping_automatico
     } = req.body;
     
+    // Validazione dei dati richiesti
+    if (!nome || !modalita) {
+      return res.status(400).json({ 
+        error: 'Dati mancanti', 
+        details: 'Nome e modalità sono obbligatori' 
+      });
+    }
+    
+    // Validazione e pulizia dei valori integer
+    const cleanData = {
+      nome: nome.trim(),
+      modalita: modalita.trim(),
+      is_pubblica: is_pubblica === 'true' || is_pubblica === true,
+      password: password || null,
+      max_squadre: max_squadre || '0',
+      min_giocatori: min_giocatori || '0',
+      max_giocatori: max_giocatori || '0',
+      roster_ab: roster_ab === 'true' || roster_ab === true,
+      cantera: cantera === 'true' || cantera === true,
+      contratti: contratti === 'true' || contratti === true,
+      triggers: triggers === 'true' || triggers === true,
+      regolamento_pdf: regolamento_pdf || null,
+      fantacalcio_url: fantacalcio_url || null,
+      fantacalcio_username: fantacalcio_username || null,
+      fantacalcio_password: fantacalcio_password || null,
+      scraping_automatico: scraping_automatico === 'true' || scraping_automatico === true
+    };
+    
     if (!req.file) {
       console.log('Errore: File Excel mancante');
       return res.status(400).json({ error: 'File Excel mancante' });
@@ -103,25 +131,10 @@ router.post('/create', requireAuth, (req, res, next) => {
 
     // 1. Crea la lega - admin_id è automaticamente l'utente corrente
     createLega({
-      nome,
-      modalita,
+      ...cleanData,
       admin_id: req.user.id, // Imposta automaticamente l'admin_id all'utente corrente
-      is_pubblica: is_pubblica === 'true' || is_pubblica === true,
-      password,
-      max_squadre,
-      min_giocatori,
-      max_giocatori,
-      roster_ab: roster_ab === 'true' || roster_ab === true,
-      cantera: cantera === 'true' || cantera === true,
-      contratti: contratti === 'true' || contratti === true,
-      triggers: triggers === 'true' || triggers === true,
-      regolamento_pdf: regolamento_pdf || null,
       excel_originale: req.file.path,
-      excel_modificato: null,
-      fantacalcio_url: fantacalcio_url || null,
-      fantacalcio_username: fantacalcio_username || null,
-      fantacalcio_password: fantacalcio_password || null,
-      scraping_automatico: scraping_automatico === 'true' || scraping_automatico === true
+      excel_modificato: null
     }, (err, legaId) => {
       if (err) {
         console.log('Errore creazione lega:', err);
@@ -142,9 +155,9 @@ router.post('/create', requireAuth, (req, res, next) => {
       // 2. Parsing Excel con parametri di validazione
       try {
         const validationParams = {
-          numeroSquadre: parseInt(max_squadre) || 0,
-          minGiocatori: parseInt(min_giocatori) || 0,
-          maxGiocatori: parseInt(max_giocatori) || 0
+          numeroSquadre: parseInt(cleanData.max_squadre) || 0,
+          minGiocatori: parseInt(cleanData.min_giocatori) || 0,
+          maxGiocatori: parseInt(cleanData.max_giocatori) || 0
         };
         
         console.log('Parametri di validazione per il parser:', validationParams);
@@ -152,7 +165,7 @@ router.post('/create', requireAuth, (req, res, next) => {
         console.log('Squadre parseate:', squadre.length);
         
         // NUOVO: Controlla se il numero di squadre corrisponde a quello atteso
-        const expectedTeams = parseInt(max_squadre) || 0;
+        const expectedTeams = parseInt(cleanData.max_squadre) || 0;
         const foundTeams = squadre.length;
         let warnings = [];
         
