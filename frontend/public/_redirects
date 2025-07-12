@@ -1,10 +1,2 @@
 # Redirect all routes to index.html for SPA
-/area-admin    /index.html   200
-/area-admin/*  /index.html   200
-/crea-lega     /index.html   200
-/crea-lega/*   /index.html   200
-/login         /index.html   200
-/register      /index.html   200
-/dashboard     /index.html   200
-/dashboard/*   /index.html   200
-/*            /index.html   200 
+/*    /index.html   200 
