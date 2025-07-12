@@ -110,7 +110,8 @@ app.use((req, res, next) => {
     next();
   }
 });
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Servi file statici dalla cartella uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -125,7 +126,13 @@ app.use((req, res, next) => {
 app.locals.db = getDb();
 
 // Storage per upload file (Excel/PDF)
-const upload = multer({ dest: path.join(__dirname, 'uploads') });
+const upload = multer({ 
+  dest: path.join(__dirname, 'uploads'),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fieldSize: 50 * 1024 * 1024, // 50MB limit for fields
+  }
+});
 
 // Route di test
 app.get('/api/ping', (req, res) => {

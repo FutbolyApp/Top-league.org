@@ -12,7 +12,13 @@ import fs from 'fs';
 
 const router = express.Router();
 const db = getDb();
-const upload = multer({ dest: './backend/uploads/' });
+const upload = multer({ 
+  dest: './backend/uploads/',
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fieldSize: 50 * 1024 * 1024, // 50MB limit for fields
+  }
+});
 
 // Middleware per gestire CORS preflight per tutte le route
 router.use((req, res, next) => {
@@ -53,6 +59,8 @@ router.post('/create', requireAuth, upload.single('excel'), async (req, res) => 
     console.log('Creazione lega - Body:', req.body);
     console.log('Creazione lega - File:', req.file);
     console.log('User ID:', req.user.id);
+    console.log('Content-Type:', req.headers['content-type']);
+    console.log('Content-Length:', req.headers['content-length']);
     
     const {
       nome, modalita, is_pubblica, password, max_squadre, min_giocatori, max_giocatori,
