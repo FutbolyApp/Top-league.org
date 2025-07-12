@@ -207,7 +207,6 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
           const qiClassic = row[7];
           const qaMantra = row[9];
           const qiMantra = row[10];
-          const fvmp = row[12]; // Corretto: colonna 12 per FVM in Euroleghe
           
           playerData = {
             site_id: siteId,
@@ -226,8 +225,6 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
             playerData.qi = qiClassic;
           }
           
-          playerData.fvm = Math.abs(fvmp); // Rimuove il segno negativo
-          
         } else {
           // Struttura Serie A
           const siteId = row[0];
@@ -239,7 +236,6 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
           const qiClassic = row[6];
           const qaMantra = row[8];
           const qiMantra = row[9];
-          const fvmp = row[10];
           
           playerData = {
             site_id: siteId,
@@ -256,8 +252,6 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
             playerData.qa = qaClassic;
             playerData.qi = qiClassic;
           }
-          
-          playerData.fvm = Math.abs(fvmp); // Rimuove il segno negativo
         }
         
         // Trova il giocatore nel database
@@ -369,7 +363,6 @@ router.post('/restore-backup', requireSubadminOrAdmin, async (req, res) => {
         squadra_reale: giocatore.squadra_reale,
         qa: giocatore.qa,
         qi: giocatore.qi,
-        fvm: giocatore.fvm,
         site_id: giocatore.site_id,
         nazione_campionato: giocatore.nazione_campionato
       });
