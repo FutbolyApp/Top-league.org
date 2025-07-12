@@ -18,5 +18,29 @@ services:
         value: false
     routes:
       - type: rewrite
+        source: /area-admin
+        destination: /index.html
+      - type: rewrite
+        source: /area-admin/*
+        destination: /index.html
+      - type: rewrite
+        source: /crea-lega
+        destination: /index.html
+      - type: rewrite
+        source: /crea-lega/*
+        destination: /index.html
+      - type: rewrite
+        source: /login
+        destination: /index.html
+      - type: rewrite
+        source: /register
+        destination: /index.html
+      - type: rewrite
+        source: /dashboard
+        destination: /index.html
+      - type: rewrite
+        source: /dashboard/*
+        destination: /index.html
+      - type: rewrite
         source: /*
         destination: /index.html 
