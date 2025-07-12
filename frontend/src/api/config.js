@@ -107,6 +107,7 @@ export const api = {
   postFormData: (url, formData, token) => {
     const fullUrl = `${API_BASE_URL}${url}`;
     console.log('Making FormData request to:', fullUrl);
+    console.log('FormData contents:', Array.from(formData.entries()));
     
     return fetch(fullUrl, {
       method: 'POST',
@@ -116,6 +117,7 @@ export const api = {
       credentials: 'include'
     }).then(async (response) => {
       console.log('Response status:', response.status, 'for URL:', fullUrl);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
         let errorMessage = 'Errore del server';
@@ -131,6 +133,7 @@ export const api = {
       return response.json();
     }).catch((error) => {
       console.error('FormData request failed:', error);
+      console.error('Error details:', error.message);
       throw error;
     });
   },
