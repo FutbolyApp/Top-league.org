@@ -40,6 +40,9 @@ export async function initializeDatabase() {
     // Create missing tables
     await createMissingTables();
     
+    // Migrate data from SQLite if needed
+    await migrateDataIfNeeded();
+    
   } catch (error) {
     console.error('❌ Database connection error:', error.message);
     pool = null;
@@ -344,6 +347,67 @@ async function createMissingTables() {
     
   } catch (error) {
     console.error('❌ Error creating missing tables:', error);
+  }
+}
+
+async function migrateDataIfNeeded() {
+  try {
+    console.log('📊 Checking if data migration is needed...');
+    
+    // Controlla se ci sono dati in PostgreSQL
+    const result = await pool.query('SELECT COUNT(*) FROM users');
+    const userCount = parseInt(result.rows[0].count);
+    
+    if (userCount > 0) {
+      console.log(`✅ PostgreSQL already has ${userCount} users, skipping migration`);
+      return;
+    }
+    
+    console.log('🔄 No users found in PostgreSQL, starting data migration...');
+    
+    // Importa sqlite3 dinamicamente per evitare dipendenze
+    const sqlite3 = await import('sqlite3');
+    const fs = await import('fs');
+    const path = await import('path');
+    
+    const sqlitePath = path.join(process.cwd(), 'backend/db/topleague.db');
+    if (!fs.existsSync(sqlitePath)) {
+      console.log('❌ SQLite database not found, skipping migration');
+      return;
+    }
+    
+    const sqliteDb = new sqlite3.Database(sqlitePath);
+    
+    // Migra solo gli utenti per ora
+    console.log('📊 Migrating users...');
+    const users = await new Promise((resolve, reject) => {
+      sqliteDb.all('SELECT * FROM users', (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+    
+    for (const user of users) {
+      try {
+        await pool.query(`
+          INSERT INTO users (id, nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo, created_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ON CONFLICT (id) DO NOTHING
+        `, [
+          user.id, user.nome, user.cognome, user.username, user.provenienza,
+          user.squadra_cuore, user.come_conosciuto, user.email, user.password_hash,
+          user.ruolo, user.created_at
+        ]);
+      } catch (error) {
+        console.log(`⚠️ Warning inserting user ${user.id}: ${error.message}`);
+      }
+    }
+    
+    console.log(`✅ Migrated ${users.length} users`);
+    sqliteDb.close();
+    
+  } catch (error) {
+    console.log('⚠️ Data migration failed:', error.message);
   }
 }
 
