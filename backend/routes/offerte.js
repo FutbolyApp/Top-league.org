@@ -57,7 +57,7 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
     const db = getDb();
     
     const query = `
-      SELECT o.id, o.tipo, o.valore, o.data_invio as data,
+      SELECT o.id, o.tipo, o.valore, o.created_at as data,
              g.nome as giocatore_nome, g.cognome as giocatore_cognome,
              sm.nome as squadra_mittente, sd.nome as squadra_destinataria,
              o.lega_id
@@ -66,7 +66,7 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
       JOIN squadre sm ON o.squadra_mittente_id = sm.id
       JOIN squadre sd ON o.squadra_destinatario_id = sd.id
       WHERE o.lega_id = $1 AND o.stato = 'accettata'
-      ORDER BY o.data_invio DESC
+      ORDER BY o.created_at DESC
       LIMIT 20
     `;
     
@@ -914,7 +914,7 @@ router.get('/ricevute', authenticateToken, async (req, res) => {
          JOIN squadre sm ON o.squadra_mittente_id = sm.id
          JOIN squadre sd ON o.squadra_destinatario_id = sd.id
          WHERE sd.proprietario_id = $1 AND o.stato = 'in_attesa'
-         ORDER BY o.data_invio DESC`,
+         ORDER BY o.created_at DESC`,
       [giocatore_id]
     );
 
