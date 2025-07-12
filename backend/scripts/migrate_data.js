@@ -94,14 +94,14 @@ async function migrateData() {
     for (const squadra of squadre) {
       try {
         await pgDb.query(`
-          INSERT INTO squadre (id, lega_id, nome, proprietario_id, club_level, casse_societarie, costo_salariale_totale, costo_salariale_annuale, valore_squadra, is_orfana, created_at, proprietario_username, logo_url)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          INSERT INTO squadre (id, lega_id, nome, proprietario_id, club_level, casse_societarie, costo_salariale_totale, costo_salariale_annuale, valore_squadra, is_orfana, created_at, proprietario_username)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
           ON CONFLICT (id) DO NOTHING
         `, [
           squadra.id, squadra.lega_id, squadra.nome, squadra.proprietario_id,
           squadra.club_level, squadra.casse_societarie, squadra.costo_salariale_totale,
           squadra.costo_salariale_annuale, squadra.valore_squadra, squadra.is_orfana,
-          squadra.created_at, squadra.proprietario_username, squadra.logo_url
+          squadra.created_at, squadra.proprietario_username
         ]);
       } catch (error) {
         console.log(`⚠️ Warning inserting team ${squadra.id}: ${error.message}`);
