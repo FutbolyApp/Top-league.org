@@ -55,7 +55,7 @@ export async function getSquadreByLega(lega_id) {
            STRING_AGG(t.nome, ', ') as tornei_nomi,
            STRING_AGG(t.id::text, ', ') as tornei_ids,
            COALESCE((
-             SELECT SUM(COALESCE(g.qa, g.quotazione_attuale, 0))
+             SELECT SUM(COALESCE(g.quotazione_attuale, 0))
              FROM giocatori g
              WHERE g.squadra_id = s.id
            ), 0) as valore_attuale_qa
