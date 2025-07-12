@@ -121,8 +121,8 @@ async function migrateData() {
     for (const giocatore of giocatori) {
       try {
         await pgDb.query(`
-          INSERT INTO giocatori (id, lega_id, squadra_id, nome, cognome, ruolo, squadra_reale, eta, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, created_at, qi, site_id, nazione_campionato, fvm, media_voto, fantamedia_voto, presenze, goalfatti, goalsubiti, rigoriparati, rigoricalciati, rigorisegnati, rigorisbagliati, assist, ammonizioni, espulsioni, autogol, r, fr, valore_trasferimento, ultimo_pagamento_contratto, valore_prestito, ultimo_rinnovo_contratto, roster, squadra_prestito_id, trasferimento)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43)
+          INSERT INTO giocatori (id, lega_id, squadra_id, nome, cognome, ruolo, squadra_reale, eta, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, created_at, qi, site_id, nazione_campionato, media_voto, fantamedia_voto, presenze, goalfatti, goalsubiti, rigoriparati, rigoricalciati, rigorisegnati, rigorisbagliati, assist, ammonizioni, espulsioni, autogol, r, fr, valore_trasferimento, ultimo_pagamento_contratto, valore_prestito, ultimo_rinnovo_contratto, roster, squadra_prestito_id, trasferimento)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42)
           ON CONFLICT (id) DO NOTHING
         `, [
           giocatore.id, giocatore.lega_id, giocatore.squadra_id, giocatore.nome,
@@ -130,15 +130,14 @@ async function migrateData() {
           giocatore.quotazione_attuale, giocatore.salario, giocatore.costo_attuale,
           giocatore.costo_precedente, giocatore.prestito, giocatore.anni_contratto,
           giocatore.cantera, giocatore.triggers, giocatore.created_at, giocatore.qi,
-          giocatore.site_id, giocatore.nazione_campionato, giocatore.fvm,
-          giocatore.media_voto, giocatore.fantamedia_voto, giocatore.presenze,
-          giocatore.goalfatti, giocatore.goalsubiti, giocatore.rigoriparati,
-          giocatore.rigoricalciati, giocatore.rigorisegnati, giocatore.rigorisbagliati,
-          giocatore.assist, giocatore.ammonizioni, giocatore.espulsioni, giocatore.autogol,
-          giocatore.r, giocatore.fr, giocatore.valore_trasferimento,
-          giocatore.ultimo_pagamento_contratto, giocatore.valore_prestito,
-          giocatore.ultimo_rinnovo_contratto, giocatore.roster, giocatore.squadra_prestito_id,
-          giocatore.trasferimento
+          giocatore.site_id, giocatore.nazione_campionato, giocatore.media_voto,
+          giocatore.fantamedia_voto, giocatore.presenze, giocatore.goalfatti,
+          giocatore.goalsubiti, giocatore.rigoriparati, giocatore.rigoricalciati,
+          giocatore.rigorisegnati, giocatore.rigorisbagliati, giocatore.assist,
+          giocatore.ammonizioni, giocatore.espulsioni, giocatore.autogol, giocatore.r,
+          giocatore.fr, giocatore.valore_trasferimento, giocatore.ultimo_pagamento_contratto,
+          giocatore.valore_prestito, giocatore.ultimo_rinnovo_contratto, giocatore.roster,
+          giocatore.squadra_prestito_id, giocatore.trasferimento
         ]);
       } catch (error) {
         console.log(`⚠️ Warning inserting player ${giocatore.id}: ${error.message}`);
