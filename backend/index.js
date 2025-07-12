@@ -40,6 +40,25 @@ app.use(cors({
 
 app.options('*', cors()); // abilita le richieste preflight
 
+// Middleware per gestire errori globali
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  
+  // Se è un errore CORS, rispondi con headers appropriati
+  if (err.message && err.message.includes('CORS')) {
+    res.header('Access-Control-Allow-Origin', 'https://topleague-frontend-new.onrender.com');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma, Expires');
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: err.message,
+    type: 'server_error'
+  });
+});
+
 // Logging middleware per debugging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin} - Content-Type: ${req.headers['content-type']}`);

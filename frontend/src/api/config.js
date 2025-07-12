@@ -116,13 +116,36 @@ export const api = {
       headers.Authorization = `Bearer ${token}`;
     }
     
-    return fetch(fullUrl, {
-      method: 'POST',
-      headers,
-      body: formData,
-      mode: 'cors',
-      credentials: 'include'
-    }).then(async (response) => {
+    // Retry logic for FormData requests
+    const makeRequest = async (retryCount = 0) => {
+      try {
+        const response = await fetch(fullUrl, {
+          method: 'POST',
+          headers,
+          body: formData,
+          mode: 'cors',
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response;
+      } catch (error) {
+        console.log(`FormData request attempt ${retryCount + 1} failed:`, error);
+        
+        if (retryCount < 2) {
+          console.log(`Retrying FormData request (${retryCount + 1}/3)...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+          return makeRequest(retryCount + 1);
+        }
+        
+        throw error;
+      }
+    };
+    
+    return makeRequest().then(async (response) => {
       console.log('Response status:', response.status, 'for URL:', fullUrl);
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));
       

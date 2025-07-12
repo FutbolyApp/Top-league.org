@@ -57,11 +57,26 @@ router.use((req, res, next) => {
 
 // Crea una lega con upload Excel e popolamento squadre/giocatori
 router.post('/create', requireAuth, (req, res, next) => {
+  // Gestione completa degli errori multer
   uploadExcel(req, res, (err) => {
     if (err) {
       console.log('Multer error:', err);
-      return res.status(400).json({ error: 'File upload error', details: err.message });
+      return res.status(400).json({ 
+        error: 'File upload error', 
+        details: err.message,
+        type: 'multer_error'
+      });
     }
+    
+    // Verifica che la richiesta sia valida
+    if (!req.body) {
+      return res.status(400).json({ 
+        error: 'Invalid request body',
+        type: 'invalid_request'
+      });
+    }
+    
+    console.log('Multer processing completed successfully');
     next();
   });
 }, async (req, res) => {
