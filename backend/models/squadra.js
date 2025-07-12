@@ -110,7 +110,7 @@ export async function getAllSquadre() {
 
 export async function updateSquadra(id, data) {
   const db = getDb();
-  const sql = `UPDATE squadre SET lega_id=$1, nome=$2, proprietario_id=$3, club_level=$4, casse_societarie=$5, costo_salariale_totale=$6, costo_salariale_annuale=$7, valore_squadra=$8, is_orfana=$9, logo_url=$10 WHERE id=$11`;
+  const sql = `UPDATE squadre SET lega_id=$1, nome=$2, proprietario_id=$3, club_level=$4, casse_societarie=$5, costo_salariale_totale=$6, costo_salariale_annuale=$7, valore_squadra=$8, is_orfana=$9 WHERE id=$10`;
   await db.query(sql, [
     data.lega_id,
     data.nome,
@@ -121,7 +121,6 @@ export async function updateSquadra(id, data) {
     data.costo_salariale_annuale || 0,
     data.valore_squadra || 0,
     data.is_orfana ? true : false,
-    data.logo_url || null,
     id
   ]);
 }
@@ -144,7 +143,6 @@ export async function updateSquadraPartial(id, updates) {
     costo_salariale_annuale: squadra.costo_salariale_annuale,
     valore_squadra: squadra.valore_squadra,
     is_orfana: squadra.is_orfana,
-    logo_url: squadra.logo_url,
     ...updates // Override with provided updates
   };
 
