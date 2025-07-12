@@ -30,85 +30,23 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// Middleware CORS semplificato
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'https://topleaguem-frontend.onrender.com',
-      'https://topleague-frontend-new.onrender.com',
-      'https://topleaguem.onrender.com'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(null, true); // Allow all origins for now
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With', 
-    'Origin', 
-    'Accept', 
-    'Cache-Control',
-    'Access-Control-Allow-Origin',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Methods',
-    'Content-Length'
-  ],
-  exposedHeaders: [
-    'Content-Length', 
-    'X-Requested-With', 
-    'Authorization',
-    'Access-Control-Allow-Origin',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Methods'
-  ],
-  preflightContinue: false,
-  optionsSuccessStatus: 200
-}));
-
-// Middleware aggiuntivo per CORS preflight - MIGLIORATO
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Allow specific origins
-  const allowedOrigins = [
+  origin: [
     'http://localhost:3000',
     'https://topleaguem-frontend.onrender.com',
     'https://topleague-frontend-new.onrender.com',
     'https://topleaguem.onrender.com'
-  ];
-  
-  // Always set CORS headers for debugging
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else {
-    res.header('Access-Control-Allow-Origin', '*');
-  }
-  
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Content-Length');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400'); // 24 hours
-  
-  // Log all requests for debugging
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${origin} - Content-Type: ${req.headers['content-type']}`);
-  
-  if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS preflight request');
-    res.sendStatus(200);
-  } else {
-    next();
-  }
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept', 'Cache-Control', 'Content-Length']
+}));
+
+// Logging middleware per debugging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin} - Content-Type: ${req.headers['content-type']}`);
+  next();
 });
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -116,11 +54,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Servi file statici dalla cartella uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Logging middleware
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-  next();
-});
+
 
 // Rendi il database accessibile alle route
 app.locals.db = getDb();
