@@ -130,102 +130,96 @@ router.post('/create', requireAuth, (req, res, next) => {
     console.log('File Excel ricevuto:', req.file.originalname, 'Path:', req.file.path);
 
     // 1. Crea la lega - admin_id è automaticamente l'utente corrente
-    createLega({
-      ...cleanData,
-      admin_id: req.user.id, // Imposta automaticamente l'admin_id all'utente corrente
-      excel_originale: req.file.path,
-      excel_modificato: null
-    }, (err, legaId) => {
-      if (err) {
-        console.log('Errore creazione lega:', err);
-        
-        // Gestione specifica per nome duplicato
-        if (err.message === 'Esiste già una lega con questo nome') {
-          return res.status(400).json({ 
-            error: 'Nome lega duplicato', 
-            details: 'Esiste già una lega con questo nome. Scegli un nome diverso.' 
-          });
-        }
-        
-        return res.status(500).json({ error: 'Errore creazione lega', details: err.message });
-      }
+    try {
+      const legaId = await createLega({
+        ...cleanData,
+        admin_id: req.user.id, // Imposta automaticamente l'admin_id all'utente corrente
+        excel_originale: req.file.path,
+        excel_modificato: null
+      });
       
       console.log('Lega creata con ID:', legaId, 'Admin ID:', req.user.id);
       
       // 2. Parsing Excel con parametri di validazione
-      try {
-        const validationParams = {
-          numeroSquadre: parseInt(cleanData.max_squadre) || 0,
-          minGiocatori: parseInt(cleanData.min_giocatori) || 0,
-          maxGiocatori: parseInt(cleanData.max_giocatori) || 0
-        };
-        
-        console.log('Parametri di validazione per il parser:', validationParams);
-        const squadre = parseSquadreFromExcel(req.file.path, validationParams);
-        console.log('Squadre parseate:', squadre.length);
-        
-        // NUOVO: Controlla se il numero di squadre corrisponde a quello atteso
-        const expectedTeams = parseInt(cleanData.max_squadre) || 0;
-        const foundTeams = squadre.length;
-        let warnings = [];
-        
-        if (expectedTeams > 0 && foundTeams !== expectedTeams) {
-          warnings.push(`⚠️ Attenzione: trovate ${foundTeams} squadre, ma ne erano attese ${expectedTeams}`);
-        }
-        
-        // 3. Popola squadre e giocatori
-        let squadreInserite = 0;
-        squadre.forEach((sq, idx) => {
-          createSquadra({
+      const validationParams = {
+        numeroSquadre: parseInt(cleanData.max_squadre) || 0,
+        minGiocatori: parseInt(cleanData.min_giocatori) || 0,
+        maxGiocatori: parseInt(cleanData.max_giocatori) || 0
+      };
+      
+      console.log('Parametri di validazione per il parser:', validationParams);
+      const squadre = parseSquadreFromExcel(req.file.path, validationParams);
+      console.log('Squadre parseate:', squadre.length);
+      
+      // NUOVO: Controlla se il numero di squadre corrisponde a quello atteso
+      const expectedTeams = parseInt(cleanData.max_squadre) || 0;
+      const foundTeams = squadre.length;
+      let warnings = [];
+      
+      if (expectedTeams > 0 && foundTeams !== expectedTeams) {
+        warnings.push(`⚠️ Attenzione: trovate ${foundTeams} squadre, ma ne erano attese ${expectedTeams}`);
+      }
+      
+      // 3. Popola squadre e giocatori
+      let squadreInserite = 0;
+      for (const sq of squadre) {
+        try {
+          const squadraId = await createSquadra({
             lega_id: legaId,
             nome: sq.nome,
             casse_societarie: sq.casseSocietarie || 0,
             valore_squadra: sq.valoreRosa || 0,
             is_orfana: 1
-          }, (err, squadraId) => {
-            if (err) {
-              console.log('Errore creazione squadra:', err);
-              return;
-            }
-            console.log('Squadra creata:', sq.nome, 'ID:', squadraId, 'Casse:', sq.casseSocietarie, 'Valore:', sq.valoreRosa);
-            
-            // Inserisci giocatori
-            if (sq.giocatori && sq.giocatori.length > 0) {
-              console.log('Inserendo', sq.giocatori.length, 'giocatori per la squadra', sq.nome);
-              sq.giocatori.forEach((g, gIdx) => {
-                createGiocatore({
+          });
+          
+          console.log('Squadra creata:', sq.nome, 'ID:', squadraId, 'Casse:', sq.casseSocietarie, 'Valore:', sq.valoreRosa);
+          
+          // Inserisci giocatori
+          if (sq.giocatori && sq.giocatori.length > 0) {
+            console.log('Inserendo', sq.giocatori.length, 'giocatori per la squadra', sq.nome);
+            for (const g of sq.giocatori) {
+              try {
+                await createGiocatore({
                   lega_id: legaId,
                   squadra_id: squadraId,
                   nome: g.nome,
                   ruolo: g.ruolo,
                   squadra_reale: g.squadra,
                   costo_attuale: g.costo
-                }, (err) => {
-                  if (err) {
-                    console.log('Errore creazione giocatore:', err, 'Giocatore:', g);
-                  } else {
-                    console.log('Giocatore creato:', g.nome, 'per squadra:', sq.nome);
-                  }
                 });
-              });
-            } else {
-              console.log('Nessun giocatore trovato per la squadra:', sq.nome);
+                console.log('Giocatore creato:', g.nome, 'per squadra:', sq.nome);
+              } catch (err) {
+                console.log('Errore creazione giocatore:', err, 'Giocatore:', g);
+              }
             }
-            
-            squadreInserite++;
-            if (squadreInserite === squadre.length) {
-              console.log('Tutte le squadre create con successo');
-              return res.json({ success: true, legaId, squadre: squadre.length, warnings });
-            }
-          });
-        });
-      } catch (parseError) {
-        console.log('Errore parsing Excel:', parseError);
-        return res.status(500).json({ error: 'Errore parsing file Excel', details: parseError.message });
+          } else {
+            console.log('Nessun giocatore trovato per la squadra:', sq.nome);
+          }
+          
+          squadreInserite++;
+        } catch (err) {
+          console.log('Errore creazione squadra:', err);
+        }
       }
-    });
+      
+      console.log('Tutte le squadre create con successo');
+      return res.json({ success: true, legaId, squadre: squadre.length, warnings });
+      
+    } catch (parseError) {
+      console.log('Errore parsing Excel:', parseError);
+      return res.status(500).json({ error: 'Errore parsing file Excel', details: parseError.message });
+    }
   } catch (e) {
     console.log('Errore generale:', e);
+    
+    // Gestione specifica per nome duplicato
+    if (e.message === 'Esiste già una lega con questo nome') {
+      return res.status(400).json({ 
+        error: 'Nome lega duplicato', 
+        details: 'Esiste già una lega con questo nome. Scegli un nome diverso.' 
+      });
+    }
+    
     res.status(500).json({ error: 'Errore interno', details: e.message });
   }
 });
