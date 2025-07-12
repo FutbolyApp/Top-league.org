@@ -580,7 +580,7 @@ const Home = () => {
 
       <ActionsSection>
         <div style={{width: '100%'}}>
-          <BannerImg src="/TLprova.png" alt="TopLeague" />
+          <BannerImg src={process.env.NODE_ENV === 'development' ? '/TLprova.png' : 'https://topleague-frontend-new.onrender.com/TLprova.png'} alt="TopLeague" />
           <ActionsGridCentered>
             <SmallCTAButton to="/crea-lega" $primary>
               Crea Lega

@@ -23,14 +23,17 @@ export async function creaLega(data, token) {
     if (value !== undefined && value !== null) formData.append(key, value);
   });
   
-  // For FormData, we need to use fetch directly since api.post expects JSON
+  // Use the API base URL from config
   const API_BASE_URL = process.env.NODE_ENV === 'development' 
     ? 'http://localhost:3001/api'
     : 'https://topleaguem.onrender.com/api';
     
   const response = await fetch(`${API_BASE_URL}/leghe/create`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
+    headers: { 
+      'Authorization': `Bearer ${token}`,
+      // Don't set Content-Type for FormData, let the browser set it with boundary
+    },
     body: formData
   });
   
