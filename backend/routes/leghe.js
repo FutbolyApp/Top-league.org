@@ -16,12 +16,30 @@ const upload = multer({ dest: './backend/uploads/' });
 
 // Middleware per gestire CORS preflight per tutte le route
 router.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://topleaguem-frontend.onrender.com',
+    'https://topleague-frontend-new.onrender.com',
+    'https://topleaguem.onrender.com'
+  ];
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Content-Length');
   res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  
+  console.log(`Leghe route: ${req.method} ${req.url} - Origin: ${origin} - Content-Type: ${req.headers['content-type']}`);
   
   if (req.method === 'OPTIONS') {
+    console.log('Leghe OPTIONS preflight request');
     res.sendStatus(200);
   } else {
     next();
@@ -31,6 +49,7 @@ router.use((req, res, next) => {
 // Crea una lega con upload Excel e popolamento squadre/giocatori
 router.post('/create', requireAuth, upload.single('excel'), async (req, res) => {
   try {
+    console.log('Creazione lega - Headers:', req.headers);
     console.log('Creazione lega - Body:', req.body);
     console.log('Creazione lega - File:', req.file);
     console.log('User ID:', req.user.id);

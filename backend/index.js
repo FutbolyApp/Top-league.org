@@ -61,7 +61,8 @@ app.use(cors({
     'Cache-Control',
     'Access-Control-Allow-Origin',
     'Access-Control-Allow-Headers',
-    'Access-Control-Allow-Methods'
+    'Access-Control-Allow-Methods',
+    'Content-Length'
   ],
   exposedHeaders: [
     'Content-Length', 
@@ -100,7 +101,7 @@ app.use((req, res, next) => {
   res.header('Access-Control-Max-Age', '86400'); // 24 hours
   
   // Log all requests for debugging
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${origin}`);
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${origin} - Content-Type: ${req.headers['content-type']}`);
   
   if (req.method === 'OPTIONS') {
     console.log('Handling OPTIONS preflight request');
@@ -246,7 +247,7 @@ app.use('/api', (req, res, next) => {
     }
     
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Content-Length');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Max-Age', '86400');
     

@@ -34,12 +34,21 @@ export async function creaLega(data, token) {
       'Authorization': `Bearer ${token}`,
       // Don't set Content-Type for FormData, let the browser set it with boundary
     },
-    body: formData
+    body: formData,
+    mode: 'cors',
+    credentials: 'include'
   });
   
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Errore del server');
+    let errorMessage = 'Errore del server';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.error || errorData.message || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use status text
+      errorMessage = response.statusText || errorMessage;
+    }
+    throw new Error(errorMessage);
   }
   
   return response.json();
