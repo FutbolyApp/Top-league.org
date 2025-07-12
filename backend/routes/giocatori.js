@@ -13,8 +13,7 @@ router.get('/:giocatoreId', requireAuth, async (req, res) => {
     const giocatoreId = req.params.giocatoreId;
     const result = await db.query(`
       SELECT g.*, 
-             COALESCE(g.qa, 0) as qa_scraping,
-             COALESCE(g.qi, 0) as qi_scraping,
+             g.quotazione_attuale,
              s.nome as squadra_nome,
              l.nome as lega_nome,
              CASE 
@@ -42,10 +41,8 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
     const squadraId = req.params.squadraId;
     const result = await db.query(`
       SELECT g.*, 
-             COALESCE(g.qa, g.quotazione_attuale) as quotazione_attuale,
+             g.quotazione_attuale,
              g.fvm as fv_mp,
-             COALESCE(g.qa, 0) as qa_scraping,
-             COALESCE(g.qi, 0) as qi_scraping,
              sp.nome as squadra_prestito_nome
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
@@ -114,10 +111,8 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
     const legaId = req.params.legaId;
     const result = await db.query(`
       SELECT g.*, 
-             COALESCE(g.qa, g.quotazione_attuale) as quotazione_attuale,
+             g.quotazione_attuale,
              g.fvm as fv_mp,
-             COALESCE(g.qa, 0) as qa_scraping,
-             COALESCE(g.qi, 0) as qi_scraping,
              sp.nome as squadra_prestito_nome
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
