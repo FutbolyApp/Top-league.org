@@ -111,11 +111,7 @@ export const api = {
     console.log('FormData contents:', Array.from(formData.entries()));
     
     // Don't set Content-Type for FormData - let the browser set it with boundary
-    const headers = {
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0'
-    };
+    const headers = {};
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
