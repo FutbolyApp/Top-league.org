@@ -255,11 +255,15 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const legaId = req.params.legaId;
+    console.log(`Richiesta my-team per utente ${userId} e lega ${legaId}`);
+    
     const db = getDb();
     if (!db) {
+      console.error('Database non disponibile');
       return res.status(503).json({ error: 'Database non disponibile' });
     }
     
+    console.log('Eseguendo query squadra...');
     const squadraResult = await db.query(
       `SELECT s.*, l.nome as lega_nome, 
               CASE 
@@ -273,15 +277,22 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
       [userId, legaId]
     );
     
+    console.log(`Trovate ${squadraResult.rows.length} squadre`);
+    
     if (squadraResult.rows.length === 0) {
+      console.log('Nessuna squadra trovata per questa lega');
       return res.status(404).json({ error: 'Squadra non trovata per questa lega' });
     }
     
     const squadra = squadraResult.rows[0];
+    console.log(`Squadra trovata: ${squadra.id} - ${squadra.nome}`);
     
     // Ottieni configurazioni della lega
+    console.log('Ottenendo configurazioni lega...');
     const config = await getLeagueConfig(legaId);
+    console.log('Configurazioni ottenute:', config);
     
+    console.log('Eseguendo query giocatori...');
     const giocatoriResult = await db.query(
       `SELECT g.*, g.quotazione_attuale,
               sp.nome as squadra_prestito_nome
@@ -293,6 +304,7 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
     );
     
     const giocatori = giocatoriResult.rows || [];
+    console.log(`Trovati ${giocatori.length} giocatori per la squadra`);
     
     // Debug: log dei giocatori trovati
     console.log(`Squadra ${squadra.id}: trovati ${giocatori.length} giocatori`);
@@ -309,7 +321,9 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
     });
     
     // Filtra i dati in base alle configurazioni
+    console.log('Filtrando dati...');
     const squadraFiltrata = filterDataByConfig({ ...squadra, giocatori }, config);
+    console.log('Dati filtrati completati');
     
     res.json({ 
       squadra: squadraFiltrata,
@@ -323,7 +337,8 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('Errore nel recupero squadra per lega:', error);
-    res.status(500).json({ error: 'Errore nel recupero squadra' });
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ error: 'Errore nel recupero squadra', details: error.message });
   }
 });
 
