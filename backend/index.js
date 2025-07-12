@@ -3,7 +3,7 @@ import cors from 'cors';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { initDb, getDb } from './db/postgres.js';
+import { initializeDatabase, getDb } from './db/postgres.js';
 import { initializeWebSocket } from './websocket.js';
 import legheRouter from './routes/leghe.js';
 import authRouter from './routes/auth.js';
@@ -312,7 +312,7 @@ const startServer = async () => {
     if (process.env.DATABASE_URL) {
       try {
         console.log('Initializing database...');
-        await initDb();
+        await initializeDatabase();
         console.log('Database initialization completed successfully');
       } catch (dbError) {
         console.error('Database initialization failed:', dbError.message);
