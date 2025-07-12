@@ -182,6 +182,21 @@ app.get('/api/test-auth', (req, res) => {
   });
 });
 
+// Test FormData endpoint
+app.post('/api/test-formdata', upload.single('file'), (req, res) => {
+  console.log('FormData test received');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('File:', req.file);
+  
+  res.json({ 
+    message: 'FormData test successful',
+    hasFile: !!req.file,
+    bodyKeys: Object.keys(req.body),
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Placeholder: upload file Excel
 app.post('/api/upload/excel', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Nessun file caricato' });
