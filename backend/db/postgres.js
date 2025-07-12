@@ -363,48 +363,33 @@ async function migrateDataIfNeeded() {
       return;
     }
     
-    console.log('🔄 No users found in PostgreSQL, starting data migration...');
+    console.log('🔄 No users found in PostgreSQL, creating default admin user...');
     
-    // Importa sqlite3 dinamicamente per evitare dipendenze
-    const sqlite3 = await import('sqlite3');
-    const fs = await import('fs');
-    const path = await import('path');
+    // Crea un utente admin di default
+    const bcrypt = await import('bcryptjs');
+    const hashedPassword = await bcrypt.hash('admin123', 10);
     
-    const sqlitePath = path.join(process.cwd(), 'backend/db/topleague.db');
-    if (!fs.existsSync(sqlitePath)) {
-      console.log('❌ SQLite database not found, skipping migration');
-      return;
+    try {
+      await pool.query(`
+        INSERT INTO users (id, nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo, created_at)
+        VALUES (1, 'Admin', 'User', 'admin', 'Default', 'Default', 'Default', 'admin@topleague.com', $1, 'SuperAdmin', NOW())
+        ON CONFLICT (id) DO NOTHING
+      `, [hashedPassword]);
+      
+      console.log('✅ Default admin user created');
+      
+      // Crea una lega di test
+      await pool.query(`
+        INSERT INTO leghe (id, nome, modalita, admin_id, is_pubblica, max_squadre, min_giocatori, max_giocatori, roster_ab, cantera, contratti, triggers, created_at)
+        VALUES (1, 'Test League', 'serie_a', 1, true, 10, 20, 25, true, true, true, true, NOW())
+        ON CONFLICT (id) DO NOTHING
+      `);
+      
+      console.log('✅ Default test league created');
+      
+    } catch (error) {
+      console.log(`⚠️ Warning creating default data: ${error.message}`);
     }
-    
-    const sqliteDb = new sqlite3.Database(sqlitePath);
-    
-    // Migra solo gli utenti per ora
-    console.log('📊 Migrating users...');
-    const users = await new Promise((resolve, reject) => {
-      sqliteDb.all('SELECT * FROM users', (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
-      });
-    });
-    
-    for (const user of users) {
-      try {
-        await pool.query(`
-          INSERT INTO users (id, nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo, created_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-          ON CONFLICT (id) DO NOTHING
-        `, [
-          user.id, user.nome, user.cognome, user.username, user.provenienza,
-          user.squadra_cuore, user.come_conosciuto, user.email, user.password_hash,
-          user.ruolo, user.created_at
-        ]);
-      } catch (error) {
-        console.log(`⚠️ Warning inserting user ${user.id}: ${error.message}`);
-      }
-    }
-    
-    console.log(`✅ Migrated ${users.length} users`);
-    sqliteDb.close();
     
   } catch (error) {
     console.log('⚠️ Data migration failed:', error.message);
