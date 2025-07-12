@@ -94,7 +94,7 @@ router.post('/batch', requireAuth, async (req, res) => {
     const placeholders = ids.map((_, index) => `$${index + 1}`).join(',');
     const result = await db.query(`
       SELECT *, 
-             COALESCE(qa, quotazione_attuale) as quotazione_attuale,
+             quotazione_attuale,
              qi
       FROM giocatori WHERE id IN (${placeholders})
     `, ids);

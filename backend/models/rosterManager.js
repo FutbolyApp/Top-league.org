@@ -31,7 +31,7 @@ export class RosterManager {
     return new Promise((resolve, reject) => {
       const sql = `
         SELECT *,
-               COALESCE(qa, quotazione_attuale) as quotazione_attuale,
+               quotazione_attuale,
                fvm as fv_mp,
                qi
         FROM giocatori 
@@ -250,7 +250,7 @@ export class RosterManager {
     return new Promise((resolve, reject) => {
       const sql = `
         SELECT *,
-               COALESCE(qa, quotazione_attuale) as quotazione_attuale,
+               quotazione_attuale,
                qi
         FROM giocatori 
         WHERE squadra_id = ? AND prestito = 1 AND roster = 'B'
