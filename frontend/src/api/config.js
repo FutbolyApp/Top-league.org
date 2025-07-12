@@ -110,9 +110,15 @@ export const api = {
     console.log('Making FormData request to:', fullUrl);
     console.log('FormData contents:', Array.from(formData.entries()));
     
+    // Don't set Content-Type for FormData - let the browser set it with boundary
+    const headers = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    
     return fetch(fullUrl, {
       method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers,
       body: formData,
       mode: 'cors',
       credentials: 'include'
