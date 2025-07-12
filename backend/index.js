@@ -130,7 +130,23 @@ const upload = multer({ dest: path.join(__dirname, 'uploads') });
 // Route di test
 app.get('/api/ping', (req, res) => {
   console.log('Ping received');
-  res.json({ message: 'pong' });
+  res.json({ 
+    message: 'pong',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: process.env.DATABASE_URL ? 'configured' : 'not configured'
+  });
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  console.log('Health check received');
+  res.json({ 
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Test CORS endpoint
@@ -356,35 +372,49 @@ const scheduleCleanup = () => {
 scheduleCleanup();
 
 // Initialize database and start server
-try {
-  console.log('Starting database initialization...');
-  console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
-  
-  await initDb();
-  console.log('Database initialization completed successfully');
-  
-  const server = app.listen(PORT, () => {
-    console.log(`TopLeague backend listening on port ${PORT}`);
-    console.log(`Test the server with: curl http://localhost:${PORT}/api/ping`);
-  });
-
-  // Initialize WebSocket server
-  initializeWebSocket(server);
-
-  server.on('error', (error) => {
-    if (error.code === 'EADDRINUSE') {
-      console.error(`Port ${PORT} is already in use. Please try a different port.`);
-      process.exit(1);
-    } else {
-      console.error('Server error:', error);
+const startServer = async () => {
+  try {
+    console.log('Starting database initialization...');
+    console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
+    
+    // Try to initialize database, but don't fail if it doesn't work
+    try {
+      await initDb();
+      console.log('Database initialization completed successfully');
+    } catch (dbError) {
+      console.error('Database initialization failed, but continuing with server startup:', dbError.message);
+      console.log('Server will start without database functionality');
     }
-  });
-} catch (error) {
-  console.error('Failed to start server:', error);
-  console.error('Error details:', error.message);
-  console.error('Stack trace:', error.stack);
-  process.exit(1);
-}
+    
+    const server = app.listen(PORT, () => {
+      console.log(`TopLeague backend listening on port ${PORT}`);
+      console.log(`Test the server with: curl http://localhost:${PORT}/api/ping`);
+    });
+
+    // Initialize WebSocket server
+    try {
+      initializeWebSocket(server);
+    } catch (wsError) {
+      console.error('WebSocket initialization failed:', wsError.message);
+    }
+
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use. Please try a different port.`);
+        process.exit(1);
+      } else {
+        console.error('Server error:', error);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 // Conferma API
 app.get('/', (req, res) => {
