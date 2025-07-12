@@ -131,8 +131,7 @@ export async function updateGiocatorePartial(id, data) {
   
   // Mappa i nomi dei campi dal frontend al database
   const fieldMapping = {
-    'quotazione_attuale': 'qa',
-    'fanta_valore_mercato': 'fvm',
+    'quotazione_attuale': 'quotazione_attuale',
     'media_voto': 'media_voto',
     'fantamedia_voto': 'fantamedia_voto',
     'costo_attuale': 'costo_attuale',
