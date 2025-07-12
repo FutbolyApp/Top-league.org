@@ -1,29 +1,47 @@
 import { getDb } from '../db/postgres.js';
 
 export async function createGiocatore(data) {
-  const db = getDb();
-  const sql = `INSERT INTO giocatori (lega_id, squadra_id, nome, cognome, ruolo, squadra_reale, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`;
-  const result = await db.query(sql, [
-    data.lega_id,
-    data.squadra_id,
-    data.nome,
-    data.cognome || null,
-    data.ruolo,
-    data.squadra_reale || null,
-    data.quotazione_attuale || null,
-    data.salario || null,
-    data.costo_attuale || null,
-    data.costo_precedente || null,
-    data.prestito ? true : false,
-    data.anni_contratto || null,
-    data.cantera ? true : false,
-    data.triggers || null,
-    data.valore_prestito || 0,
-    data.valore_trasferimento || 0,
-    data.roster || 'A'
-  ]);
-  return result.rows[0].id;
+  try {
+    console.log(`🔄 Creando giocatore nel database:`, JSON.stringify(data, null, 2));
+    
+    const db = getDb();
+    const sql = `INSERT INTO giocatori (lega_id, squadra_id, nome, cognome, ruolo, squadra_reale, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`;
+    
+    const params = [
+      data.lega_id,
+      data.squadra_id,
+      data.nome,
+      data.cognome || null,
+      data.ruolo,
+      data.squadra_reale || null,
+      data.quotazione_attuale || null,
+      data.salario || null,
+      data.costo_attuale || null,
+      data.costo_precedente || null,
+      data.prestito ? true : false,
+      data.anni_contratto || null,
+      data.cantera ? true : false,
+      data.triggers || null,
+      data.valore_prestito || 0,
+      data.valore_trasferimento || 0,
+      data.roster || 'A'
+    ];
+    
+    console.log(`🔄 SQL: ${sql}`);
+    console.log(`🔄 Parametri:`, JSON.stringify(params, null, 2));
+    
+    const result = await db.query(sql, params);
+    const giocatoreId = result.rows[0].id;
+    
+    console.log(`✅ Giocatore creato con successo. ID: ${giocatoreId}`);
+    return giocatoreId;
+  } catch (error) {
+    console.error(`❌ Errore creazione giocatore ${data.nome}:`, error.message);
+    console.error(`❌ Stack trace:`, error.stack);
+    console.error(`❌ Dati giocatore:`, JSON.stringify(data, null, 2));
+    throw error;
+  }
 }
 
 export async function getGiocatoreById(id) {

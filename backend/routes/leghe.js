@@ -162,8 +162,14 @@ router.post('/create', requireAuth, (req, res, next) => {
       
       // 3. Popola squadre e giocatori
       let squadreInserite = 0;
+      let giocatoriInseriti = 0;
+      let erroriSquadre = [];
+      let erroriGiocatori = [];
+      
       for (const sq of squadre) {
         try {
+          console.log(`🔄 Creando squadra: ${sq.nome} con ${sq.giocatori?.length || 0} giocatori`);
+          
           const squadraId = await createSquadra({
             lega_id: legaId,
             nome: sq.nome,
@@ -172,14 +178,14 @@ router.post('/create', requireAuth, (req, res, next) => {
             is_orfana: 1
           });
           
-          console.log('Squadra creata:', sq.nome, 'ID:', squadraId, 'Casse:', sq.casseSocietarie, 'Valore:', sq.valoreRosa);
+          console.log('✅ Squadra creata:', sq.nome, 'ID:', squadraId, 'Casse:', sq.casseSocietarie, 'Valore:', sq.valoreRosa);
           
           // Inserisci giocatori
           if (sq.giocatori && sq.giocatori.length > 0) {
-            console.log('Inserendo', sq.giocatori.length, 'giocatori per la squadra', sq.nome);
+            console.log(`🔄 Inserendo ${sq.giocatori.length} giocatori per la squadra ${sq.nome}`);
             for (const g of sq.giocatori) {
               try {
-                await createGiocatore({
+                const giocatoreId = await createGiocatore({
                   lega_id: legaId,
                   squadra_id: squadraId,
                   nome: g.nome,
@@ -187,23 +193,58 @@ router.post('/create', requireAuth, (req, res, next) => {
                   squadra_reale: g.squadra,
                   costo_attuale: g.costo
                 });
-                console.log('Giocatore creato:', g.nome, 'per squadra:', sq.nome);
+                console.log(`✅ Giocatore creato: ${g.nome} (ID: ${giocatoreId}) per squadra: ${sq.nome}`);
+                giocatoriInseriti++;
               } catch (err) {
-                console.log('Errore creazione giocatore:', err, 'Giocatore:', g);
+                console.error(`❌ Errore creazione giocatore ${g.nome}:`, err.message);
+                console.error(`❌ Dati giocatore:`, JSON.stringify(g, null, 2));
+                erroriGiocatori.push({
+                  squadra: sq.nome,
+                  giocatore: g.nome,
+                  errore: err.message,
+                  dati: g
+                });
               }
             }
           } else {
-            console.log('Nessun giocatore trovato per la squadra:', sq.nome);
+            console.log('⚠️ Nessun giocatore trovato per la squadra:', sq.nome);
           }
           
           squadreInserite++;
         } catch (err) {
-          console.log('Errore creazione squadra:', err);
+          console.error(`❌ Errore creazione squadra ${sq.nome}:`, err.message);
+          console.error(`❌ Dati squadra:`, JSON.stringify(sq, null, 2));
+          erroriSquadre.push({
+            squadra: sq.nome,
+            errore: err.message,
+            dati: sq
+          });
         }
       }
       
-      console.log('Tutte le squadre create con successo');
-      return res.json({ success: true, legaId, squadre: squadre.length, warnings });
+      console.log(`📊 Riepilogo inserimento:`);
+      console.log(`- Squadre create: ${squadreInserite}/${squadre.length}`);
+      console.log(`- Giocatori inseriti: ${giocatoriInseriti}`);
+      console.log(`- Errori squadre: ${erroriSquadre.length}`);
+      console.log(`- Errori giocatori: ${erroriGiocatori.length}`);
+      
+      if (erroriSquadre.length > 0) {
+        console.error(`❌ Errori creazione squadre:`, erroriSquadre);
+      }
+      if (erroriGiocatori.length > 0) {
+        console.error(`❌ Errori creazione giocatori:`, erroriGiocatori);
+      }
+      
+      return res.json({ 
+        success: true, 
+        legaId, 
+        squadre: squadre.length, 
+        squadreInserite,
+        giocatoriInseriti,
+        erroriSquadre,
+        erroriGiocatori,
+        warnings 
+      });
       
     } catch (parseError) {
       console.log('Errore parsing Excel:', parseError);

@@ -1,21 +1,39 @@
 import { getDb } from '../db/postgres.js';
 
 export async function createSquadra(data) {
-  const db = getDb();
-  const sql = `INSERT INTO squadre (lega_id, nome, proprietario_id, club_level, casse_societarie, costo_salariale_totale, costo_salariale_annuale, valore_squadra, is_orfana)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`;
-  const result = await db.query(sql, [
-    data.lega_id,
-    data.nome,
-    data.proprietario_id || null,
-    data.club_level || 1,
-    data.casse_societarie || 0,
-    data.costo_salariale_totale || 0,
-    data.costo_salariale_annuale || 0,
-    data.valore_squadra || 0,
-    data.is_orfana ? true : false
-  ]);
-  return result.rows[0].id;
+  try {
+    console.log(`🔄 Creando squadra nel database:`, JSON.stringify(data, null, 2));
+    
+    const db = getDb();
+    const sql = `INSERT INTO squadre (lega_id, nome, proprietario_id, club_level, casse_societarie, costo_salariale_totale, costo_salariale_annuale, valore_squadra, is_orfana)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`;
+    
+    const params = [
+      data.lega_id,
+      data.nome,
+      data.proprietario_id || null,
+      data.club_level || 1,
+      data.casse_societarie || 0,
+      data.costo_salariale_totale || 0,
+      data.costo_salariale_annuale || 0,
+      data.valore_squadra || 0,
+      data.is_orfana ? true : false
+    ];
+    
+    console.log(`🔄 SQL: ${sql}`);
+    console.log(`🔄 Parametri:`, JSON.stringify(params, null, 2));
+    
+    const result = await db.query(sql, params);
+    const squadraId = result.rows[0].id;
+    
+    console.log(`✅ Squadra creata con successo. ID: ${squadraId}`);
+    return squadraId;
+  } catch (error) {
+    console.error(`❌ Errore creazione squadra ${data.nome}:`, error.message);
+    console.error(`❌ Stack trace:`, error.stack);
+    console.error(`❌ Dati squadra:`, JSON.stringify(data, null, 2));
+    throw error;
+  }
 }
 
 export async function getSquadraById(id) {
