@@ -5,11 +5,15 @@ import { getLegaById } from '../models/lega.js';
 import { getDb } from '../db/postgres.js';
 
 const router = express.Router();
-const db = getDb();
 
 // Ottieni i dettagli di un giocatore
 router.get('/:giocatoreId', requireAuth, async (req, res) => {
   try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
+    
     const giocatoreId = req.params.giocatoreId;
     const result = await db.query(`
       SELECT g.*, 
@@ -38,6 +42,11 @@ router.get('/:giocatoreId', requireAuth, async (req, res) => {
 // Ottieni giocatori di una squadra
 router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
   try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
+    
     const squadraId = req.params.squadraId;
     const result = await db.query(`
       SELECT g.*, 
@@ -88,6 +97,10 @@ router.post('/update-triggers', requireAuth, (req, res) => {
 // Ottieni più giocatori per ID (batch)
 router.post('/batch', requireAuth, async (req, res) => {
   try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'Nessun ID fornito' });
     const placeholders = ids.map((_, index) => `$${index + 1}`).join(',');
@@ -106,6 +119,10 @@ router.post('/batch', requireAuth, async (req, res) => {
 // Ottieni tutti i giocatori di una lega
 router.get('/lega/:legaId', requireAuth, async (req, res) => {
   try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     const legaId = req.params.legaId;
     const result = await db.query(`
       SELECT g.*, 
@@ -125,6 +142,10 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
 // Crea nuovo giocatore (solo trinità: superadmin, admin della lega, subadmin)
 router.post('/', requireAuth, async (req, res) => {
   try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     const utenteId = req.user.id;
     const userRole = req.user.ruolo;
     const giocatoreData = req.body;
@@ -169,6 +190,10 @@ router.post('/', requireAuth, async (req, res) => {
 // Aggiorna giocatore (solo trinità: superadmin, admin della lega, subadmin)
 router.put('/:id', requireAuth, async (req, res) => {
   try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     const giocatoreId = req.params.id;
     const utenteId = req.user.id;
     const userRole = req.user.ruolo;
@@ -232,6 +257,10 @@ router.put('/:id', requireAuth, async (req, res) => {
 // Elimina giocatore (solo trinità: superadmin, admin della lega, subadmin)
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     const giocatoreId = req.params.id;
     const utenteId = req.user.id;
     const userRole = req.user.ruolo;
@@ -274,6 +303,10 @@ router.delete('/:id', requireAuth, async (req, res) => {
 // Trasferisci giocatore (solo trinità: superadmin, admin della lega, subadmin)
 router.post('/:id/transfer', requireAuth, async (req, res) => {
   try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     const giocatoreId = req.params.id;
     const utenteId = req.user.id;
     const userRole = req.user.ruolo;
@@ -398,6 +431,10 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
 // Ottieni cronologia QA di un giocatore
 router.get('/:id/qa-history', requireAuth, async (req, res) => {
   try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     const giocatoreId = req.params.id;
     
     const result = await db.query(`
