@@ -4,28 +4,32 @@ import bcrypt from 'bcryptjs';
 // Configurazione PostgreSQL
 let pool;
 
-try {
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
-  });
+if (process.env.DATABASE_URL) {
+  try {
+    pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+    });
 
-  // Test della connessione
-  pool.on('connect', () => {
-    console.log('✅ Connected to PostgreSQL database');
-  });
+    // Test della connessione
+    pool.on('connect', () => {
+      console.log('✅ Connected to PostgreSQL database');
+    });
 
-  pool.on('error', (err) => {
-    console.error('❌ Unexpected error on idle client', err);
-    // Don't exit the process, just log the error
-    console.log('Database connection error, but continuing...');
-  });
-} catch (error) {
-  console.error('Failed to create database pool:', error);
-  console.log('Database will not be available');
+    pool.on('error', (err) => {
+      console.error('❌ Unexpected error on idle client', err);
+      // Don't exit the process, just log the error
+      console.log('Database connection error, but continuing...');
+    });
+  } catch (error) {
+    console.error('❌ Failed to create database pool:', error.message);
+    pool = null;
+  }
+} else {
+  console.log('⚠️ DATABASE_URL not set, database functionality will be disabled');
   pool = null;
 }
 

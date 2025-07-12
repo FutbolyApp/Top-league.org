@@ -379,14 +379,25 @@ const startServer = async () => {
     console.log('NODE_ENV:', process.env.NODE_ENV);
     console.log('PORT:', process.env.PORT);
     
-    // Skip database initialization for now to test server startup
-    console.log('Skipping database initialization for testing');
+    // Try to initialize database
+    if (process.env.DATABASE_URL) {
+      try {
+        console.log('Initializing database...');
+        await initDb();
+        console.log('Database initialization completed successfully');
+      } catch (dbError) {
+        console.error('Database initialization failed:', dbError.message);
+        console.log('Server will start without database functionality');
+      }
+    } else {
+      console.log('DATABASE_URL not set, skipping database initialization');
+    }
     
     const server = app.listen(PORT, () => {
       console.log(`TopLeague backend listening on port ${PORT}`);
       console.log(`Test the server with: curl http://localhost:${PORT}/api/ping`);
     });
-    
+
     // Initialize WebSocket server
     try {
       initializeWebSocket(server);
