@@ -355,13 +355,13 @@ async function handleAcceptedRequest(richiesta, valore_costo) {
     case 'cambio_logo':
       // Aggiorna logo squadra
       await updateSquadraPartial(richiesta.squadra_id, {
-        logo_url: dati.logo_url
+        // logo_url column doesn't exist in PostgreSQL
       });
       // Aggiungi informazioni "dopo" ai dati della richiesta
       const dati_logo = {
         ...dati,
         dopo: {
-          logo_url: dati.logo_url
+          // logo_url column doesn't exist in PostgreSQL
         }
       };
       
@@ -553,7 +553,7 @@ async function handleCancelledRequest(richiesta) {
       // Ripristina logo squadra originale
       const dati_logo = dati.prima || {};
       await updateSquadraPartial(richiesta.squadra_id, {
-        logo_url: dati_logo.logo_url || null
+        // logo_url column doesn't exist in PostgreSQL
       });
       break;
 
