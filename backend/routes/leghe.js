@@ -18,7 +18,7 @@ const upload = multer({
     fileSize: 50 * 1024 * 1024, // 50MB limit
     fieldSize: 50 * 1024 * 1024, // 50MB limit for fields
   }
-});
+}).single('excel');
 
 // Middleware per gestire CORS preflight per tutte le route
 router.use((req, res, next) => {
@@ -53,7 +53,15 @@ router.use((req, res, next) => {
 });
 
 // Crea una lega con upload Excel e popolamento squadre/giocatori
-router.post('/create', requireAuth, upload.single('excel'), async (req, res) => {
+router.post('/create', requireAuth, (req, res, next) => {
+  upload(req, res, (err) => {
+    if (err) {
+      console.log('Multer error:', err);
+      return res.status(400).json({ error: 'File upload error', details: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
     console.log('Creazione lega - Headers:', req.headers);
     console.log('Creazione lega - Body:', req.body);
