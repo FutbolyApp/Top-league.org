@@ -1,10 +1,14 @@
 import { getDb } from '../db/postgres.js';
 
 // Funzione per ottenere le configurazioni di una lega
-export function getLeagueConfig(legaId) {
-  return new Promise((resolve, reject) => {
+export async function getLeagueConfig(legaId) {
+  try {
     const db = getDb();
-    db.get(`
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
+    const result = await db.query(`
       SELECT 
         roster_ab, cantera, contratti, triggers,
         max_portieri, min_portieri,
@@ -13,156 +17,157 @@ export function getLeagueConfig(legaId) {
         max_attaccanti, min_attaccanti,
         modalita
       FROM leghe 
-      WHERE id = ?
-    `, [legaId], (err, row) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(row || {});
-      }
-    });
-  });
+      WHERE id = $1
+    `, [legaId]);
+    
+    return result.rows[0] || {};
+  } catch (error) {
+    console.error('Errore in getLeagueConfig:', error);
+    return {};
+  }
 }
 
 // Funzione per controllare se una funzionalità è abilitata
-export function isFeatureEnabled(legaId, feature) {
-  return new Promise((resolve, reject) => {
-    getLeagueConfig(legaId)
-      .then(config => {
-        switch (feature) {
-          case 'roster_ab':
-            resolve(config.roster_ab === 1);
-          case 'cantera':
-            resolve(config.cantera === 1);
-          case 'contratti':
-            resolve(config.contratti === 1);
-          case 'triggers':
-            resolve(config.triggers === 1);
-          default:
-            resolve(false);
-        }
-      })
-      .catch(reject);
-  });
+export async function isFeatureEnabled(legaId, feature) {
+  try {
+    const config = await getLeagueConfig(legaId);
+    switch (feature) {
+      case 'roster_ab':
+        return config.roster_ab === 1;
+      case 'cantera':
+        return config.cantera === 1;
+      case 'contratti':
+        return config.contratti === 1;
+      case 'triggers':
+        return config.triggers === 1;
+      default:
+        return false;
+    }
+  } catch (error) {
+    console.error('Errore in isFeatureEnabled:', error);
+    return false;
+  }
 }
 
 // Funzione per controllare se una lega è di tipo Classic
-export function isClassicLeague(legaId) {
-  return new Promise((resolve, reject) => {
-    getLeagueConfig(legaId)
-      .then(config => {
-        const classicPatterns = [
-          'Classic Serie A',
-          'Classic Euroleghe',
-          'Serie A Classic',
-          'Euroleghe Classic',
-          'Classic'
-        ];
-        resolve(classicPatterns.some(pattern => config.modalita && config.modalita.includes(pattern)));
-      })
-      .catch(reject);
-  });
+export async function isClassicLeague(legaId) {
+  try {
+    const config = await getLeagueConfig(legaId);
+    const classicPatterns = [
+      'Classic Serie A',
+      'Classic Euroleghe',
+      'Serie A Classic',
+      'Euroleghe Classic',
+      'Classic'
+    ];
+    return classicPatterns.some(pattern => config.modalita && config.modalita.includes(pattern));
+  } catch (error) {
+    console.error('Errore in isClassicLeague:', error);
+    return false;
+  }
 }
 
 // Funzione per validare i limiti di ruolo durante uno scambio
-export function validateRoleLimits(legaId, squadraId, giocatoreIn, giocatoreOut = null) {
-  return new Promise((resolve, reject) => {
-    Promise.all([
+export async function validateRoleLimits(legaId, squadraId, giocatoreIn, giocatoreOut = null) {
+  try {
+    const [config, giocatoriSquadra] = await Promise.all([
       getLeagueConfig(legaId),
       getSquadraGiocatori(squadraId)
-    ])
-    .then(([config, giocatoriSquadra]) => {
-      if (!isClassicLeague(legaId)) {
-        resolve({ valid: true }); // Non applicare limiti per leghe non Classic
-        return;
-      }
+    ]);
+    
+    if (!(await isClassicLeague(legaId))) {
+      return { valid: true }; // Non applicare limiti per leghe non Classic
+    }
 
-      // Conta i giocatori per ruolo nella squadra
-      const conteggi = {
-        P: 0, D: 0, C: 0, A: 0
-      };
+    // Conta i giocatori per ruolo nella squadra
+    const conteggi = {
+      P: 0, D: 0, C: 0, A: 0
+    };
 
-      giocatoriSquadra.forEach(g => {
-        const ruoli = g.ruolo ? g.ruolo.split(',') : [];
-        ruoli.forEach(ruolo => {
-          const ruoloTrim = ruolo.trim();
-          if (conteggi.hasOwnProperty(ruoloTrim)) {
-            conteggi[ruoloTrim]++;
-          }
-        });
+    giocatoriSquadra.forEach(g => {
+      const ruoli = g.ruolo ? g.ruolo.split(',') : [];
+      ruoli.forEach(ruolo => {
+        const ruoloTrim = ruolo.trim();
+        if (conteggi.hasOwnProperty(ruoloTrim)) {
+          conteggi[ruoloTrim]++;
+        }
       });
+    });
 
-      // Simula l'aggiunta/rimozione del giocatore
-      if (giocatoreIn) {
-        const ruoliIn = giocatoreIn.ruolo ? giocatoreIn.ruolo.split(',') : [];
-        ruoliIn.forEach(ruolo => {
-          const ruoloTrim = ruolo.trim();
-          if (conteggi.hasOwnProperty(ruoloTrim)) {
-            conteggi[ruoloTrim]++;
-          }
-        });
-      }
-
-      if (giocatoreOut) {
-        const ruoliOut = giocatoreOut.ruolo ? giocatoreOut.ruolo.split(',') : [];
-        ruoliOut.forEach(ruolo => {
-          const ruoloTrim = ruolo.trim();
-          if (conteggi.hasOwnProperty(ruoloTrim)) {
-            conteggi[ruoloTrim]--;
-          }
-        });
-      }
-
-      // Controlla i limiti
-      const errori = [];
-      
-      if (conteggi.P > config.max_portieri) {
-        errori.push(`Troppi portieri: ${conteggi.P}/${config.max_portieri}`);
-      }
-      if (conteggi.P < config.min_portieri) {
-        errori.push(`Troppi pochi portieri: ${conteggi.P}/${config.min_portieri}`);
-      }
-      if (conteggi.D > config.max_difensori) {
-        errori.push(`Troppi difensori: ${conteggi.D}/${config.max_difensori}`);
-      }
-      if (conteggi.D < config.min_difensori) {
-        errori.push(`Troppi pochi difensori: ${conteggi.D}/${config.min_difensori}`);
-      }
-      if (conteggi.C > config.max_centrocampisti) {
-        errori.push(`Troppi centrocampisti: ${conteggi.C}/${config.max_centrocampisti}`);
-      }
-      if (conteggi.C < config.min_centrocampisti) {
-        errori.push(`Troppi pochi centrocampisti: ${conteggi.C}/${config.min_centrocampisti}`);
-      }
-      if (conteggi.A > config.max_attaccanti) {
-        errori.push(`Troppi attaccanti: ${conteggi.A}/${config.max_attaccanti}`);
-      }
-      if (conteggi.A < config.min_attaccanti) {
-        errori.push(`Troppi pochi attaccanti: ${conteggi.A}/${config.min_attaccanti}`);
-      }
-
-      resolve({
-        valid: errori.length === 0,
-        errors: errori,
-        conteggi
+    // Simula l'aggiunta/rimozione del giocatore
+    if (giocatoreIn) {
+      const ruoliIn = giocatoreIn.ruolo ? giocatoreIn.ruolo.split(',') : [];
+      ruoliIn.forEach(ruolo => {
+        const ruoloTrim = ruolo.trim();
+        if (conteggi.hasOwnProperty(ruoloTrim)) {
+          conteggi[ruoloTrim]++;
+        }
       });
-    })
-    .catch(reject);
-  });
+    }
+
+    if (giocatoreOut) {
+      const ruoliOut = giocatoreOut.ruolo ? giocatoreOut.ruolo.split(',') : [];
+      ruoliOut.forEach(ruolo => {
+        const ruoloTrim = ruolo.trim();
+        if (conteggi.hasOwnProperty(ruoloTrim)) {
+          conteggi[ruoloTrim]--;
+        }
+      });
+    }
+
+    // Controlla i limiti
+    const errori = [];
+    
+    if (conteggi.P > config.max_portieri) {
+      errori.push(`Troppi portieri: ${conteggi.P}/${config.max_portieri}`);
+    }
+    if (conteggi.P < config.min_portieri) {
+      errori.push(`Troppi pochi portieri: ${conteggi.P}/${config.min_portieri}`);
+    }
+    if (conteggi.D > config.max_difensori) {
+      errori.push(`Troppi difensori: ${conteggi.D}/${config.max_difensori}`);
+    }
+    if (conteggi.D < config.min_difensori) {
+      errori.push(`Troppi pochi difensori: ${conteggi.D}/${config.min_difensori}`);
+    }
+    if (conteggi.C > config.max_centrocampisti) {
+      errori.push(`Troppi centrocampisti: ${conteggi.C}/${config.max_centrocampisti}`);
+    }
+    if (conteggi.C < config.min_centrocampisti) {
+      errori.push(`Troppi pochi centrocampisti: ${conteggi.C}/${config.min_centrocampisti}`);
+    }
+    if (conteggi.A > config.max_attaccanti) {
+      errori.push(`Troppi attaccanti: ${conteggi.A}/${config.max_attaccanti}`);
+    }
+    if (conteggi.A < config.min_attaccanti) {
+      errori.push(`Troppi pochi attaccanti: ${conteggi.A}/${config.min_attaccanti}`);
+    }
+
+    return {
+      valid: errori.length === 0,
+      errors: errori,
+      conteggi
+    };
+  } catch (error) {
+    console.error('Errore in validateRoleLimits:', error);
+    return { valid: false, errors: ['Errore nella validazione'], conteggi: {} };
+  }
 }
 
 // Funzione helper per ottenere i giocatori di una squadra
-function getSquadraGiocatori(squadraId) {
-  return new Promise((resolve, reject) => {
+async function getSquadraGiocatori(squadraId) {
+  try {
     const db = getDb();
-    db.all('SELECT * FROM giocatori WHERE squadra_id = ?', [squadraId], (err, rows) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(rows || []);
-      }
-    });
-  });
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
+    const result = await db.query('SELECT * FROM giocatori WHERE squadra_id = $1', [squadraId]);
+    return result.rows || [];
+  } catch (error) {
+    console.error('Errore in getSquadraGiocatori:', error);
+    return [];
+  }
 }
 
 // Funzione per filtrare i dati in base alle configurazioni
@@ -219,12 +224,12 @@ export function filterDataByConfig(data, config) {
     // Rimuovi colonne relative ai triggers
     if (filteredData.columns) {
       filteredData.columns = filteredData.columns.filter(col => 
-        !['Triggers'].includes(col)
+        !['Trigger'].includes(col)
       );
     }
     if (filteredData.giocatori) {
       filteredData.giocatori = filteredData.giocatori.map(g => {
-        const { triggers, ...rest } = g;
+        const { trigger, ...rest } = g;
         return rest;
       });
     }
