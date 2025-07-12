@@ -47,7 +47,7 @@ app.use(cors({
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
-      callback(null, true); // Temporarily allow all origins for debugging
+      callback(null, true); // Allow all origins for now
     }
   },
   credentials: true,
@@ -74,21 +74,38 @@ app.use(cors({
   preflightContinue: false,
   optionsSuccessStatus: 200
 }));
-app.use(express.json());
 
-// Middleware aggiuntivo per CORS preflight
+// Middleware aggiuntivo per CORS preflight - MIGLIORATO
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  
+  // Allow specific origins
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://topleaguem-frontend.onrender.com',
+    'https://topleague-frontend-new.onrender.com',
+    'https://topleaguem.onrender.com'
+  ];
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
   res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
   
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS preflight request');
     res.sendStatus(200);
   } else {
     next();
   }
 });
+app.use(express.json());
 
 // Servi file statici dalla cartella uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -190,6 +207,35 @@ app.post('/api/upload/logo', upload.single('logo'), (req, res) => {
 });
 
 // API Routes
+// Middleware per gestire OPTIONS su tutte le route API
+app.use('/api', (req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    console.log('API OPTIONS request for:', req.url);
+    const origin = req.headers.origin;
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://topleaguem-frontend.onrender.com',
+      'https://topleague-frontend-new.onrender.com',
+      'https://topleaguem.onrender.com'
+    ];
+    
+    if (origin && allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+    
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+    
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use('/api/leghe', legheRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/squadre', squadreRouter);
