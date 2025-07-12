@@ -24,8 +24,8 @@ export async function createLega(data) {
   }
   
   // Se non esiste, procedi con la creazione
-  const sql = `INSERT INTO leghe (nome, modalita, admin_id, is_pubblica, password, max_squadre, min_giocatori, max_giocatori, roster_ab, cantera, contratti, triggers, regolamento_pdf, excel_originale, excel_modificato, fantacalcio_url, fantacalcio_username, fantacalcio_password, scraping_automatico)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING id`;
+  const sql = `INSERT INTO leghe (nome, modalita, admin_id, is_pubblica, password, max_squadre, min_giocatori, max_giocatori, roster_ab, cantera, contratti, triggers, regolamento_pdf, excel_originale, excel_modificato)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`;
   const db = getDb();
   const result = await db.query(sql, [
     data.nome,
@@ -42,11 +42,7 @@ export async function createLega(data) {
     data.triggers ? true : false,
     data.regolamento_pdf || null,
     data.excel_originale || null,
-    data.excel_modificato || null,
-    data.fantacalcio_url || null,
-    data.fantacalcio_username || null,
-    data.fantacalcio_password || null,
-    data.scraping_automatico ? true : false
+    data.excel_modificato || null
   ]);
   
   return result.rows[0].id;
@@ -76,7 +72,7 @@ export async function updateLega(id, data) {
   }
   
   // Procedi con l'aggiornamento
-  const sql = `UPDATE leghe SET nome=$1, modalita=$2, admin_id=$3, is_pubblica=$4, password=$5, max_squadre=$6, min_giocatori=$7, max_giocatori=$8, roster_ab=$9, cantera=$10, contratti=$11, triggers=$12, regolamento_pdf=$13, excel_originale=$14, excel_modificato=$15, fantacalcio_url=$16, fantacalcio_username=$17, fantacalcio_password=$18, scraping_automatico=$19 WHERE id=$20`;
+  const sql = `UPDATE leghe SET nome=$1, modalita=$2, admin_id=$3, is_pubblica=$4, password=$5, max_squadre=$6, min_giocatori=$7, max_giocatori=$8, roster_ab=$9, cantera=$10, contratti=$11, triggers=$12, regolamento_pdf=$13, excel_originale=$14, excel_modificato=$15 WHERE id=$16`;
   const db = getDb();
   await db.query(sql, [
     data.nome,
@@ -94,10 +90,6 @@ export async function updateLega(id, data) {
     data.regolamento_pdf || null,
     data.excel_originale || null,
     data.excel_modificato || null,
-    data.fantacalcio_url || null,
-    data.fantacalcio_username || null,
-    data.fantacalcio_password || null,
-    data.scraping_automatico ? true : false,
     id
   ]);
 }

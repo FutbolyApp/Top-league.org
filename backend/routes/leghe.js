@@ -18,7 +18,10 @@ const upload = multer({
     fileSize: 50 * 1024 * 1024, // 50MB limit
     fieldSize: 50 * 1024 * 1024, // 50MB limit for fields
   }
-}).single('excel');
+});
+
+const uploadExcel = upload.single('excel');
+const uploadPdf = upload.single('pdf');
 
 // Middleware per gestire CORS preflight per tutte le route
 router.use((req, res, next) => {
@@ -54,7 +57,7 @@ router.use((req, res, next) => {
 
 // Crea una lega con upload Excel e popolamento squadre/giocatori
 router.post('/create', requireAuth, (req, res, next) => {
-  upload(req, res, (err) => {
+  uploadExcel(req, res, (err) => {
     if (err) {
       console.log('Multer error:', err);
       return res.status(400).json({ error: 'File upload error', details: err.message });
@@ -379,7 +382,7 @@ router.get('/:legaId', requireAuth, (req, res) => {
 });
 
 // Upload regolamento PDF per una lega
-router.post('/:legaId/upload-regolamento', requireAuth, upload.single('pdf'), (req, res) => {
+router.post('/:legaId/upload-regolamento', requireAuth, uploadPdf, (req, res) => {
   const legaId = req.params.legaId;
   if (!req.file) return res.status(400).json({ error: 'File PDF mancante' });
   // Aggiorna il path del PDF nella lega
