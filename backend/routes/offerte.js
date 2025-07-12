@@ -13,16 +13,13 @@ const router = express.Router();
 // Crea una nuova offerta (trasferimento/prestito)
 router.post('/create', requireAuth, async (req, res) => {
   try {
-    const { lega_id, squadra_mittente_id, squadra_destinatario_id, giocatore_id, tipo, valore, cantera } = req.body;
+    const { lega_id, squadra_mittente_id, squadra_destinatario_id, giocatore_id, tipo, valore } = req.body;
     if (!lega_id || !squadra_mittente_id || !squadra_destinatario_id || !giocatore_id || !tipo || !valore) {
       return res.status(400).json({ error: 'Parametri mancanti' });
     }
     
-    // Calcola il salario in base al campo cantera
+    // Calcola il salario
     let salario = valore;
-    if (cantera) {
-      salario = Math.floor(valore / 2); // Arrotondamento per difetto
-    }
     
     const offertaId = await createOfferta({
       lega_id,
@@ -31,7 +28,6 @@ router.post('/create', requireAuth, async (req, res) => {
       giocatore_id,
       tipo,
       valore,
-      cantera: cantera || false,
       stato: 'inviata'
     });
     
@@ -61,7 +57,7 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
     const db = getDb();
     
     const query = `
-      SELECT o.id, o.tipo, o.valore, o.cantera, o.data_invio as data,
+      SELECT o.id, o.tipo, o.valore, o.data_invio as data,
              g.nome as giocatore_nome, g.cognome as giocatore_cognome,
              sm.nome as squadra_mittente, sd.nome as squadra_destinataria,
              o.lega_id
@@ -87,7 +83,6 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
       id: row.id,
       tipo: row.tipo,
       valore: row.valore,
-      cantera: row.cantera,
       data: row.data,
       giocatore_nome: `${row.giocatore_nome} ${row.giocatore_cognome}`,
       squadra_mittente: row.squadra_mittente,
@@ -568,9 +563,9 @@ router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
       // Se l'offerta è accettata, trasferisci il giocatore
       await db.query(
         `UPDATE giocatori 
-                   SET squadra_id = $1, salario = $2, cantera = $3
-                   WHERE id = $4`,
-        [offertaData.squadra_destinatario_id, salario, offertaData.cantera ? 1 : 0, offertaData.giocatore_id]
+                   SET squadra_id = $1, salario = $2
+                   WHERE id = $3`,
+        [offertaData.squadra_destinatario_id, salario, offertaData.giocatore_id]
       );
 
       // Crea notifica per il mittente
