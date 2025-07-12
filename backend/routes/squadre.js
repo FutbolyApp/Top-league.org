@@ -19,6 +19,9 @@ router.post('/:id/join', requireAuth, async (req, res) => {
     if (squadra.proprietario_id) return res.status(400).json({ error: 'Squadra già assegnata' });
     
     const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     
     // Verifica che l'utente non abbia già una richiesta per questa squadra
     const richiestaEsistente = await db.query(
@@ -156,6 +159,9 @@ router.get('/utente', requireAuth, async (req, res) => {
   try {
     const utente_id = req.user.id;
     const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     
     const squadreResult = await db.query(`
       SELECT s.*, 
@@ -204,6 +210,9 @@ router.get('/my-team', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     
     const squadraResult = await db.query(
       `SELECT s.*, l.nome as lega_nome, 
@@ -247,6 +256,9 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
     const userId = req.user.id;
     const legaId = req.params.legaId;
     const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     
     const squadraResult = await db.query(
       `SELECT s.*, l.nome as lega_nome, 
@@ -320,6 +332,9 @@ router.get('/:id', requireAuth, async (req, res) => {
   try {
     const id = req.params.id;
     const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
     
     // Query per ottenere squadra con informazioni del proprietario
     const squadraResult = await db.query(`
