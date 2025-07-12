@@ -48,8 +48,7 @@ export async function getGiocatoreById(id) {
   const db = getDb();
   const result = await db.query(`
     SELECT *, 
-           quotazione_attuale,
-           qi
+           quotazione_attuale
     FROM giocatori WHERE id = $1
   `, [id]);
   
@@ -60,9 +59,7 @@ export async function getGiocatoriBySquadra(squadra_id) {
   const db = getDb();
   const result = await db.query(`
     SELECT *, 
-           quotazione_attuale,
-           fvm as fv_mp,
-           qi
+           quotazione_attuale
     FROM giocatori WHERE squadra_id = $1
   `, [squadra_id]);
   
@@ -73,8 +70,7 @@ export async function getGiocatoriByLega(lega_id) {
   const db = getDb();
   const result = await db.query(`
     SELECT *, 
-           quotazione_attuale,
-           qi
+           quotazione_attuale
     FROM giocatori WHERE lega_id = $1
   `, [lega_id]);
   
@@ -85,8 +81,7 @@ export async function getAllGiocatori() {
   const db = getDb();
   const result = await db.query(`
     SELECT *, 
-           quotazione_attuale,
-           qi
+           quotazione_attuale
     FROM giocatori
   `);
   

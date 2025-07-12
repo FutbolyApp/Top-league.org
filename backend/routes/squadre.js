@@ -183,7 +183,7 @@ router.get('/utente', requireAuth, async (req, res) => {
     // Per ogni squadra, ottieni i giocatori
     const squadreConGiocatori = await Promise.all(squadreResult.rows.map(async (squadra) => {
       const giocatoriResult = await db.query(`
-        SELECT g.*, g.quotazione_attuale, g.fvm as fv_mp, g.qi
+        SELECT g.*, g.quotazione_attuale
         FROM giocatori g
         WHERE g.squadra_id = $1
         ORDER BY g.nome
@@ -225,7 +225,7 @@ router.get('/my-team', requireAuth, async (req, res) => {
     const squadra = squadraResult.rows[0];
     
     const giocatoriResult = await db.query(
-      `SELECT g.*, g.quotazione_attuale, g.fvm as fv_mp, g.qi,
+      `SELECT g.*, g.quotazione_attuale,
               sp.nome as squadra_prestito_nome
        FROM giocatori g
        LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
@@ -271,7 +271,7 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
     const config = await getLeagueConfig(legaId);
     
     const giocatoriResult = await db.query(
-      `SELECT g.*, g.quotazione_attuale, g.fvm as fv_mp, g.qi,
+      `SELECT g.*, g.quotazione_attuale,
               sp.nome as squadra_prestito_nome
        FROM giocatori g
        LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id

@@ -31,9 +31,7 @@ export class RosterManager {
     return new Promise((resolve, reject) => {
       const sql = `
         SELECT *,
-               quotazione_attuale,
-               fvm as fv_mp,
-               qi
+               quotazione_attuale
         FROM giocatori 
         WHERE squadra_id = ? 
         ORDER BY roster, nome, cognome
@@ -250,8 +248,7 @@ export class RosterManager {
     return new Promise((resolve, reject) => {
       const sql = `
         SELECT *,
-               quotazione_attuale,
-               qi
+               quotazione_attuale
         FROM giocatori 
         WHERE squadra_id = ? AND prestito = 1 AND roster = 'B'
         ORDER BY nome, cognome

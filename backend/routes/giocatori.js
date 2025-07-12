@@ -42,7 +42,6 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT g.*, 
              g.quotazione_attuale,
-             g.fvm as fv_mp,
              sp.nome as squadra_prestito_nome
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
@@ -94,8 +93,7 @@ router.post('/batch', requireAuth, async (req, res) => {
     const placeholders = ids.map((_, index) => `$${index + 1}`).join(',');
     const result = await db.query(`
       SELECT *, 
-             quotazione_attuale,
-             qi
+             quotazione_attuale
       FROM giocatori WHERE id IN (${placeholders})
     `, ids);
     res.json({ giocatori: result.rows });
@@ -112,7 +110,6 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT g.*, 
              g.quotazione_attuale,
-             g.fvm as fv_mp,
              sp.nome as squadra_prestito_nome
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
