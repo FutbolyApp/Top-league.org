@@ -6,7 +6,7 @@ const API_BASE_URL = isDevelopment
 
 console.log('API_BASE_URL:', API_BASE_URL);
 console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('Frontend version:', '1.0.3'); // Force redeployment
+console.log('Frontend version:', '1.0.4'); // Force redeployment
 
 async function fetchWithRetry(url, options = {}, retries = 3) {
   const fullUrl = `${API_BASE_URL}${url}`;
