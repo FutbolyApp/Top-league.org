@@ -1,4 +1,4 @@
-import { getDb } from './db/config.js';
+import { getDb } from './db/postgres.js';
 import FantacalcioScraper from './utils/scraperPuppeteer.js';
 
 const db = getDb();

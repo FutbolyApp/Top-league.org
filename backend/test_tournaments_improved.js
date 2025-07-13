@@ -1,28 +1,27 @@
-import { getDb } from './db/config.js';
+import { getDb } from './db/postgres.js';
 import FantacalcioScraper from './utils/scraperPuppeteer.js';
-
-const db = getDb();
 
 async function testTournamentsImproved() {
     console.log('🧪 Test tornei migliorato...');
     
+    const db = getDb();
+    if (!db) {
+        console.error('❌ Database non disponibile');
+        return;
+    }
+
     try {
         // Recupera le credenziali di FantaLeague11 dal database
-        const credentials = await new Promise((resolve, reject) => {
-            db.get(
-                'SELECT fantacalcio_username as username, fantacalcio_password as password FROM leghe WHERE nome = ? AND fantacalcio_username IS NOT NULL AND fantacalcio_username != ""',
-                ['FantaLeague11'],
-                (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                }
-            );
-        });
+        const credentialsResult = await db.query(
+            'SELECT fantacalcio_username as username, fantacalcio_password as password FROM leghe WHERE nome = $1 AND fantacalcio_username IS NOT NULL AND fantacalcio_username != \'\'',
+            ['FantaLeague11']
+        );
         
-        if (!credentials) {
+        if (credentialsResult.rows.length === 0) {
             throw new Error('Credenziali FantaLeague11 non trovate nel database');
         }
         
+        const credentials = credentialsResult.rows[0];
         console.log('✅ Credenziali trovate per FantaLeague11');
         console.log('DEBUG CREDENZIALI:', credentials);
         

@@ -2,8 +2,6 @@ import puppeteer from 'puppeteer';
 import cron from 'node-cron';
 import { getDb } from '../db/postgres.js';
 
-const db = getDb();
-
 class FantacalcioScraper {
     constructor() {
         this.browser = null;
@@ -936,51 +934,46 @@ class FantacalcioScraper {
     }
     
     async saveSquadraScraping(legaId, nomeSquadra) {
-        return new Promise((resolve, reject) => {
+        const db = getDb();
+        if (!db) {
+            throw new Error('Database non disponibile');
+        }
+
+        try {
             // Prima controlla se la squadra di scraping esiste già
-            db.get(
-                'SELECT id FROM squadre_scraping WHERE lega_id = ? AND nome = ?',
-                [legaId, nomeSquadra],
-                (err, row) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    
-                    if (row) {
-                        // Squadra di scraping già esistente, aggiorna la data
-                        db.run(
-                            'UPDATE squadre_scraping SET data_scraping = datetime("now") WHERE id = ?',
-                            [row.id],
-                            function(err) {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve(row.id);
-                                }
-                            }
-                        );
-                    } else {
-                        // Crea nuova squadra di scraping
-                        db.run(
-                            'INSERT INTO squadre_scraping (lega_id, nome, data_scraping, fonte_scraping) VALUES (?, ?, datetime("now"), "puppeteer")',
-                            [legaId, nomeSquadra],
-                            function(err) {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve(this.lastID);
-                                }
-                            }
-                        );
-                    }
-                }
+            const existingResult = await db.query(
+                'SELECT id FROM squadre_scraping WHERE lega_id = $1 AND nome = $2',
+                [legaId, nomeSquadra]
             );
-        });
+            
+            if (existingResult.rows.length > 0) {
+                // Squadra di scraping già esistente, aggiorna la data
+                await db.query(
+                    'UPDATE squadre_scraping SET data_scraping = NOW() WHERE id = $1',
+                    [existingResult.rows[0].id]
+                );
+                return existingResult.rows[0].id;
+            } else {
+                // Crea nuova squadra di scraping
+                const insertResult = await db.query(
+                    'INSERT INTO squadre_scraping (lega_id, nome, data_scraping, fonte_scraping) VALUES ($1, $2, NOW(), \'puppeteer\') RETURNING id',
+                    [legaId, nomeSquadra]
+                );
+                return insertResult.rows[0].id;
+            }
+        } catch (error) {
+            console.error('❌ Errore salvataggio squadra di scraping:', error);
+            throw error;
+        }
     }
     
     async saveGiocatoreScraping(legaId, squadraScrapingId, giocatore) {
-        return new Promise((resolve, reject) => {
+        const db = getDb();
+        if (!db) {
+            throw new Error('Database non disponibile');
+        }
+
+        try {
             // Normalizza il ruolo
             const ruolo = this.normalizeRuolo(giocatore.ruolo);
             
@@ -990,45 +983,34 @@ class FantacalcioScraper {
             const qi = parseFloat(giocatore.qi) || 0.0; // QI (penultima colonna)
             const fvMp = giocatore.fvMp || '0.0'; // FV MP (colonna 2)
             
-            db.get(
-                'SELECT id FROM giocatori_scraping WHERE lega_id = ? AND nome = ? AND squadra_scraping_id = ?',
-                [legaId, giocatore.nome, squadraScrapingId],
-                (err, row) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    if (row) {
-                        // Aggiorna giocatore di scraping esistente
-                        db.run(
-                            `UPDATE giocatori_scraping 
-                             SET ruolo = ?, squadra_reale = ?, quotazione = ?, qi = ?, fv_mp = ?, data_scraping = datetime("now")
-                             WHERE id = ?`,
-                            [ruolo, squadraReale, quotazione, qi, fvMp, row.id],
-                            (err) => {
-                                if (err) reject(err);
-                                else resolve(row.id);
-                            }
-                        );
-                    } else {
-                        // Crea nuovo giocatore di scraping
-                        db.run(
-                            `INSERT INTO giocatori_scraping 
-                             (lega_id, squadra_scraping_id, nome, ruolo, squadra_reale, quotazione, qi, fv_mp, data_scraping, fonte_scraping)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime("now"), "puppeteer")`,
-                            [legaId, squadraScrapingId, giocatore.nome, ruolo, squadraReale, quotazione, qi, fvMp],
-                            function(err) {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve(this.lastID);
-                                }
-                            }
-                        );
-                    }
-                }
+            const existingResult = await db.query(
+                'SELECT id FROM giocatori_scraping WHERE lega_id = $1 AND nome = $2 AND squadra_scraping_id = $3',
+                [legaId, giocatore.nome, squadraScrapingId]
             );
-        });
+            
+            if (existingResult.rows.length > 0) {
+                // Aggiorna giocatore di scraping esistente
+                await db.query(
+                    `UPDATE giocatori_scraping 
+                     SET ruolo = $1, squadra_reale = $2, quotazione = $3, qi = $4, fv_mp = $5, data_scraping = NOW()
+                     WHERE id = $6`,
+                    [ruolo, squadraReale, quotazione, qi, fvMp, existingResult.rows[0].id]
+                );
+                return existingResult.rows[0].id;
+            } else {
+                // Crea nuovo giocatore di scraping
+                const insertResult = await db.query(
+                    `INSERT INTO giocatori_scraping 
+                     (lega_id, squadra_scraping_id, nome, ruolo, squadra_reale, quotazione, qi, fv_mp, data_scraping, fonte_scraping)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'puppeteer') RETURNING id`,
+                    [legaId, squadraScrapingId, giocatore.nome, ruolo, squadraReale, quotazione, qi, fvMp]
+                );
+                return insertResult.rows[0].id;
+            }
+        } catch (error) {
+            console.error('❌ Errore salvataggio giocatore di scraping:', error);
+            throw error;
+        }
     }
     
     normalizeRuolo(ruolo) {
@@ -1735,17 +1717,20 @@ class FantacalcioScraper {
 
     // Sincronizza QA/QI nella tabella principale giocatori
     async syncQAQIGiocatoriMainTable(legaId, roseData) {
-        return new Promise((resolve, reject) => {
-            let updates = 0;
-            let errors = 0;
-            let historyLogs = 0;
-            let completedQueries = 0;
-            const totalQueries = roseData.reduce((total, squadra) => total + squadra.giocatori.length, 0);
-            
-            console.log(`[SYNC QA/QI] Inizio sincronizzazione per ${totalQueries} giocatori...`);
-            
-            for (const squadra of roseData) {
-                for (const giocatore of squadra.giocatori) {
+        const db = getDb();
+        if (!db) {
+            throw new Error('Database non disponibile');
+        }
+
+        let updates = 0;
+        let errors = 0;
+        let historyLogs = 0;
+        
+        console.log(`[SYNC QA/QI] Inizio sincronizzazione per ${roseData.reduce((total, squadra) => total + squadra.giocatori.length, 0)} giocatori...`);
+        
+        for (const squadra of roseData) {
+            for (const giocatore of squadra.giocatori) {
+                try {
                     // Aggiorna QA (quotazione) e QI (se presente) nella tabella giocatori
                     const qa = parseFloat(giocatore.quotazione) || null;
                     const qi = giocatore.qi !== undefined ? parseFloat(giocatore.qi) : null;
@@ -1753,69 +1738,50 @@ class FantacalcioScraper {
                     console.log(`[SYNC QA/QI] Processando ${giocatore.nome}: QA=${qa}, QI=${qi}`);
                     
                     // Prima ottieni il giocatore_id dalla tabella principale
-                    db.get(
-                        'SELECT id, qa FROM giocatori WHERE lega_id = ? AND nome = ?',
-                        [legaId, giocatore.nome],
-                        (err, row) => {
-                            if (err) {
-                                errors++;
-                                console.error(`[SYNC QA/QI] Errore query per ${giocatore.nome}:`, err.message);
-                                completedQueries++;
-                                checkCompletion();
-                                return;
-                            }
-                            
-                            if (row) {
-                                console.log(`[SYNC QA/QI] Giocatore trovato: ${giocatore.nome} (ID: ${row.id}), QA attuale: ${row.qa}`);
-                                
-                                // Aggiorna QA/QI nella tabella principale
-                                db.run(
-                                    `UPDATE giocatori SET qa = ?, qi = ? WHERE id = ?`,
-                                    [qa, qi, row.id],
-                                    (err) => {
-                                        if (err) reject(err);
-                                        else {
-                                            updates++;
-                                            console.log(`[SYNC QA/QI] ✅ ${giocatore.nome} aggiornato: QA=${qa}, QI=${qi}`);
-                                            
-                                            // Log storico QA se il valore è cambiato
-                                            if (qa !== null && row.qa !== qa) {
-                                                console.log(`[SYNC QA/QI] 📈 QA cambiata per ${giocatore.nome}: ${row.qa} → ${qa}`);
-                                                db.run(
-                                                    'INSERT INTO qa_history (giocatore_id, qa_value, fonte) VALUES (?, ?, ?)',
-                                                    [row.id, qa, 'scraping'],
-                                                    function(err) {
-                                                        if (err) {
-                                                            console.error(`[QA HISTORY] Errore logging per ${giocatore.nome}:`, err.message);
-                                                        } else {
-                                                            historyLogs++;
-                                                            console.log(`[QA HISTORY] ✅ Storico salvato per ${giocatore.nome}`);
-                                                        }
-                                                    }
-                                                );
-                                            }
-                                        }
-                                        completedQueries++;
-                                        checkCompletion();
-                                    }
+                    const giocatoreResult = await db.query(
+                        'SELECT id, qa FROM giocatori WHERE lega_id = $1 AND nome = $2',
+                        [legaId, giocatore.nome]
+                    );
+                    
+                    if (giocatoreResult.rows.length > 0) {
+                        const row = giocatoreResult.rows[0];
+                        console.log(`[SYNC QA/QI] Giocatore trovato: ${giocatore.nome} (ID: ${row.id}), QA attuale: ${row.qa}`);
+                        
+                        // Aggiorna QA/QI nella tabella principale
+                        await db.query(
+                            'UPDATE giocatori SET qa = $1, qi = $2 WHERE id = $3',
+                            [qa, qi, row.id]
+                        );
+                        
+                        updates++;
+                        console.log(`[SYNC QA/QI] ✅ ${giocatore.nome} aggiornato: QA=${qa}, QI=${qi}`);
+                        
+                        // Log storico QA se il valore è cambiato
+                        if (qa !== null && row.qa !== qa) {
+                            console.log(`[SYNC QA/QI] 📈 QA cambiata per ${giocatore.nome}: ${row.qa} → ${qa}`);
+                            try {
+                                await db.query(
+                                    'INSERT INTO qa_history (giocatore_id, qa_value, fonte) VALUES ($1, $2, $3)',
+                                    [row.id, qa, 'scraping']
                                 );
-                            } else {
-                                console.log(`[SYNC QA/QI] ⚠️ Giocatore non trovato: ${giocatore.nome} (${giocatore.squadra})`);
-                                completedQueries++;
-                                checkCompletion();
+                                historyLogs++;
+                                console.log(`[QA HISTORY] ✅ Storico salvato per ${giocatore.nome}`);
+                            } catch (error) {
+                                console.error(`[QA HISTORY] Errore logging per ${giocatore.nome}:`, error.message);
                             }
                         }
-                    );
+                    } else {
+                        console.log(`[SYNC QA/QI] ⚠️ Giocatore non trovato: ${giocatore.nome} (${giocatore.squadra})`);
+                    }
+                } catch (error) {
+                    errors++;
+                    console.error(`[SYNC QA/QI] Errore query per ${giocatore.nome}:`, error.message);
                 }
             }
-            
-            function checkCompletion() {
-                if (completedQueries >= totalQueries) {
-                    console.log(`[SYNC QA/QI] ✅ Completato: ${updates} aggiornati, ${errors} errori, ${historyLogs} log storici`);
-                    resolve({ updates, errors, historyLogs });
-                }
-            }
-        });
+        }
+        
+        console.log(`[SYNC QA/QI] ✅ Completato: ${updates} aggiornati, ${errors} errori, ${historyLogs} log storici`);
+        return { updates, errors, historyLogs };
     }
 }
 

@@ -1,22 +1,21 @@
-import { getDb } from './db/config.js';
-
-const db = getDb();
+import { getDb } from './db/postgres.js';
 
 async function insertRealQA() {
   console.log('📊 Inserimento dati con QA realistiche...');
   
+  const db = getDb();
+  if (!db) {
+    console.error('❌ Database non disponibile');
+    return;
+  }
+
   try {
     // Prima crea una squadra di scraping
-    const squadraId = await new Promise((resolve, reject) => {
-      db.run(
-        'INSERT INTO squadre_scraping (lega_id, nome, data_scraping, fonte_scraping) VALUES (?, ?, datetime("now"), "manual")',
-        [76, 'TopLeague'],
-        function(err) {
-          if (err) reject(err);
-          else resolve(this.lastID);
-        }
-      );
-    });
+    const squadraResult = await db.query(
+      'INSERT INTO squadre_scraping (lega_id, nome, data_scraping, fonte_scraping) VALUES ($1, $2, NOW(), \'manual\') RETURNING id',
+      [76, 'TopLeague']
+    );
+    const squadraId = squadraResult.rows[0].id;
     
     console.log(`✅ Squadra creata con ID: ${squadraId}`);
     
@@ -49,21 +48,13 @@ async function insertRealQA() {
     let inserted = 0;
     
     for (const giocatore of giocatori) {
-      await new Promise((resolve, reject) => {
-        db.run(
-          `INSERT INTO giocatori_scraping 
-           (lega_id, squadra_scraping_id, nome, ruolo, squadra_reale, quotazione, qi, fv_mp, data_scraping, fonte_scraping)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime("now"), "manual")`,
-          [76, squadraId, giocatore.nome, giocatore.ruolo, giocatore.squadra, giocatore.quotazione, giocatore.qi, giocatore.fvMp],
-          function(err) {
-            if (err) reject(err);
-            else {
-              inserted++;
-              resolve();
-            }
-          }
-        );
-      });
+      await db.query(
+        `INSERT INTO giocatori_scraping 
+         (lega_id, squadra_scraping_id, nome, ruolo, squadra_reale, quotazione, qi, fv_mp, data_scraping, fonte_scraping)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'manual')`,
+        [76, squadraId, giocatore.nome, giocatore.ruolo, giocatore.squadra, giocatore.quotazione, giocatore.qi, giocatore.fvMp]
+      );
+      inserted++;
     }
     
     console.log(`✅ Inseriti ${inserted} giocatori con QA realistiche`);
@@ -72,49 +63,30 @@ async function insertRealQA() {
     console.log('🔄 Sincronizzazione con tabella principale...');
     
     for (const giocatore of giocatori) {
-      await new Promise((resolve, reject) => {
-        db.get(
-          'SELECT id, qa FROM giocatori WHERE lega_id = 76 AND nome = ?',
-          [giocatore.nome],
-          (err, row) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            
-            if (row) {
-              db.run(
-                'UPDATE giocatori SET qa = ?, qi = ? WHERE id = ?',
-                [giocatore.quotazione, giocatore.qi, row.id],
-                (err) => {
-                  if (err) reject(err);
-                  else resolve();
-                }
-              );
-            } else {
-              resolve(); // Giocatore non trovato, continua
-            }
-          }
+      const giocatoreResult = await db.query(
+        'SELECT id, qa FROM giocatori WHERE lega_id = 76 AND nome = $1',
+        [giocatore.nome]
+      );
+      
+      if (giocatoreResult.rows.length > 0) {
+        await db.query(
+          'UPDATE giocatori SET qa = $1, qi = $2 WHERE id = $3',
+          [giocatore.quotazione, giocatore.qi, giocatoreResult.rows[0].id]
         );
-      });
+      }
     }
     
     console.log('✅ Sincronizzazione completata');
     
     // Verifica i risultati
-    const stats = await new Promise((resolve, reject) => {
-      db.get(
-        'SELECT COUNT(*) as total, AVG(quotazione) as media_qa, MIN(quotazione) as min_qa, MAX(quotazione) as max_qa FROM giocatori_scraping WHERE lega_id = 76',
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        }
-      );
-    });
+    const statsResult = await db.query(
+      'SELECT COUNT(*) as total, AVG(quotazione) as media_qa, MIN(quotazione) as min_qa, MAX(quotazione) as max_qa FROM giocatori_scraping WHERE lega_id = 76'
+    );
+    const stats = statsResult.rows[0];
     
     console.log('📊 Statistiche finali:');
     console.log(`- Totale giocatori: ${stats.total}`);
-    console.log(`- Media QA: ${stats.media_qa?.toFixed(2)}`);
+    console.log(`- Media QA: ${parseFloat(stats.media_qa).toFixed(2)}`);
     console.log(`- Min QA: ${stats.min_qa}`);
     console.log(`- Max QA: ${stats.max_qa}`);
     
@@ -123,4 +95,10 @@ async function insertRealQA() {
   }
 }
 
-insertRealQA(); 
+insertRealQA().then(() => {
+  console.log('✅ Processo completato!');
+  process.exit(0);
+}).catch(error => {
+  console.error('❌ Errore:', error);
+  process.exit(1);
+}); 

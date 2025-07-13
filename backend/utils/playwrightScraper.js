@@ -1924,57 +1924,48 @@ class PlaywrightScraper {
     }
     
     async saveSquadraScraping(legaId, nomeSquadra) {
-        return new Promise(async (resolve, reject) => {
-            const { getDb } = await import('../db/config.js');
-            const db = getDb();
-            
+        const { getDb } = await import('../db/postgres.js');
+        const db = getDb();
+        if (!db) {
+            throw new Error('Database non disponibile');
+        }
+
+        try {
             // Prima controlla se la squadra di scraping esiste già
-            db.get(
-                'SELECT id FROM squadre_scraping WHERE lega_id = ? AND nome = ?',
-                [legaId, nomeSquadra],
-                (err, row) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    
-                    if (row) {
-                        // Squadra di scraping già esistente, aggiorna la data
-                        db.run(
-                            'UPDATE squadre_scraping SET data_scraping = datetime("now") WHERE id = ?',
-                            [row.id],
-                            function(err) {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve(row.id);
-                                }
-                            }
-                        );
-                    } else {
-                        // Crea nuova squadra di scraping
-                        db.run(
-                            'INSERT INTO squadre_scraping (lega_id, nome, data_scraping, fonte_scraping) VALUES (?, ?, datetime("now"), "playwright")',
-                            [legaId, nomeSquadra],
-                            function(err) {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve(this.lastID);
-                                }
-                            }
-                        );
-                    }
-                }
+            const existingResult = await db.query(
+                'SELECT id FROM squadre_scraping WHERE lega_id = $1 AND nome = $2',
+                [legaId, nomeSquadra]
             );
-        });
+            
+            if (existingResult.rows.length > 0) {
+                // Squadra di scraping già esistente, aggiorna la data
+                await db.query(
+                    'UPDATE squadre_scraping SET data_scraping = NOW() WHERE id = $1',
+                    [existingResult.rows[0].id]
+                );
+                return existingResult.rows[0].id;
+            } else {
+                // Crea nuova squadra di scraping
+                const insertResult = await db.query(
+                    'INSERT INTO squadre_scraping (lega_id, nome, data_scraping, fonte_scraping) VALUES ($1, $2, NOW(), \'playwright\') RETURNING id',
+                    [legaId, nomeSquadra]
+                );
+                return insertResult.rows[0].id;
+            }
+        } catch (error) {
+            console.error('❌ Errore salvataggio squadra di scraping:', error);
+            throw error;
+        }
     }
     
     async saveGiocatoreScraping(legaId, squadraScrapingId, giocatore) {
-        return new Promise(async (resolve, reject) => {
-            const { getDb } = await import('../db/config.js');
-            const db = getDb();
-            
+        const { getDb } = await import('../db/postgres.js');
+        const db = getDb();
+        if (!db) {
+            throw new Error('Database non disponibile');
+        }
+
+        try {
             // Normalizza il ruolo usando il tipo di lega corrente
             const ruolo = this.normalizeRuolo(giocatore.ruolo);
             
@@ -2004,46 +1995,34 @@ class PlaywrightScraper {
             });
             
             // Controlla se il giocatore di scraping esiste già
-            db.get(
-                'SELECT id FROM giocatori_scraping WHERE lega_id = ? AND nome = ? AND squadra_scraping_id = ?',
-                [legaId, giocatore.nome, squadraScrapingId],
-                (err, row) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    
-                    if (row) {
-                        // Aggiorna giocatore di scraping esistente
-                        db.run(
-                            `UPDATE giocatori_scraping 
-                             SET ruolo = ?, squadra_reale = ?, quotazione = ?, qi = ?, fv_mp = ?, data_scraping = datetime("now")
-                             WHERE id = ?`,
-                            [ruolo, squadraReale, quotazione, qi, fvMp, row.id],
-                            (err) => {
-                                if (err) reject(err);
-                                else resolve(row.id);
-                            }
-                        );
-                    } else {
-                        // Crea nuovo giocatore di scraping
-                        db.run(
-                            `INSERT INTO giocatori_scraping 
-                             (lega_id, squadra_scraping_id, nome, ruolo, squadra_reale, quotazione, qi, fv_mp, data_scraping, fonte_scraping)
-                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime("now"), "playwright")`,
-                            [legaId, squadraScrapingId, giocatore.nome, ruolo, squadraReale, quotazione, qi, fvMp],
-                            function(err) {
-                                if (err) {
-                                    reject(err);
-                                } else {
-                                    resolve(this.lastID);
-                                }
-                            }
-                        );
-                    }
-                }
+            const existingResult = await db.query(
+                'SELECT id FROM giocatori_scraping WHERE lega_id = $1 AND nome = $2 AND squadra_scraping_id = $3',
+                [legaId, giocatore.nome, squadraScrapingId]
             );
-        });
+            
+            if (existingResult.rows.length > 0) {
+                // Aggiorna giocatore di scraping esistente
+                await db.query(
+                    `UPDATE giocatori_scraping 
+                     SET ruolo = $1, squadra_reale = $2, quotazione = $3, qi = $4, fv_mp = $5, data_scraping = NOW()
+                     WHERE id = $6`,
+                    [ruolo, squadraReale, quotazione, qi, fvMp, existingResult.rows[0].id]
+                );
+                return existingResult.rows[0].id;
+            } else {
+                // Crea nuovo giocatore di scraping
+                const insertResult = await db.query(
+                    `INSERT INTO giocatori_scraping 
+                     (lega_id, squadra_scraping_id, nome, ruolo, squadra_reale, quotazione, qi, fv_mp, data_scraping, fonte_scraping)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), 'playwright') RETURNING id`,
+                    [legaId, squadraScrapingId, giocatore.nome, ruolo, squadraReale, quotazione, qi, fvMp]
+                );
+                return insertResult.rows[0].id;
+            }
+        } catch (error) {
+            console.error('❌ Errore salvataggio giocatore di scraping:', error);
+            throw error;
+        }
     }
     
     normalizeRuolo(ruolo) {
@@ -2069,197 +2048,148 @@ class PlaywrightScraper {
 
     // Metodo per eliminare i dati di rose precedenti
     async clearRoseScraping(legaId) {
-        return new Promise(async (resolve, reject) => {
-            const { getDb } = await import('../db/config.js');
-            const db = getDb();
+        const { getDb } = await import('../db/postgres.js');
+        const db = getDb();
+        if (!db) {
+            throw new Error('Database non disponibile');
+        }
+
+        try {
+            console.log(`🗑️ Eliminazione dati rose precedenti per lega ${legaId}...`);
             
-            try {
-                console.log(`🗑️ Eliminazione dati rose precedenti per lega ${legaId}...`);
-                
-                // Prima elimina i giocatori
-                db.run(
-                    'DELETE FROM giocatori_scraping WHERE lega_id = ?',
-                    [legaId],
-                    function(err) {
-                        if (err) {
-                            console.error('❌ Errore eliminazione giocatori:', err);
-                            reject(err);
-                            return;
-                        }
-                        
-                        console.log(`🗑️ Eliminati ${this.changes} giocatori precedenti`);
-                        
-                        // Poi elimina le squadre
-                        db.run(
-                            'DELETE FROM squadre_scraping WHERE lega_id = ?',
-                            [legaId],
-                            function(err) {
-                                if (err) {
-                                    console.error('❌ Errore eliminazione squadre:', err);
-                                    reject(err);
-                                    return;
-                                }
-                                
-                                console.log(`🗑️ Eliminate ${this.changes} squadre precedenti`);
-                                resolve();
-                            }
-                        );
-                    }
-                );
-            } catch (error) {
-                console.error('❌ Errore clearRoseScraping:', error);
-                reject(error);
-            }
-        });
+            // Prima elimina i giocatori
+            const giocatoriResult = await db.query(
+                'DELETE FROM giocatori_scraping WHERE lega_id = $1',
+                [legaId]
+            );
+            console.log(`🗑️ Eliminati ${giocatoriResult.rowCount} giocatori precedenti`);
+            
+            // Poi elimina le squadre
+            const squadreResult = await db.query(
+                'DELETE FROM squadre_scraping WHERE lega_id = $1',
+                [legaId]
+            );
+            console.log(`🗑️ Eliminate ${squadreResult.rowCount} squadre precedenti`);
+            
+        } catch (error) {
+            console.error('❌ Errore clearRoseScraping:', error);
+            throw error;
+        }
     }
 
     // Metodo per salvare la classifica nel database
     async saveClassificaToDatabase(legaId, classificaData) {
-        return new Promise(async (resolve, reject) => {
-            const { getDb } = await import('../db/config.js');
-            const db = getDb();
+        const { getDb } = await import('../db/postgres.js');
+        const db = getDb();
+        if (!db) {
+            throw new Error('Database non disponibile');
+        }
+
+        try {
+            console.log(`💾 Salvataggio classifica di scraping nel database per lega ${legaId}...`);
             
-            try {
-                console.log(`💾 Salvataggio classifica di scraping nel database per lega ${legaId}...`);
-                
-                // Prima elimina i dati precedenti
-                db.run(
-                    'DELETE FROM classifica_scraping WHERE lega_id = ?',
-                    [legaId],
-                    function(err) {
-                        if (err) {
-                            console.error('❌ Errore eliminazione classifica precedente:', err);
-                            reject(err);
-                            return;
-                        }
-                        
-                        console.log(`🗑️ Eliminati ${this.changes} record di classifica precedenti per lega ${legaId}`);
-                        
-                        // Poi inserisci i nuovi dati
-                        let insertedCount = 0;
-                        const totalCount = classificaData.length;
-                        
-                        if (totalCount === 0) {
-                            console.log('⚠️ Nessun dato di classifica da salvare');
-                            resolve({ success: true, posizioni_salvate: 0, tipo: 'classifica_scraping' });
-                            return;
-                        }
-                        
-                        classificaData.forEach((posizione, index) => {
-                            db.run(
-                                'INSERT INTO classifica_scraping (lega_id, posizione, squadra, punti, partite, vittorie, pareggi, sconfitte, gol_fatti, gol_subiti, differenza_reti, punti_totali, data_scraping, fonte_scraping) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime("now"), "playwright")',
-                                [
-                                    legaId, 
-                                    posizione.posizione, 
-                                    posizione.squadra, 
-                                    posizione.punti || 0, 
-                                    posizione.partite || 0,
-                                    posizione.vittorie || 0,
-                                    posizione.pareggi || 0,
-                                    posizione.sconfitte || 0,
-                                    posizione.golFatti || 0,
-                                    posizione.golSubiti || 0,
-                                    posizione.differenzaReti || 0,
-                                    posizione.puntiTotali || 0
-                                ],
-                                function(err) {
-                                    if (err) {
-                                        console.error('❌ Errore inserimento posizione:', err);
-                                        reject(err);
-                                        return;
-                                    }
-                                    
-                                    insertedCount++;
-                                    
-                                    if (insertedCount === totalCount) {
-                                        console.log(`✅ Classifica scraping salvata: ${insertedCount} posizioni`);
-                                        resolve({ 
-                                            success: true, 
-                                            posizioni_salvate: insertedCount, 
-                                            tipo: 'classifica_scraping' 
-                                        });
-                                    }
-                                }
-                            );
-                        });
-                    }
-                );
-            } catch (error) {
-                console.error('❌ Errore saveClassificaToDatabase:', error);
-                reject(error);
+            // Prima elimina i dati precedenti
+            const deleteResult = await db.query(
+                'DELETE FROM classifica_scraping WHERE lega_id = $1',
+                [legaId]
+            );
+            console.log(`🗑️ Eliminati ${deleteResult.rowCount} record di classifica precedenti per lega ${legaId}`);
+            
+            // Poi inserisci i nuovi dati
+            const totalCount = classificaData.length;
+            
+            if (totalCount === 0) {
+                console.log('⚠️ Nessun dato di classifica da salvare');
+                return { success: true, posizioni_salvate: 0, tipo: 'classifica_scraping' };
             }
-        });
+            
+            let insertedCount = 0;
+            for (const posizione of classificaData) {
+                await db.query(
+                    'INSERT INTO classifica_scraping (lega_id, posizione, squadra, punti, partite, vittorie, pareggi, sconfitte, gol_fatti, gol_subiti, differenza_reti, punti_totali, data_scraping, fonte_scraping) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), \'playwright\')',
+                    [
+                        legaId, 
+                        posizione.posizione, 
+                        posizione.squadra, 
+                        posizione.punti || 0, 
+                        posizione.partite || 0,
+                        posizione.vittorie || 0,
+                        posizione.pareggi || 0,
+                        posizione.sconfitte || 0,
+                        posizione.golFatti || 0,
+                        posizione.golSubiti || 0,
+                        posizione.differenzaReti || 0,
+                        posizione.puntiTotali || 0
+                    ]
+                );
+                insertedCount++;
+            }
+            
+            console.log(`✅ Classifica scraping salvata: ${insertedCount} posizioni`);
+            return { 
+                success: true, 
+                posizioni_salvate: insertedCount, 
+                tipo: 'classifica_scraping' 
+            };
+            
+        } catch (error) {
+            console.error('❌ Errore saveClassificaToDatabase:', error);
+            throw error;
+        }
     }
 
     // Metodo per salvare le formazioni nel database
     async saveFormazioniToDatabase(legaId, formazioniData) {
-        return new Promise(async (resolve, reject) => {
-            const { getDb } = await import('../db/config.js');
-            const db = getDb();
+        const { getDb } = await import('../db/postgres.js');
+        const db = getDb();
+        if (!db) {
+            throw new Error('Database non disponibile');
+        }
+
+        try {
+            console.log(`💾 Salvataggio formazioni di scraping nel database per lega ${legaId}...`);
             
-            try {
-                console.log(`💾 Salvataggio formazioni di scraping nel database per lega ${legaId}...`);
-                
-                // Prima elimina i dati precedenti
-                db.run(
-                    'DELETE FROM formazioni_scraping WHERE lega_id = ?',
-                    [legaId],
-                    function(err) {
-                        if (err) {
-                            console.error('❌ Errore eliminazione formazioni precedenti:', err);
-                            reject(err);
-                            return;
-                        }
-                        
-                        console.log(`🗑️ Eliminati ${this.changes} record di formazioni precedenti per lega ${legaId}`);
-                        
-                        // Poi inserisci i nuovi dati
-                        let insertedCount = 0;
-                        const totalCount = formazioniData.length;
-                        
-                        if (totalCount === 0) {
-                            console.log('⚠️ Nessun dato di formazioni da salvare');
-                            resolve({ success: true, formazioni_salvate: 0, tipo: 'formazioni_scraping' });
-                            return;
-                        }
-                        
-                        formazioniData.forEach((formazione, index) => {
-                            // Salva tutti i dati dei titolari (oggetti completi con ruolo, nome, bonus, voto, fantavoto, in_campo)
-                            const titolari = JSON.stringify(formazione.titolari || []);
-                            
-                            // Salva tutti i dati della panchina (oggetti completi con ruolo, nome, bonus, voto, fantavoto, in_campo)
-                            const panchinari = JSON.stringify(formazione.panchinari || []);
-                            
-                            db.run(
-                                'INSERT INTO formazioni_scraping (lega_id, squadra, modulo, titolari, panchinari, giornata, tipo_squadra, data_scraping, fonte_scraping) VALUES (?, ?, ?, ?, ?, ?, ?, datetime("now"), "playwright")',
-                                [legaId, formazione.squadra, formazione.modulo, titolari, panchinari, formazione.giornata || 1, formazione.tipo_squadra],
-                                function(err) {
-                                    if (err) {
-                                        console.error('❌ Errore inserimento formazione:', err);
-                                        reject(err);
-                                        return;
-                                    }
-                                    
-                                    insertedCount++;
-                                    
-                                    if (insertedCount === totalCount) {
-                                        console.log(`✅ Formazioni scraping salvate: ${insertedCount} formazioni`);
-                                        resolve({ 
-                                            success: true, 
-                                            formazioni_salvate: insertedCount, 
-                                            tipo: 'formazioni_scraping' 
-                                        });
-                                    }
-                                }
-                            );
-                        });
-                    }
-                );
-            } catch (error) {
-                console.error('❌ Errore saveFormazioniToDatabase:', error);
-                reject(error);
+            // Prima elimina i dati precedenti
+            const deleteResult = await db.query(
+                'DELETE FROM formazioni_scraping WHERE lega_id = $1',
+                [legaId]
+            );
+            console.log(`🗑️ Eliminati ${deleteResult.rowCount} record di formazioni precedenti per lega ${legaId}`);
+            
+            // Poi inserisci i nuovi dati
+            const totalCount = formazioniData.length;
+            
+            if (totalCount === 0) {
+                console.log('⚠️ Nessun dato di formazioni da salvare');
+                return { success: true, formazioni_salvate: 0, tipo: 'formazioni_scraping' };
             }
-        });
+            
+            let insertedCount = 0;
+            for (const formazione of formazioniData) {
+                // Salva tutti i dati dei titolari (oggetti completi con ruolo, nome, bonus, voto, fantavoto, in_campo)
+                const titolari = JSON.stringify(formazione.titolari || []);
+                
+                // Salva tutti i dati della panchina (oggetti completi con ruolo, nome, bonus, voto, fantavoto, in_campo)
+                const panchinari = JSON.stringify(formazione.panchinari || []);
+                
+                await db.query(
+                    'INSERT INTO formazioni_scraping (lega_id, squadra, modulo, titolari, panchinari, giornata, tipo_squadra, data_scraping, fonte_scraping) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), \'playwright\')',
+                    [legaId, formazione.squadra, formazione.modulo, titolari, panchinari, formazione.giornata || 1, formazione.tipo_squadra]
+                );
+                insertedCount++;
+            }
+            
+            console.log(`✅ Formazioni scraping salvate: ${insertedCount} formazioni`);
+            return { 
+                success: true, 
+                formazioni_salvate: insertedCount, 
+                tipo: 'formazioni_scraping' 
+            };
+            
+        } catch (error) {
+            console.error('❌ Errore saveFormazioniToDatabase:', error);
+            throw error;
+        }
     }
 
     // Metodo per eliminare tutti i dati di scraping precedenti
@@ -2270,29 +2200,26 @@ class PlaywrightScraper {
             await this.clearRoseScraping(legaId);
             
             // Elimina anche classifica e formazioni
-            const { getDb } = await import('../db/config.js');
+            const { getDb } = await import('../db/postgres.js');
             const db = getDb();
+            if (!db) {
+                throw new Error('Database non disponibile');
+            }
+
+            const classificaResult = await db.query(
+                'DELETE FROM classifica_scraping WHERE lega_id = $1',
+                [legaId]
+            );
+            console.log(`🗑️ Eliminati ${classificaResult.rowCount} record di classifica`);
             
-            return new Promise((resolve, reject) => {
-                db.run('DELETE FROM classifica_scraping WHERE lega_id = ?', [legaId], function(err) {
-                    if (err) {
-                        console.error('❌ Errore eliminazione classifica:', err);
-                        reject(err);
-                        return;
-                    }
-                    
-                    db.run('DELETE FROM formazioni_scraping WHERE lega_id = ?', [legaId], function(err) {
-                        if (err) {
-                            console.error('❌ Errore eliminazione formazioni:', err);
-                            reject(err);
-                            return;
-                        }
-                        
-                        console.log(`🗑️ Eliminazione di tutti i dati di scraping precedenti per lega ${legaId} completata`);
-                        resolve();
-                    });
-                });
-            });
+            const formazioniResult = await db.query(
+                'DELETE FROM formazioni_scraping WHERE lega_id = $1',
+                [legaId]
+            );
+            console.log(`🗑️ Eliminati ${formazioniResult.rowCount} record di formazioni`);
+            
+            console.log(`🗑️ Eliminazione di tutti i dati di scraping precedenti per lega ${legaId} completata`);
+            
         } catch (error) {
             console.error('❌ Errore eliminazione dati scraping:', error);
             throw error;

@@ -225,34 +225,37 @@ router.post('/update-credentials', requireAuth, async (req, res) => {
     
     // Aggiorna le credenziali nel database
     const db = getDb();
-    
-    db.run(
-      `UPDATE leghe 
-       SET fantacalcio_username = ?, fantacalcio_password = ?, updated_at = datetime('now')
-       WHERE id = ?`,
-      [username, password, lega_id],
-      function(err) {
-        if (err) {
-          console.error('❌ Errore aggiornamento credenziali:', err);
-          return res.status(500).json({ 
-            error: 'Errore nell\'aggiornamento delle credenziali nel database' 
-          });
-        }
-        
-        if (this.changes === 0) {
-          return res.status(404).json({ 
-            error: 'Lega non trovata' 
-          });
-        }
-        
-        console.log('✅ Credenziali aggiornate con successo');
-    res.json({ 
-      success: true, 
-          message: 'Credenziali aggiornate con successo',
-          lega_id: lega_id
-    });
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
+
+    try {
+      const result = await db.query(
+        `UPDATE leghe 
+         SET fantacalcio_username = $1, fantacalcio_password = $2, updated_at = NOW()
+         WHERE id = $3`,
+        [username, password, lega_id]
+      );
+      
+      if (result.rowCount === 0) {
+        return res.status(404).json({ 
+          error: 'Lega non trovata' 
+        });
       }
-    );
+      
+      console.log('✅ Credenziali aggiornate con successo');
+      res.json({ 
+        success: true, 
+        message: 'Credenziali aggiornate con successo',
+        lega_id: lega_id
+      });
+      
+    } catch (error) {
+      console.error('❌ Errore aggiornamento credenziali:', error);
+      return res.status(500).json({ 
+        error: 'Errore nell\'aggiornamento delle credenziali nel database' 
+      });
+    }
     
   } catch (error) {
     console.error('❌ Errore aggiornamento credenziali:', error);
@@ -934,18 +937,14 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     // Ottieni giocatori ufficiali
     let giocatoriUfficiali;
     try {
-      giocatoriUfficiali = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT g.*, s.nome as nome_squadra
-          FROM giocatori g
-          JOIN squadre s ON g.squadra_id = s.id
-          WHERE g.lega_id = ?
-          ORDER BY s.nome, g.nome
-        `, [legaId], (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      });
+      const giocatoriResult = await db.query(`
+        SELECT g.*, s.nome as nome_squadra
+        FROM giocatori g
+        JOIN squadre s ON g.squadra_id = s.id
+        WHERE g.lega_id = $1
+        ORDER BY s.nome, g.nome
+      `, [legaId]);
+      giocatoriUfficiali = giocatoriResult.rows;
     } catch (err) {
       console.error(`[DEBUG] Errore query giocatori ufficiali:`, err);
       return res.status(500).json({ error: 'Errore query giocatori ufficiali', details: err.message });
@@ -954,17 +953,13 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     // Ottieni squadre di scraping
     let squadreScraping;
     try {
-      squadreScraping = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT id, nome, data_scraping 
-          FROM squadre_scraping 
-          WHERE lega_id = ? 
-          ORDER BY nome
-        `, [legaId], (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      });
+      const squadreScrapingResult = await db.query(`
+        SELECT id, nome, data_scraping 
+        FROM squadre_scraping 
+        WHERE lega_id = $1 
+        ORDER BY nome
+      `, [legaId]);
+      squadreScraping = squadreScrapingResult.rows;
     } catch (err) {
       console.error(`[DEBUG] Errore query squadre_scraping:`, err);
       return res.status(500).json({ error: 'Errore query squadre_scraping', details: err.message });
@@ -973,18 +968,14 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     // Ottieni giocatori di scraping
     let giocatoriScraping;
     try {
-      giocatoriScraping = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT gs.*, ss.nome as nome_squadra_scraping
-          FROM giocatori_scraping gs
-          JOIN squadre_scraping ss ON gs.squadra_scraping_id = ss.id
-          WHERE gs.lega_id = ?
-          ORDER BY ss.nome, gs.nome
-        `, [legaId], (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      });
+      const giocatoriScrapingResult = await db.query(`
+        SELECT gs.*, ss.nome as nome_squadra_scraping
+        FROM giocatori_scraping gs
+        JOIN squadre_scraping ss ON gs.squadra_scraping_id = ss.id
+        WHERE gs.lega_id = $1
+        ORDER BY ss.nome, gs.nome
+      `, [legaId]);
+      giocatoriScraping = giocatoriScrapingResult.rows;
     } catch (err) {
       console.error(`[DEBUG] Errore query giocatori_scraping:`, err);
       return res.status(500).json({ error: 'Errore query giocatori_scraping', details: err.message });
@@ -1402,14 +1393,15 @@ router.post('/playwright-classifica', requireAuth, async (req, res) => {
             'SELECT tipo_lega FROM leghe WHERE id = $1',
             [lega_id]
         );
-        const legaInfo = legaResult.rows[0];
 
-        if (!legaInfo) {
+        if (legaResult.rows.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Lega non trovata nel database'
             });
         }
+
+        const legaInfo = legaResult.rows[0];
 
         const scraper = new PlaywrightScraper();
         
@@ -1517,14 +1509,15 @@ router.post('/playwright-formazioni', requireAuth, async (req, res) => {
             'SELECT tipo_lega FROM leghe WHERE id = $1',
             [lega_id]
         );
-        const legaInfo = legaResult.rows[0];
 
-        if (!legaInfo) {
+        if (legaResult.rows.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Lega non trovata nel database'
             });
         }
+
+        const legaInfo = legaResult.rows[0];
 
         const scraper = new PlaywrightScraper();
         
@@ -1614,23 +1607,19 @@ router.post('/playwright-completo', requireAuth, async (req, res) => {
         console.log('Giornata:', giornata || 'non specificata');
 
         // Recupera il tipo di lega dal database
-        const legaInfo = await new Promise((resolve, reject) => {
-            db.get(
-                'SELECT tipo_lega FROM leghe WHERE id = ?',
-                [lega_id],
-                (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                }
-            );
-        });
+        const legaResult = await db.query(
+            'SELECT tipo_lega FROM leghe WHERE id = $1',
+            [lega_id]
+        );
 
-        if (!legaInfo) {
+        if (legaResult.rows.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Lega non trovata nel database'
             });
         }
+
+        const legaInfo = legaResult.rows[0];
 
         const scraper = new PlaywrightScraper();
         
@@ -1703,29 +1692,21 @@ router.post('/tournaments', async (req, res) => {
         console.log('✅ [TOURNAMENTS] Dati validi, recupero info lega...');
 
         // Recupera il tipo di lega dal database
-        const legaInfo = await new Promise((resolve, reject) => {
-            db.get(
-                'SELECT tipo_lega FROM leghe WHERE id = ?',
-                [lega_id],
-                (err, row) => {
-                    if (err) {
-                        console.error('❌ [TOURNAMENTS] Errore query lega:', err);
-                        reject(err);
-                    } else {
-                        console.log('✅ [TOURNAMENTS] Lega trovata:', row);
-                        resolve(row);
-                    }
-                }
-            );
-        });
+        const legaResult = await db.query(
+            'SELECT tipo_lega FROM leghe WHERE id = $1',
+            [lega_id]
+        );
 
-        if (!legaInfo) {
+        if (legaResult.rows.length === 0) {
             console.log('❌ [TOURNAMENTS] Lega non trovata nel database');
             return res.status(400).json({
                 success: false,
                 message: 'Lega non trovata nel database'
             });
         }
+
+        const legaInfo = legaResult.rows[0];
+        console.log('✅ [TOURNAMENTS] Lega trovata:', legaInfo);
 
         console.log('✅ [TOURNAMENTS] Tipo lega dal database:', legaInfo.tipo_lega);
         console.log('🔧 [TOURNAMENTS] Creazione PlaywrightScraper...');
