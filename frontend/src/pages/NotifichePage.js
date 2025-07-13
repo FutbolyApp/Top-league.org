@@ -298,8 +298,31 @@ const EmptyTitle = styled.h3`
 
 const EmptyMessage = styled.p`
   color: #86868b;
+  margin: 0;
   
   @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
+`;
+
+const LoadMoreButton = styled.button`
+  background: #5856d6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+  margin-top: 1rem;
+  
+  &:hover {
+    background: #4a4a9e;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.6rem 1.2rem;
     font-size: 0.9rem;
   }
 `;
@@ -469,23 +492,6 @@ const MarketActionButton = styled.button`
   
   &:disabled {
     cursor: not-allowed;
-  }
-`;
-
-const ArchiveButton = styled(ActionButton)`
-  background: #6c757d;
-  color: white;
-  padding: 6px 12px;
-  font-size: 13px;
-  border-radius: 6px;
-  transition: all 0.2s;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  &:hover {
-    background: #5a6268;
   }
 `;
 
