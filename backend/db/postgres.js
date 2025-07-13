@@ -409,6 +409,17 @@ async function updateExistingTables() {
       return;
     }
     
+    // Aggiungi colonna lega_id alla tabella giocatori se non esiste
+    try {
+      await db.query(`
+        ALTER TABLE giocatori 
+        ADD COLUMN IF NOT EXISTS lega_id INTEGER
+      `);
+      console.log('✅ Added lega_id column to giocatori table');
+    } catch (error) {
+      console.log('Column lega_id already exists or error:', error.message);
+    }
+    
     // Aggiungi colonna roster alla tabella giocatori se non esiste
     try {
       await db.query(`
