@@ -222,7 +222,7 @@ router.put('/:id', requireAuth, async (req, res) => {
         console.log('canEdit - Checking admin permissions for player:', giocatoreId);
         
         const result = await db.query(
-          'SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = $1',
+          'SELECT s.lega_id, l.admin_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id LEFT JOIN leghe l ON s.lega_id = l.id WHERE g.id = $1',
           [giocatoreId]
         );
         const giocatore = result.rows[0];
@@ -276,7 +276,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
       // Admin può eliminare solo i giocatori della sua lega (gestisce entrambi i casi)
       if (userRole === 'admin' || userRole === 'Admin') {
         const result = await db.query(
-          'SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = $1',
+          'SELECT s.lega_id, l.admin_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id LEFT JOIN leghe l ON s.lega_id = l.id WHERE g.id = $1',
           [giocatoreId]
         );
         const giocatore = result.rows[0];
@@ -340,7 +340,7 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
       // Admin può trasferire solo nella sua lega (gestisce entrambi i casi)
       if (userRole === 'admin' || userRole === 'Admin') {
         const result = await db.query(
-          'SELECT g.lega_id, l.admin_id FROM giocatori g LEFT JOIN leghe l ON g.lega_id = l.id WHERE g.id = $1',
+          'SELECT s.lega_id, l.admin_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id LEFT JOIN leghe l ON s.lega_id = l.id WHERE g.id = $1',
           [giocatoreId]
         );
         const giocatore = result.rows[0];

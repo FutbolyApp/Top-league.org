@@ -704,7 +704,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
   try {
     // Ottieni la squadra dell'utente
     const squadraUtente = await db.query(
-      'SELECT s.* FROM squadre s JOIN leghe l ON s.lega_id = l.id JOIN giocatori g ON g.lega_id = l.id WHERE g.id = $1 AND s.proprietario_id = $2',
+      'SELECT s.* FROM squadre s JOIN leghe l ON s.lega_id = l.id JOIN giocatori g JOIN squadre sg ON g.squadra_id = sg.id ON sg.lega_id = l.id WHERE g.id = $1 AND s.proprietario_id = $2',
       [giocatore_id, utente_id]
     );
 
