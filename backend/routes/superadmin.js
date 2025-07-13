@@ -8,7 +8,6 @@ import { getAllSquadre, deleteSquadra } from '../models/squadra.js';
 import { getAllGiocatori, deleteGiocatore } from '../models/giocatore.js';
 
 const router = express.Router();
-const db = getDb();
 
 // Middleware per gestire CORS preflight per tutte le route
 router.use((req, res, next) => {
@@ -29,34 +28,37 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     
-    db.get('SELECT * FROM users WHERE email = ? AND ruolo = ?', [email, 'SuperAdmin'], async (err, user) => {
-      if (err) {
-        return res.status(500).json({ message: 'Errore del server' });
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ message: 'Database non disponibile' });
+    }
+
+    const result = await db.query('SELECT * FROM users WHERE email = $1 AND ruolo = $2', [email, 'SuperAdmin']);
+    const user = result.rows[0];
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Credenziali non valide' });
+    }
+    
+    const validPassword = await bcrypt.compare(password, user.password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ message: 'Credenziali non valide' });
+    }
+    
+    const token = generateToken(user);
+    
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        nome: user.nome,
+        cognome: user.cognome,
+        email: user.email,
+        ruolo: user.ruolo
       }
-      
-      if (!user) {
-        return res.status(401).json({ message: 'Credenziali non valide' });
-      }
-      
-      const validPassword = await bcrypt.compare(password, user.password_hash);
-      if (!validPassword) {
-        return res.status(401).json({ message: 'Credenziali non valide' });
-      }
-      
-      const token = generateToken(user);
-      
-      res.json({
-        token,
-        user: {
-          id: user.id,
-          nome: user.nome,
-          cognome: user.cognome,
-          email: user.email,
-          ruolo: user.ruolo
-        }
-      });
     });
   } catch (error) {
+    console.error('Errore in login SuperAdmin:', error);
     res.status(500).json({ message: 'Errore del server' });
   }
 });
@@ -83,10 +85,13 @@ router.get('/dashboard', authenticateToken, requireSuperAdmin, async (req, res) 
 // Gestione Utenti
 router.get('/users', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
-    getAllUtenti((err, users) => {
-      if (err) return res.status(500).json({ error: 'Errore nel caricamento utenti', details: err.message });
-      res.json({ success: true, users });
-    });
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ message: 'Database non disponibile' });
+    }
+
+    const users = await db.query('SELECT * FROM users');
+    res.json({ success: true, users: users.rows });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -102,10 +107,18 @@ router.put('/users/:userId/role', authenticateToken, requireSuperAdmin, async (r
       return res.status(400).json({ error: 'Ruolo non valido' });
     }
     
-    updateUtenteRole(userId, ruolo, (err, result) => {
-      if (err) return res.status(500).json({ error: 'Errore nell\'aggiornamento ruolo', details: err.message });
-      res.json({ success: true, message: 'Ruolo aggiornato con successo' });
-    });
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ message: 'Database non disponibile' });
+    }
+
+    const result = await db.query('UPDATE users SET ruolo = $1 WHERE id = $2', [ruolo, userId]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Utente non trovato' });
+    }
+
+    res.json({ success: true, message: 'Ruolo aggiornato con successo' });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -116,10 +129,18 @@ router.delete('/users/:userId', authenticateToken, requireSuperAdmin, async (req
   try {
     const { userId } = req.params;
     
-    deleteUtente(userId, (err, result) => {
-      if (err) return res.status(500).json({ error: 'Errore nell\'eliminazione utente', details: err.message });
-      res.json({ success: true, message: 'Utente eliminato con successo' });
-    });
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ message: 'Database non disponibile' });
+    }
+
+    const result = await db.query('DELETE FROM users WHERE id = $1', [userId]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Utente non trovato' });
+    }
+
+    res.json({ success: true, message: 'Utente eliminato con successo' });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -128,10 +149,13 @@ router.delete('/users/:userId', authenticateToken, requireSuperAdmin, async (req
 // Gestione Leghe
 router.get('/leagues', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
-    getAllLeghe((err, leghe) => {
-      if (err) return res.status(500).json({ error: 'Errore nel caricamento leghe', details: err.message });
-      res.json({ success: true, leghe });
-    });
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ message: 'Database non disponibile' });
+    }
+
+    const leghe = await db.query('SELECT * FROM lega');
+    res.json({ success: true, leghe: leghe.rows });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -142,10 +166,18 @@ router.delete('/leagues/:legaId', authenticateToken, requireSuperAdmin, async (r
   try {
     const { legaId } = req.params;
     
-    deleteLega(legaId, (err, result) => {
-      if (err) return res.status(500).json({ error: 'Errore nell\'eliminazione lega', details: err.message });
-      res.json({ success: true, message: 'Lega eliminata con successo' });
-    });
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ message: 'Database non disponibile' });
+    }
+
+    const result = await db.query('DELETE FROM lega WHERE id = $1', [legaId]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Lega non trovata' });
+    }
+
+    res.json({ success: true, message: 'Lega eliminata con successo' });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -154,10 +186,13 @@ router.delete('/leagues/:legaId', authenticateToken, requireSuperAdmin, async (r
 // Gestione Squadre
 router.get('/teams', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
-    getAllSquadre((err, squadre) => {
-      if (err) return res.status(500).json({ error: 'Errore nel caricamento squadre', details: err.message });
-      res.json({ success: true, squadre });
-    });
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ message: 'Database non disponibile' });
+    }
+
+    const squadre = await db.query('SELECT * FROM squadra');
+    res.json({ success: true, squadre: squadre.rows });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -168,10 +203,18 @@ router.delete('/teams/:squadraId', authenticateToken, requireSuperAdmin, async (
   try {
     const { squadraId } = req.params;
     
-    deleteSquadra(squadraId, (err, result) => {
-      if (err) return res.status(500).json({ error: 'Errore nell\'eliminazione squadra', details: err.message });
-      res.json({ success: true, message: 'Squadra eliminata con successo' });
-    });
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ message: 'Database non disponibile' });
+    }
+
+    const result = await db.query('DELETE FROM squadra WHERE id = $1', [squadraId]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Squadra non trovata' });
+    }
+
+    res.json({ success: true, message: 'Squadra eliminata con successo' });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -180,10 +223,13 @@ router.delete('/teams/:squadraId', authenticateToken, requireSuperAdmin, async (
 // Gestione Giocatori
 router.get('/players', authenticateToken, requireSuperAdmin, async (req, res) => {
   try {
-    getAllGiocatori((err, giocatori) => {
-      if (err) return res.status(500).json({ error: 'Errore nel caricamento giocatori', details: err.message });
-      res.json({ success: true, giocatori });
-    });
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ message: 'Database non disponibile' });
+    }
+
+    const giocatori = await db.query('SELECT * FROM giocatore');
+    res.json({ success: true, giocatori: giocatori.rows });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -194,10 +240,18 @@ router.delete('/players/:giocatoreId', authenticateToken, requireSuperAdmin, asy
   try {
     const { giocatoreId } = req.params;
     
-    deleteGiocatore(giocatoreId, (err, result) => {
-      if (err) return res.status(500).json({ error: 'Errore nell\'eliminazione giocatore', details: err.message });
-      res.json({ success: true, message: 'Giocatore eliminato con successo' });
-    });
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ message: 'Database non disponibile' });
+    }
+
+    const result = await db.query('DELETE FROM giocatore WHERE id = $1', [giocatoreId]);
+    
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Giocatore non trovato' });
+    }
+
+    res.json({ success: true, message: 'Giocatore eliminato con successo' });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }

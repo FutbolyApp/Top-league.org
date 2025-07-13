@@ -869,7 +869,7 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, async (req, res) => {
     // Crea notifica per l'admin
     await db.query(`
       INSERT INTO notifiche (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-      VALUES ($1, $2, 'richiesta_ingresso', $3, $4, NOW())
+      VALUES ($1, $2, $3, $4, $5, NOW())
     `, [legaId, lega.admin_id, 'richiesta_ingresso', 'Nuova richiesta di ingresso', `Nuova richiesta di ingresso per la squadra ${squadra.nome} da ${req.user.nome || req.user.username}`]);
 
     // Crea notifiche per i subadmin con permesso gestione_richieste
@@ -886,7 +886,7 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, async (req, res) => {
           if (permessi.gestione_richieste) {
             await db.query(`
               INSERT INTO notifiche (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-              VALUES ($1, $2, 'richiesta_ingresso', $3, $4, NOW())
+              VALUES ($1, $2, $3, $4, $5, NOW())
             `, [legaId, subadmin.utente_id, 'Nuova richiesta di ingresso', `Nuova richiesta di ingresso per la squadra ${squadra.nome} da ${req.user.nome || req.user.username}`]);
             console.log(`Notifica creata per subadmin ${subadmin.utente_id}`);
           }
@@ -1049,143 +1049,139 @@ router.get('/richieste/subadmin', requireAuth, async (req, res) => {
 });
 
 // Rispondi a una richiesta di ingresso (accetta/rifiuta)
-router.post('/richieste/:richiestaId/rispondi', requireAuth, (req, res) => {
-  const richiestaId = req.params.richiestaId;
-  const adminId = req.user.id;
-  const { risposta, messaggio } = req.body; // risposta: 'accetta' o 'rifiuta'
-  
-  console.log(`POST /api/leghe/richieste/${richiestaId}/rispondi - Admin ID: ${adminId}`);
-  
-  // Verifica che la richiesta esista e che l'utente sia admin della lega
-  db.get(`
-    SELECT ri.*, l.admin_id, l.nome as lega_nome, s.nome as squadra_nome, u.email as utente_email
-    FROM richieste_ingresso ri
-    JOIN leghe l ON ri.lega_id = l.id
-    JOIN squadre s ON ri.squadra_id = s.id
-    JOIN users u ON ri.utente_id = u.id
-    WHERE ri.id = ? AND ri.stato = 'in_attesa'
-  `, [richiestaId], (err, richiesta) => {
-    if (err) {
-      console.error('Errore query richiesta:', err);
-      return res.status(500).json({ error: 'Errore DB' });
+router.post('/richieste/:richiestaId/rispondi', requireAuth, async (req, res) => {
+  try {
+    const richiestaId = req.params.richiestaId;
+    const adminId = req.user.id;
+    const { risposta, messaggio } = req.body; // risposta: 'accetta' o 'rifiuta'
+    
+    console.log(`POST /api/leghe/richieste/${richiestaId}/rispondi - Admin ID: ${adminId}`);
+    
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
     }
+
+    // Verifica che la richiesta esista e che l'utente sia admin della lega
+    const richiestaResult = await db.query(`
+      SELECT ri.*, l.admin_id, l.nome as lega_nome, s.nome as squadra_nome, u.email as utente_email
+      FROM richieste_ingresso ri
+      JOIN leghe l ON ri.lega_id = l.id
+      JOIN squadre s ON ri.squadra_id = s.id
+      JOIN users u ON ri.utente_id = u.id
+      WHERE ri.id = $1 AND ri.stato = 'in_attesa'
+    `, [richiestaId]);
+    
+    const richiesta = richiestaResult.rows[0];
     
     if (!richiesta) {
       return res.status(404).json({ error: 'Richiesta non trovata o già processata' });
     }
     
     // Funzione per aggiornare la richiesta
-    const updateRequest = () => {
+    const updateRequest = async () => {
       const nuovoStato = risposta === 'accetta' ? 'accettata' : 'rifiutata';
       const dataRisposta = new Date().toISOString();
       
       // Aggiorna la richiesta
-      db.run(`
+      await db.query(`
         UPDATE richieste_ingresso 
-        SET stato = ?, data_risposta = ?, risposta_admin_id = ?, messaggio_risposta = ?
-        WHERE id = ?
-      `, [nuovoStato, dataRisposta, adminId, messaggio || null, richiestaId], (err) => {
-        if (err) {
-          console.error('Errore aggiornamento richiesta:', err);
-          return res.status(500).json({ error: 'Errore DB' });
-        }
-        
-        if (risposta === 'accetta') {
-          // Assegna la squadra all'utente
-          db.run(`
-            UPDATE squadre 
-            SET proprietario_id = ?, is_orfana = 0
-            WHERE id = ?
-          `, [richiesta.utente_id, richiesta.squadra_id], (err) => {
-            if (err) {
-              console.error('Errore assegnazione squadra:', err);
-            }
-          });
-        }
-        
-        // Crea notifica per l'utente
-        const messaggioNotifica = risposta === 'accetta' 
-          ? `La tua richiesta per la squadra ${richiesta.squadra_nome} nella lega ${richiesta.lega_nome} è stata accettata!`
-          : `La tua richiesta per la squadra ${richiesta.squadra_nome} nella lega ${richiesta.lega_nome} è stata rifiutata.`;
-        
-        const titoloNotifica = risposta === 'accetta' 
-          ? 'Richiesta accettata! 🎉'
-          : 'Richiesta rifiutata';
-        
-        db.run(`
-          INSERT INTO notifiche (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-          VALUES (?, ?, ?, ?, ?, datetime('now'))
-        `, [richiesta.lega_id, richiesta.utente_id, 'risposta_richiesta', titoloNotifica, messaggioNotifica], (err) => {
-          if (err) {
-            console.error('Errore creazione notifica:', err);
-          }
-        });
-        
-        console.log('Risposta alla richiesta processata:', richiestaId);
-        res.json({ 
-          success: true, 
-          message: `Richiesta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo.`
-        });
+        SET stato = $1, data_risposta = $2, risposta_admin_id = $3, messaggio_risposta = $4
+        WHERE id = $5
+      `, [nuovoStato, dataRisposta, adminId, messaggio || null, richiestaId]);
+      
+      if (risposta === 'accetta') {
+        // Assegna la squadra all'utente
+        await db.query(`
+          UPDATE squadre 
+          SET proprietario_id = $1, is_orfana = false
+          WHERE id = $2
+        `, [richiesta.utente_id, richiesta.squadra_id]);
+      }
+      
+      // Crea notifica per l'utente
+      const messaggioNotifica = risposta === 'accetta' 
+        ? `La tua richiesta per la squadra ${richiesta.squadra_nome} nella lega ${richiesta.lega_nome} è stata accettata!`
+        : `La tua richiesta per la squadra ${richiesta.squadra_nome} nella lega ${richiesta.lega_nome} è stata rifiutata.`;
+      
+      const titoloNotifica = risposta === 'accetta' 
+        ? 'Richiesta accettata! 🎉'
+        : 'Richiesta rifiutata';
+      
+      await db.query(`
+        INSERT INTO notifiche (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
+        VALUES ($1, $2, $3, $4, $5, NOW())
+      `, [richiesta.lega_id, richiesta.utente_id, 'risposta_richiesta', titoloNotifica, messaggioNotifica]);
+      
+      console.log('Risposta alla richiesta processata:', richiestaId);
+      res.json({ 
+        success: true, 
+        message: `Richiesta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo.`
       });
     };
 
     // Verifica che l'utente sia admin della lega O subadmin con permesso gestione_richieste
     if (richiesta.admin_id === adminId) {
       // L'utente è admin della lega, può procedere
-      updateRequest();
+      await updateRequest();
     } else {
       // Verifica se è subadmin con permesso gestione_richieste
-      db.get(`
+      const subadminResult = await db.query(`
         SELECT s.permessi
         FROM subadmin s
-        WHERE s.utente_id = ? AND s.lega_id = ? AND s.attivo = 1
-      `, [adminId, richiesta.lega_id], (err, subadmin) => {
-        if (err) {
-          console.error('Errore verifica subadmin:', err);
-          return res.status(500).json({ error: 'Errore DB' });
+        WHERE s.utente_id = $1 AND s.lega_id = $2 AND s.attivo = true
+      `, [adminId, richiesta.lega_id]);
+      
+      const subadmin = subadminResult.rows[0];
+      
+      if (!subadmin) {
+        return res.status(403).json({ error: 'Non autorizzato a rispondere a questa richiesta' });
+      }
+      
+      try {
+        const permessi = JSON.parse(subadmin.permessi || '{}');
+        if (!permessi.gestione_richieste) {
+          return res.status(403).json({ error: 'Non hai il permesso di gestire le richieste' });
         }
-        
-        if (!subadmin) {
-          return res.status(403).json({ error: 'Non autorizzato a rispondere a questa richiesta' });
-        }
-        
-        try {
-          const permessi = JSON.parse(subadmin.permessi || '{}');
-          if (!permessi.gestione_richieste) {
-            return res.status(403).json({ error: 'Non hai il permesso di gestire le richieste' });
-          }
-        } catch (e) {
-          console.error('Errore parsing permessi subadmin:', e);
-          return res.status(500).json({ error: 'Errore permessi' });
-        }
-        
-        // Se arriviamo qui, il subadmin è autorizzato, continua con l'aggiornamento
-        updateRequest();
-      });
+      } catch (e) {
+        console.error('Errore parsing permessi subadmin:', e);
+        return res.status(500).json({ error: 'Errore permessi' });
+      }
+      
+      // Se arriviamo qui, il subadmin è autorizzato, continua con l'aggiornamento
+      await updateRequest();
     }
-  });
+  } catch (error) {
+    console.error('Errore in risposta richiesta:', error);
+    res.status(500).json({ error: 'Errore DB' });
+  }
 });
 
 // Cancella una richiesta di ingresso (solo utente che l'ha creata)
-router.delete('/richieste/:richiestaId', requireAuth, (req, res) => {
-  const richiestaId = req.params.richiestaId;
-  const userId = req.user.id;
-  
-  db.run(`
-    DELETE FROM richieste_ingresso 
-    WHERE id = ? AND utente_id = ? AND stato = 'in_attesa'
-  `, [richiestaId, userId], function(err) {
-    if (err) {
-      console.error('Errore cancellazione richiesta:', err);
-      return res.status(500).json({ error: 'Errore DB' });
-    }
+router.delete('/richieste/:richiestaId', requireAuth, async (req, res) => {
+  try {
+    const richiestaId = req.params.richiestaId;
+    const userId = req.user.id;
     
-    if (this.changes === 0) {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
+
+    const result = await db.query(`
+      DELETE FROM richieste_ingresso 
+      WHERE id = $1 AND utente_id = $2 AND stato = 'in_attesa'
+    `, [richiestaId, userId]);
+    
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Richiesta non trovata o non cancellabile' });
     }
     
     res.json({ success: true, message: 'Richiesta cancellata con successo.' });
-  });
+  } catch (error) {
+    console.error('Errore cancellazione richiesta:', error);
+    res.status(500).json({ error: 'Errore DB' });
+  }
 });
 
 // Aggiorna credenziali scraping di una lega (admin della lega o superadmin)
@@ -1367,16 +1363,16 @@ router.put('/:id/config', requireAuth, async (req, res) => {
     // Aggiorna configurazioni
     const updateQuery = `
       UPDATE leghe SET 
-        roster_ab = ?, cantera = ?, contratti = ?, triggers = ?,
-        max_portieri = ?, min_portieri = ?,
-        max_difensori = ?, min_difensori = ?,
-        max_centrocampisti = ?, min_centrocampisti = ?,
-        max_attaccanti = ?, min_attaccanti = ?
-      WHERE id = ?
+        roster_ab = $1, cantera = $2, contratti = $3, triggers = $4,
+        max_portieri = $5, min_portieri = $6,
+        max_difensori = $7, min_difensori = $8,
+        max_centrocampisti = $9, min_centrocampisti = $10,
+        max_attaccanti = $11, min_attaccanti = $12
+      WHERE id = $13
     `;
 
     await new Promise((resolve, reject) => {
-      db.run(updateQuery, [
+      db.query(updateQuery, [
         roster_ab ? 1 : 0, cantera ? 1 : 0, contratti ? 1 : 0, triggers ? 1 : 0,
         max_portieri || 3, min_portieri || 2,
         max_difensori || 8, min_difensori || 5,

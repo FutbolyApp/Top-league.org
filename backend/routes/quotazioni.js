@@ -8,7 +8,6 @@ import { getDb } from '../db/postgres.js';
 import XLSX from 'xlsx';
 
 const router = express.Router();
-const db = getDb();
 
 // Configurazione multer per il caricamento file
 const storage = multer.diskStorage({
@@ -39,93 +38,95 @@ const upload = multer({
 
 // Funzione per fare backup dei dati attuali
 const createBackup = async (legaId) => {
-  return new Promise((resolve, reject) => {
+  try {
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+
     const backupData = {
       lega_id: legaId,
       timestamp: new Date().toISOString(),
       giocatori: []
     };
 
-    db.all('SELECT * FROM giocatori WHERE lega_id = ?', [legaId], (err, giocatori) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      
-      backupData.giocatori = giocatori;
-      
-      // Salva il backup in una tabella dedicata o come file JSON
-      const backupJson = JSON.stringify(backupData);
-      const backupPath = `backups/quotazioni_backup_${legaId}_${Date.now()}.json`;
-      
-      // Per ora salviamo solo in memoria, in produzione andrebbe salvato su disco
-      resolve(backupData);
-    });
-  });
+    const result = await db.query('SELECT * FROM giocatori WHERE lega_id = $1', [legaId]);
+    backupData.giocatori = result.rows || [];
+    
+    // Salva il backup in una tabella dedicata o come file JSON
+    const backupJson = JSON.stringify(backupData);
+    const backupPath = `backups/quotazioni_backup_${legaId}_${Date.now()}.json`;
+    
+    // Per ora salviamo solo in memoria, in produzione andrebbe salvato su disco
+    return backupData;
+  } catch (error) {
+    console.error('Errore in createBackup:', error);
+    throw error;
+  }
 };
 
 // Funzione per trovare giocatori simili
-const findSimilarPlayers = (nome, squadra_reale, legaId) => {
-  return new Promise((resolve, reject) => {
+const findSimilarPlayers = async (nome, squadra_reale, legaId) => {
+  try {
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+
     // Prima cerca per nome esatto
-    db.get('SELECT * FROM giocatori WHERE lega_id = ? AND nome = ?', [legaId, nome], (err, giocatore) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      
-      if (giocatore) {
-        resolve(giocatore);
-        return;
-      }
-      
-      // Se non trova, cerca nomi simili con squadra corrispondente
-      const searchPattern = `%${nome}%`;
-      db.get(
-        'SELECT * FROM giocatori WHERE lega_id = ? AND nome LIKE ? AND squadra_reale = ?', 
-        [legaId, searchPattern, squadra_reale], 
-        (err, giocatore) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve(giocatore);
-        }
-      );
-    });
-  });
+    const exactResult = await db.query('SELECT * FROM giocatori WHERE lega_id = $1 AND nome = $2', [legaId, nome]);
+    const giocatore = exactResult.rows[0];
+    
+    if (giocatore) {
+      return giocatore;
+    }
+    
+    // Se non trova, cerca nomi simili con squadra corrispondente
+    const searchPattern = `%${nome}%`;
+    const similarResult = await db.query(
+      'SELECT * FROM giocatori WHERE lega_id = $1 AND nome LIKE $2 AND squadra_reale = $3', 
+      [legaId, searchPattern, squadra_reale]
+    );
+    
+    return similarResult.rows[0] || null;
+  } catch (error) {
+    console.error('Errore in findSimilarPlayers:', error);
+    throw error;
+  }
 };
 
 // Funzione per aggiornare un giocatore
-const updatePlayer = (giocatoreId, updateData) => {
-  return new Promise((resolve, reject) => {
+const updatePlayer = async (giocatoreId, updateData) => {
+  try {
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+
     const fields = [];
     const values = [];
     
     Object.entries(updateData).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        fields.push(`${key} = ?`);
+        fields.push(`${key} = $${values.length + 1}`);
         values.push(value);
       }
     });
     
     if (fields.length === 0) {
-      resolve(0);
-      return;
+      return 0;
     }
     
     values.push(giocatoreId);
     
-    const sql = `UPDATE giocatori SET ${fields.join(', ')} WHERE id = ?`;
+    const sql = `UPDATE giocatori SET ${fields.join(', ')} WHERE id = $${values.length}`;
     
-    db.run(sql, values, function(err) {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(this.changes);
-    });
-  });
+    const result = await db.query(sql, values);
+    return result.rowCount;
+  } catch (error) {
+    console.error('Errore in updatePlayer:', error);
+    throw error;
+  }
 };
 
 // Route per caricare quotazioni aggiornate
@@ -153,9 +154,9 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
     
     // Ottieni informazioni sulla lega per determinare il tipo
     const lega = await new Promise((resolve, reject) => {
-      db.get('SELECT modalita FROM leghe WHERE id = ?', [legaId], (err, lega) => {
+      getDb().query('SELECT modalita FROM leghe WHERE id = $1', [legaId], (err, result) => {
         if (err) reject(err);
-        else resolve(lega);
+        else resolve(result.rows[0]);
       });
     });
     
@@ -171,9 +172,9 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
     
     // Ottieni tutti i giocatori del database per questa lega
     const giocatoriDatabase = await new Promise((resolve, reject) => {
-      db.all('SELECT * FROM giocatori WHERE lega_id = ?', [legaId], (err, rows) => {
+      getDb().query('SELECT * FROM giocatori WHERE lega_id = $1', [legaId], (err, result) => {
         if (err) reject(err);
-        else resolve(rows);
+        else resolve(result.rows);
       });
     });
     
@@ -307,9 +308,9 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
       errori: errorCount
     };
     
-    db.run(`
+    getDb().query(`
       INSERT INTO caricalogquot (lega_id, utente_id, utente_nome, file_nome, giocatori_aggiornati, errori)
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6)
     `, [logData.lega_id, logData.utente_id, logData.utente_nome, logData.file_nome, logData.giocatori_aggiornati, logData.errori], (err) => {
       if (err) {
         console.error('[QUOTAZIONI] Errore salvataggio log:', err);
@@ -409,9 +410,9 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
     
     // Ottieni informazioni sulla lega per determinare il tipo
     const lega = await new Promise((resolve, reject) => {
-      db.get('SELECT modalita FROM leghe WHERE id = ?', [legaId], (err, lega) => {
+      getDb().query('SELECT modalita FROM leghe WHERE id = $1', [legaId], (err, result) => {
         if (err) reject(err);
-        else resolve(lega);
+        else resolve(result.rows[0]);
       });
     });
     
@@ -426,9 +427,9 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
     
     // Ottieni tutti i giocatori del database per questa lega
     const giocatoriDatabase = await new Promise((resolve, reject) => {
-      db.all('SELECT * FROM giocatori WHERE lega_id = ?', [legaId], (err, rows) => {
+      getDb().query('SELECT * FROM giocatori WHERE lega_id = $1', [legaId], (err, result) => {
         if (err) reject(err);
-        else resolve(rows);
+        else resolve(result.rows);
       });
     });
     
@@ -539,9 +540,9 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
           console.log(`[STATISTICHE] Tentativo ricerca flessibile per: "${playerName}"`);
           const giocatoreFlessibile = await new Promise((resolve, reject) => {
             const searchPattern = `%${playerName}%`;
-            db.get('SELECT * FROM giocatori WHERE lega_id = ? AND nome LIKE ?', [legaId, searchPattern], (err, giocatore) => {
+            getDb().query('SELECT * FROM giocatori WHERE lega_id = $1 AND nome LIKE $2', [legaId, searchPattern], (err, result) => {
               if (err) reject(err);
-              else resolve(giocatore);
+              else resolve(result.rows[0]);
             });
           });
           console.log(`[STATISTICHE] Ricerca flessibile: "${playerName}" ->`, giocatoreFlessibile ? `TROVATO id=${giocatoreFlessibile.id} (${giocatoreFlessibile.nome})` : 'NON TROVATO');
@@ -602,9 +603,9 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
       errori: errorCount
     };
     
-    db.run(`
+    getDb().query(`
       INSERT INTO caricalogstat (lega_id, utente_id, utente_nome, file_nome, giocatori_aggiornati, errori)
-      VALUES (?, ?, ?, ?, ?, ?)
+      VALUES ($1, $2, $3, $4, $5, $6)
     `, [logData.lega_id, logData.utente_id, logData.utente_nome, logData.file_nome, logData.giocatori_aggiornati, logData.errori], (err) => {
       if (err) {
         console.error('[STATISTICHE] Errore salvataggio log:', err);
@@ -646,14 +647,14 @@ router.get('/logs/:legaId', requireSubadminOrAdmin, async (req, res) => {
     const { legaId } = req.params;
     
     const logs = await new Promise((resolve, reject) => {
-      db.all(`
+      getDb().query(`
         SELECT * FROM caricalogquot 
-        WHERE lega_id = ? 
+        WHERE lega_id = $1 
         ORDER BY data_caricamento DESC 
         LIMIT 50
-      `, [legaId], (err, rows) => {
+      `, [legaId], (err, result) => {
         if (err) reject(err);
-        else resolve(rows);
+        else resolve(result.rows);
       });
     });
     
@@ -674,14 +675,14 @@ router.get('/logs-stats/:legaId', requireSubadminOrAdmin, async (req, res) => {
     const { legaId } = req.params;
     
     const logs = await new Promise((resolve, reject) => {
-      db.all(`
+      getDb().query(`
         SELECT * FROM caricalogstat 
-        WHERE lega_id = ? 
+        WHERE lega_id = $1 
         ORDER BY data_caricamento DESC 
         LIMIT 50
-      `, [legaId], (err, rows) => {
+      `, [legaId], (err, result) => {
         if (err) reject(err);
-        else resolve(rows);
+        else resolve(result.rows);
       });
     });
     
