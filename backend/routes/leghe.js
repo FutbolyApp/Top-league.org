@@ -588,8 +588,8 @@ router.delete('/:legaId', requireAuth, async (req, res) => {
       await db.query('DELETE FROM offerte WHERE lega_id = $1', [legaId]);
       console.log('Offerte eliminate, elimino log');
       
-      // Elimina log
-      await db.query('DELETE FROM log WHERE lega_id = $1', [legaId]);
+      // Elimina log (rimuovo questa query perché la tabella log non ha lega_id)
+      // await db.query('DELETE FROM log WHERE lega_id = $1', [legaId]);
       console.log('Log eliminati, elimino lega');
       
       // Elimina la lega
