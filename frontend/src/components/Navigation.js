@@ -17,6 +17,15 @@ const Nav = styled.nav`
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   border-bottom: 1px solid #e5e5e7;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  @media (max-width: 768px) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    padding: 0.5rem 1rem;
+  }
 `;
 
 const NavContainer = styled.div`
@@ -25,6 +34,10 @@ const NavContainer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+  }
 `;
 
 const Logo = styled(Link)`
@@ -35,6 +48,10 @@ const Logo = styled(Link)`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
 `;
 
 const NavMenu = styled.div`
@@ -58,6 +75,7 @@ const MobileMenuButton = styled.button`
   
   @media (max-width: 768px) {
     display: block;
+    font-size: 1.3rem;
   }
 `;
 
@@ -69,7 +87,7 @@ const MobileMenu = styled.div`
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: 1001;
   backdrop-filter: blur(10px);
   transition: opacity 0.3s ease;
   opacity: ${props => props.$isOpen ? 1 : 0};
@@ -92,6 +110,10 @@ const MobileMenuContent = styled.div`
   overflow-y: auto;
   transform: translateX(${props => props.$isOpen ? '0' : '-100%'});
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem;
+  }
 `;
 
 const MobileMenuHeader = styled.div`
@@ -101,6 +123,11 @@ const MobileMenuHeader = styled.div`
   padding-bottom: 1rem;
   border-bottom: 1px solid #e5e5e7;
   margin-bottom: 1rem;
+  
+  @media (max-width: 768px) {
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
 `;
 
 const MobileMenuClose = styled.button`
@@ -109,6 +136,10 @@ const MobileMenuClose = styled.button`
   font-size: 1.5rem;
   cursor: pointer;
   color: #5856d6;
+  
+  @media (max-width: 768px) {
+    font-size: 1.3rem;
+  }
 `;
 
 const MobileNavLink = styled(Link)`
@@ -138,6 +169,12 @@ const MobileNavLink = styled(Link)`
     color: white;
     box-shadow: 0 4px 12px rgba(88, 86, 214, 0.3);
   }
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
 `;
 
 const MobileUserInfo = styled.div`
@@ -145,6 +182,11 @@ const MobileUserInfo = styled.div`
   background: #f8f9fa;
   border-radius: 8px;
   margin-bottom: 1rem;
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
 `;
 
 const MobileUserActions = styled.div`
@@ -152,6 +194,10 @@ const MobileUserActions = styled.div`
   flex-direction: column;
   gap: 0.5rem;
   margin-top: 1rem;
+  
+  @media (max-width: 768px) {
+    margin-top: 0.75rem;
+  }
 `;
 
 const MobileActionButton = styled.button`
@@ -185,6 +231,12 @@ const MobileActionButton = styled.button`
     &:hover {
       background: #fed7d7;
     }
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
   }
 `;
 
@@ -283,6 +335,10 @@ const UserInfo = styled.span`
   color: #86868b;
   font-size: 0.85rem;
   font-weight: 500;
+  
+  @media (max-width: 768px) {
+    font-size: 0.8rem;
+  }
 `;
 
 const LogoutLink = styled(Link)`
@@ -298,6 +354,11 @@ const LogoutLink = styled(Link)`
   &:hover {
     background: #d70015;
     transform: translateY(-1px);
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
   }
 `;
 

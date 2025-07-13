@@ -18,6 +18,10 @@ const Container = styled.div`
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f8f9fa;
   min-height: 100vh;
+  
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+  }
 `;
 
 // Stili per la landing page calcistica
@@ -41,6 +45,12 @@ const HeroSection = styled.div`
     background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1.5" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="80" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="90" cy="90" r="1.5" fill="rgba(255,255,255,0.1)"/></svg>');
     opacity: 0.3;
   }
+  
+  @media (max-width: 768px) {
+    padding: 2rem 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
 `;
 
 const HeroTitle = styled.h1`
@@ -51,7 +61,11 @@ const HeroTitle = styled.h1`
   z-index: 1;
   
   @media (max-width: 768px) {
-    font-size: 2rem;
+    font-size: 1.8rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.5rem;
   }
 `;
 
@@ -64,6 +78,11 @@ const HeroSubtitle = styled.p`
   
   @media (max-width: 768px) {
     font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.9rem;
   }
 `;
 
@@ -204,6 +223,7 @@ const Header = styled.div`
     flex-direction: column;
     gap: 1rem;
     text-align: center;
+    padding: 1rem;
   }
 `;
 
@@ -212,6 +232,14 @@ const WelcomeTitle = styled.h1`
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
+  
+  @media (max-width: 768px) {
+    font-size: 1.3rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.1rem;
+  }
 `;
 
 const UserInfo = styled.div`
@@ -220,6 +248,12 @@ const UserInfo = styled.div`
   gap: 1rem;
   color: #86868b;
   font-size: 0.9rem;
+  
+  @media (max-width: 600px) {
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+  }
 `;
 
 const UserName = styled.span`
@@ -235,6 +269,10 @@ const ActionsSection = styled.div`
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   display: flex;
   justify-content: center;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
 // ActionsGrid, ActionCard components removed as they're not used
@@ -247,6 +285,10 @@ const Section = styled.div`
   padding: 1.5rem;
   margin-bottom: 1rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
 `;
 
 const SectionTitle = styled.h2`
@@ -379,6 +421,16 @@ const ManagerButton = styled.button`
   &:hover {
     transform: translateY(-1px);
     background: linear-gradient(135deg, #0056b3 0%, #007AFF 100%);
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
   }
 `;
 

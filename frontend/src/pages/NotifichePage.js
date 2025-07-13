@@ -7,244 +7,301 @@ import { api } from '../api/config.js';
 const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 1rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f8f9fa;
+  min-height: 100vh;
+  
+  @media (max-width: 768px) {
+    padding: 0.5rem;
+  }
 `;
 
 const Header = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #eee;
-`;
-
-const BackButton = styled.button`
-  background: none;
-  border: none;
-  color: #666;
-  font-size: 1rem;
-  cursor: pointer;
-  margin-right: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   
-  &:hover {
-    color: #FFA94D;
+  @media (max-width: 768px) {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
   }
 `;
 
 const HeaderLeft = styled.div`
   display: flex;
   align-items: center;
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 `;
 
 const HeaderRight = styled.div`
   display: flex;
   align-items: center;
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    justify-content: center;
+  }
 `;
 
 const Title = styled.h1`
-  color: #333;
-  font-size: 24px;
-  font-weight: 600;
+  color: #1d1d1f;
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const StatsContainer = styled.div`
-  display: flex;
-  gap: 12px;
-  align-items: center;
-`;
-
-const StatItem = styled.div`
-  text-align: center;
-  padding: 8px 12px;
-  background: ${props => props.$highlight ? '#007bff' : '#f8f9fa'};
-  color: ${props => props.$highlight ? 'white' : '#666'};
-  border-radius: 6px;
-  min-width: 60px;
-  font-size: 12px;
-`;
-
-const StatNumber = styled.div`
-  font-size: 16px;
+  font-size: 1.5rem;
   font-weight: 600;
-  margin-bottom: 2px;
+  
+  @media (max-width: 768px) {
+    font-size: 1.3rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.1rem;
+  }
 `;
 
-const StatLabel = styled.div`
-  font-size: 10px;
-  opacity: 0.8;
+const BackButton = styled.button`
+  background: none;
+  border: none;
+  color: #5856d6;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #f8f9fa;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 0.8rem;
+    padding: 0.4rem;
+  }
+`;
+
+const ArchiveButton = styled.button`
+  background: #5856d6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background: #4a4a9e;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
+  }
 `;
 
 const FilterContainer = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  align-items: center;
   flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 const FilterSelect = styled.select`
-  padding: 6px 10px;
-  border: 1px solid #ddd;
+  padding: 0.5rem;
+  border: 1px solid #e5e5e7;
   border-radius: 6px;
+  font-size: 0.9rem;
   background: white;
-  font-size: 13px;
-  min-width: 120px;
+  min-width: 150px;
+  
+  @media (max-width: 768px) {
+    min-width: auto;
+    width: 100%;
+  }
 `;
 
 const DateFilterContainer = styled.div`
   display: flex;
-  gap: 8px;
-  align-items: center;
+  gap: 0.5rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
 `;
 
 const ActionButton = styled.button`
-  padding: 6px 12px;
-  border: none;
-  border-radius: 6px;
-  background: ${props => props.$variant === 'danger' ? '#dc3545' : '#007bff'};
+  background: #28a745;
   color: white;
-  font-size: 13px;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s;
   
   &:hover {
-    background: ${props => props.$variant === 'danger' ? '#c82333' : '#0056b3'};
+    background: #218838;
   }
   
-  &:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
+  @media (max-width: 768px) {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
   }
 `;
 
-const NotificheGrid = styled.div`
-  display: grid;
-  gap: 12px;
-`;
-
-const NotificaCard = styled.div`
-  background: ${props => {
-    // Colore arancione per notifiche di mercato
-    if (props.$isMarketNotification) {
-      return '#fff3cd';
-    }
-    return 'white';
-  }};
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  border-left: 3px solid ${props => {
-    switch (props.$tipo) {
-      case 'richiesta_ingresso': return '#28a745';
-      case 'trasferimento': return '#ffc107';
-      case 'prestito': return '#17a2b8';
-      case 'pagamento': return '#dc3545';
-      case 'risposta_richiesta': return '#6f42c1';
-      case 'richiesta_admin': return '#fd7e14';
-      case 'risposta_richiesta_admin': return '#6f42c1';
-      case 'offerta': return '#20c997';
-      case 'sistema': return '#6c757d';
-      default: return '#6c757d';
-    }
-  }};
-  transition: transform 0.2s ease;
-  opacity: ${props => props.$read ? 0.7 : 1};
-  cursor: pointer;
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
-`;
-
-const NotificaHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-`;
-
-const NotificaTipo = styled.div`
-  font-weight: 600;
-  color: ${props => {
-    switch (props.$tipo) {
-      case 'richiesta_ingresso': return '#28a745';
-      case 'trasferimento': return '#ffc107';
-      case 'prestito': return '#17a2b8';
-      case 'pagamento': return '#dc3545';
-      case 'risposta_richiesta': return '#6f42c1';
-      case 'richiesta_admin': return '#fd7e14';
-      case 'risposta_richiesta_admin': return '#6f42c1';
-      case 'offerta': return '#20c997';
-      case 'sistema': return '#6c757d';
-      default: return '#6c757d';
-    }
-  }};
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-`;
-
-const NotificaData = styled.div`
-  font-size: 11px;
-  color: #666;
-`;
-
-const NotificaMessaggio = styled.div`
-  margin-bottom: 8px;
-  line-height: 1.4;
-  color: #333;
-  font-size: 13px;
-`;
-
-const NotificaDettagli = styled.div`
-  background: #f8f9fa;
-  padding: 8px;
-  border-radius: 4px;
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: #666;
-`;
-
-const NotificaAzioni = styled.div`
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const LoadMoreButton = styled.button`
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+const NotificationCard = styled.div`
   background: white;
-  color: #666;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border-left: 4px solid ${props => props.$type === 'unread' ? '#5856d6' : '#e5e5e7'};
+  transition: transform 0.2s;
   
   &:hover {
-    background: #f8f9fa;
-    border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+`;
+
+const NotificationHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+`;
+
+const NotificationTitle = styled.h3`
+  color: #1d1d1f;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
+`;
+
+const NotificationTime = styled.span`
+  color: #86868b;
+  font-size: 0.8rem;
+  
+  @media (max-width: 768px) {
+    font-size: 0.75rem;
+  }
+`;
+
+const NotificationMessage = styled.p`
+  color: #666;
+  margin: 0.5rem 0;
+  line-height: 1.5;
+  
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
+`;
+
+const NotificationActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+`;
+
+const ActionBtn = styled.button`
+  background: ${props => props.$variant === 'danger' ? '#ff3b30' : '#5856d6'};
+  color: white;
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background: ${props => props.$variant === 'danger' ? '#d70015' : '#4a4a9e'};
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
   }
 `;
 
 const EmptyState = styled.div`
   text-align: center;
-  padding: 60px 20px;
-  color: #666;
-  font-size: 16px;
+  padding: 3rem 1rem;
+  color: #86868b;
+  
+  @media (max-width: 768px) {
+    padding: 2rem 1rem;
+  }
+`;
+
+const EmptyIcon = styled.div`
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  
+  @media (max-width: 768px) {
+    font-size: 2.5rem;
+  }
+`;
+
+const EmptyTitle = styled.h3`
+  color: #1d1d1f;
+  margin-bottom: 0.5rem;
+  
+  @media (max-width: 768px) {
+    font-size: 1.1rem;
+  }
+`;
+
+const EmptyMessage = styled.p`
+  color: #86868b;
+  
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
 `;
 
 // Styled components per il popup di mercato
@@ -980,70 +1037,53 @@ const NotifichePage = () => {
 
       {filteredNotifications.length === 0 ? (
         <EmptyState>
-          <div style={{ fontSize: '36px', marginBottom: '12px' }}>📭</div>
-          <div>Nessuna notifica trovata</div>
+          <EmptyIcon>📭</EmptyIcon>
+          <EmptyTitle>Nessuna notifica trovata</EmptyTitle>
+          <EmptyMessage>Non ci sono notifiche che corrispondono ai tuoi filtri.</EmptyMessage>
         </EmptyState>
       ) : (
         <>
-          <NotificheGrid>
-            {displayedNotifications.map(notification => (
-              <NotificaCard 
-                key={notification.id} 
-                $tipo={notification.tipo}
-                $read={notification.letta}
-                $isMarketNotification={isMarketNotification(notification)}
-                onClick={() => handleNotificationClick(notification)}
-              >
-                <NotificaHeader>
-                  <NotificaTipo $tipo={notification.tipo}>
-                    {getNotificationTitle(notification.tipo)}
-                  </NotificaTipo>
-                  <NotificaData>
-                    {formatTime(notification.data_creazione)}
-                  </NotificaData>
-                </NotificaHeader>
-                
-                <NotificaMessaggio>
-                  {notification.messaggio}
-                </NotificaMessaggio>
-                
-                {getNotificationDetails(notification) && (
-                  <NotificaDettagli>
-                    {getNotificationDetails(notification)}
-                  </NotificaDettagli>
-                )}
-                
-                <NotificaAzioni>
-                  <div>
-                    {!notification.letta && (
-                      <ActionButton 
-                        $variant="danger" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          markAsRead(notification.id);
-                        }}
-                      >
-                        Segna come letta
-                      </ActionButton>
-                    )}
-                    {notification.letta && !isPendingOffer(notification) && (
-                      <div style={{ color: '#28a745', fontSize: '11px' }}>
-                        ✅ Letta
-                      </div>
-                    )}
-                    {isPendingOffer(notification) && (
-                      <div style={{ fontSize: '11px', color: '#ffc107' }}>
-                        ⏳ In attesa di risposta
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#666' }}>
-                    Clicca per aprire
-                  </div>
-                </NotificaAzioni>
-              </NotificaCard>
-            ))}
-          </NotificheGrid>
+          {displayedNotifications.map(notification => (
+            <NotificationCard 
+              key={notification.id} 
+              $type={notification.letta ? 'read' : 'unread'}
+              onClick={() => handleNotificationClick(notification)}
+            >
+              <NotificationHeader>
+                <NotificationTitle>{getNotificationTitle(notification.tipo)}</NotificationTitle>
+                <NotificationTime>{formatTime(notification.data_creazione)}</NotificationTime>
+              </NotificationHeader>
+              
+              <NotificationMessage>{notification.messaggio}</NotificationMessage>
+              
+              {getNotificationDetails(notification) && (
+                <NotificationActions>
+                  <ActionBtn 
+                    $variant={isPendingOffer(notification) ? 'warning' : 'success'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (isPendingOffer(notification)) {
+                        handleMarketAction(isPendingOffer(notification) ? 'rifiuta' : 'accetta');
+                      }
+                    }}
+                    disabled={processingMarketAction}
+                  >
+                    {isPendingOffer(notification) ? 'Rispondi' : 'Segna come letta'}
+                  </ActionBtn>
+                  {notification.letta && !isPendingOffer(notification) && (
+                    <ActionBtn $variant="success">
+                      ✅ Letta
+                    </ActionBtn>
+                  )}
+                  {isPendingOffer(notification) && (
+                    <ActionBtn $variant="warning">
+                      ⏳ In attesa di risposta
+                    </ActionBtn>
+                  )}
+                </NotificationActions>
+              )}
+            </NotificationCard>
+          ))}
 
           {displayedNotifications.length < filteredNotifications.length && (
             <LoadMoreButton onClick={handleLoadMore}>
