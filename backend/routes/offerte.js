@@ -430,16 +430,20 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
 
       // Log operazioni
       const dettagliTarget = `${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} trasferito da ${offertaData.squadra_destinatario_nome} a ${offertaData.squadra_mittente_nome}`;
+      const legaIdResult = await db.query('SELECT s.lega_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1', [offertaData.giocatore_id]);
+      const legaId = legaIdResult.rows[0]?.lega_id;
       await db.query(
         'INSERT INTO log_operazioni_giocatori (giocatore_id, lega_id, tipo_operazione, squadra_mittente_id, squadra_destinatario_id, valore, dettagli, utente_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-        [offertaData.giocatore_id, offertaData.lega_id, offertaData.tipo, offertaData.squadra_destinatario_id, offertaData.squadra_mittente_id, offertaData.valore_offerta, dettagliTarget, giocatore_id]
+        [offertaData.giocatore_id, legaId, offertaData.tipo, offertaData.squadra_destinatario_id, offertaData.squadra_mittente_id, offertaData.valore_offerta, dettagliTarget, giocatore_id]
       );
 
       if (offertaData.tipo === 'scambio' && offertaData.giocatore_scambio_id) {
         const dettagliScambio = `${offertaData.giocatore_scambio_nome} ${offertaData.giocatore_scambio_cognome} trasferito da ${offertaData.squadra_mittente_nome} a ${offertaData.squadra_destinatario_nome}`;
+        const legaIdScambio = await db.query('SELECT s.lega_id FROM giocatori gs JOIN squadre s ON gs.squadra_id = s.id WHERE gs.id = $1', [offertaData.giocatore_scambio_id]);
+        const legaIdScambioResult = legaIdScambio.rows[0]?.lega_id;
         await db.query(
           'INSERT INTO log_operazioni_giocatori (giocatore_id, lega_id, tipo_operazione, squadra_mittente_id, squadra_destinatario_id, valore, dettagli, utente_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-          [offertaData.giocatore_scambio_id, offertaData.lega_id, offertaData.tipo, offertaData.squadra_mittente_id, offertaData.squadra_destinatario_id, offertaData.valore_offerta, dettagliScambio, giocatore_id]
+          [offertaData.giocatore_scambio_id, legaIdScambioResult, offertaData.tipo, offertaData.squadra_mittente_id, offertaData.squadra_destinatario_id, offertaData.valore_offerta, dettagliScambio, giocatore_id]
         );
       }
 
@@ -456,16 +460,20 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
 
       // Notifica al mittente
       const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome || ''} è stata accettata!`;
+      const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [offertaData.squadra_mittente_id]);
+      const legaIdMittenteResult = legaIdMittente.rows[0]?.lega_id;
       await db.query(
             'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5, $6)',
-            [offertaData.lega_id, proprietarioMittenteId, 'Offerta Accettata', messaggioNotifica, offertaData.tipo, datiAggiuntivi]
+            [legaIdMittenteResult, proprietarioMittenteId, 'Offerta Accettata', messaggioNotifica, offertaData.tipo, datiAggiuntivi]
       );
 
       // Notifica anche al destinatario (squadra che ha accettato)
       const messaggioNotificaDestinatario = `Hai accettato l'offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome || ''}`;
+      const legaIdDestinatario = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [offertaData.squadra_destinatario_id]);
+      const legaIdDestinatarioResult = legaIdDestinatario.rows[0]?.lega_id;
       await db.query(
             'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5, $6)',
-            [offertaData.lega_id, giocatore_id, 'Offerta Accettata', messaggioNotificaDestinatario, offertaData.tipo, datiAggiuntivi]
+            [legaIdDestinatarioResult, giocatore_id, 'Offerta Accettata', messaggioNotificaDestinatario, offertaData.tipo, datiAggiuntivi]
           );
 
       // Aggiorna la notifica originale per indicare che è stata accettata
@@ -529,9 +537,11 @@ router.post('/rifiuta/:offerta_id', authenticateToken, async (req, res) => {
 
     // Notifica al mittente
     const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome || ''} è stata rifiutata.`;
+    const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [offertaData.squadra_mittente_id]);
+    const legaIdMittenteResult = legaIdMittente.rows[0]?.lega_id;
     await db.query(
             'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5, $6)',
-            [offertaData.lega_id, proprietarioMittenteId, 'Offerta Rifiutata', messaggioNotifica, offertaData.tipo, datiAggiuntivi],
+            [legaIdMittenteResult, proprietarioMittenteId, 'Offerta Rifiutata', messaggioNotifica, offertaData.tipo, datiAggiuntivi],
         );
 
     // Aggiorna la notifica originale per indicare che è stata rifiutata
@@ -600,6 +610,8 @@ router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
 
       // Crea notifica per il mittente
       const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} è stata accettata!`;
+      const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [offertaData.squadra_mittente_id]);
+      const legaIdMittenteResult = legaIdMittente.rows[0]?.lega_id;
       await db.query(
         `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
          VALUES ($1, 'offerta_accettata', $2, datetime('now'))`,
@@ -650,6 +662,8 @@ router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
     } else {
       // Se l'offerta è rifiutata, crea solo la notifica
       const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} è stata rifiutata.`;
+      const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [offertaData.squadra_mittente_id]);
+      const legaIdMittenteResult = legaIdMittente.rows[0]?.lega_id;
       await db.query(
         `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
          VALUES ($1, 'offerta_rifiutata', $2, datetime('now'))`,
@@ -814,7 +828,9 @@ router.post('/crea', authenticateToken, async (req, res) => {
     console.log('- Messaggio:', messaggioNotifica);
     console.log('- Tipo:', tipo);
 
-    // Crea notifica per il destinatario
+          // Crea notifica per il destinatario
+      const legaIdDestinatarioNotifica = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [giocatoreTargetData.squadra_id]);
+      const legaIdDestinatarioNotificaResult = legaIdDestinatarioNotifica.rows[0]?.lega_id;
     await db.query(
       'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5)',
       [
@@ -846,7 +862,9 @@ router.post('/crea', authenticateToken, async (req, res) => {
         })
       ]
     );
-    // Crea notifica di conferma per il mittente
+          // Crea notifica di conferma per il mittente
+      const legaIdMittenteConferma = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [squadraUtenteData.id]);
+      const legaIdMittenteConfermaResult = legaIdMittenteConferma.rows[0]?.lega_id;
     await db.query(
       'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5)',
       [
@@ -880,9 +898,11 @@ router.post('/crea', authenticateToken, async (req, res) => {
     );
 
     // Crea log per la squadra mittente
+    const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [squadraUtenteData.id]);
+    const legaIdMittenteResult = legaIdMittente.rows[0]?.lega_id;
     await createLogSquadra({
       squadra_id: casseMittenteData.id,
-      lega_id: giocatoreTargetData.lega_id,
+      lega_id: legaIdMittenteResult,
       tipo_evento: TIPI_EVENTI.OFFERTA_INVIATA,
       categoria: CATEGORIE_EVENTI.OFFERTA,
       titolo: `Offerta inviata per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome}`,
@@ -899,9 +919,11 @@ router.post('/crea', authenticateToken, async (req, res) => {
     });
 
     // Crea log per la squadra destinataria
+    const legaIdDestinatario = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [giocatoreTargetData.squadra_id]);
+    const legaIdDestinatarioResult = legaIdDestinatario.rows[0]?.lega_id;
     await createLogSquadra({
       squadra_id: casseDestinatarioData.id,
-      lega_id: giocatoreTargetData.lega_id,
+      lega_id: legaIdDestinatarioResult,
       tipo_evento: TIPI_EVENTI.OFFERTA_RICEVUTA,
       categoria: CATEGORIE_EVENTI.OFFERTA,
       titolo: `Offerta ricevuta per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome}`,
