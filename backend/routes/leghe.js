@@ -540,8 +540,15 @@ router.delete('/:legaId', requireAuth, async (req, res) => {
   try {
     const legaId = req.params.legaId;
     const userId = req.user.id;
+    const db = getDb();
     
     console.log(`DELETE /api/leghe/${legaId} - User ID: ${userId}, Role: ${req.user.ruolo}`);
+    
+    // Verifica che il database sia disponibile
+    if (!db) {
+      console.error('Database non disponibile');
+      return res.status(500).json({ error: 'Database non disponibile' });
+    }
     
     // Verifica che l'utente sia admin della lega o superadmin
     const lega = await getLegaById(legaId);

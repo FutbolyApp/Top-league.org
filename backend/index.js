@@ -3,7 +3,11 @@ import cors from 'cors';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 import { initializeDatabase, getDb } from './db/postgres.js';
+
+// Carica le variabili d'ambiente dal file .env
+dotenv.config();
 import { initializeWebSocket } from './websocket.js';
 import legheRouter from './routes/leghe.js';
 import authRouter from './routes/auth.js';
