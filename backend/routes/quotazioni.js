@@ -50,7 +50,7 @@ const createBackup = async (legaId) => {
       giocatori: []
     };
 
-    const result = await db.query('SELECT * FROM giocatori WHERE lega_id = $1', [legaId]);
+    const result = await db.query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1', [legaId]);
     backupData.giocatori = result.rows || [];
     
     // Salva il backup in una tabella dedicata o come file JSON
@@ -74,7 +74,7 @@ const findSimilarPlayers = async (nome, squadra_reale, legaId) => {
     }
 
     // Prima cerca per nome esatto
-    const exactResult = await db.query('SELECT * FROM giocatori WHERE lega_id = $1 AND nome = $2', [legaId, nome]);
+    const exactResult = await db.query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g.nome = $2', [legaId, nome]);
     const giocatore = exactResult.rows[0];
     
     if (giocatore) {
@@ -84,7 +84,7 @@ const findSimilarPlayers = async (nome, squadra_reale, legaId) => {
     // Se non trova, cerca nomi simili con squadra corrispondente
     const searchPattern = `%${nome}%`;
     const similarResult = await db.query(
-      'SELECT * FROM giocatori WHERE lega_id = $1 AND nome LIKE $2 AND squadra_reale = $3', 
+      'SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g.nome LIKE $2 AND g.squadra_reale = $3', 
       [legaId, searchPattern, squadra_reale]
     );
     
@@ -172,7 +172,7 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
     
     // Ottieni tutti i giocatori del database per questa lega
     const giocatoriDatabase = await new Promise((resolve, reject) => {
-      getDb().query('SELECT * FROM giocatori WHERE lega_id = $1', [legaId], (err, result) => {
+      getDb().query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1', [legaId], (err, result) => {
         if (err) reject(err);
         else resolve(result.rows);
       });
@@ -427,7 +427,7 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
     
     // Ottieni tutti i giocatori del database per questa lega
     const giocatoriDatabase = await new Promise((resolve, reject) => {
-      getDb().query('SELECT * FROM giocatori WHERE lega_id = $1', [legaId], (err, result) => {
+      getDb().query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1', [legaId], (err, result) => {
         if (err) reject(err);
         else resolve(result.rows);
       });
@@ -540,7 +540,7 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
           console.log(`[STATISTICHE] Tentativo ricerca flessibile per: "${playerName}"`);
           const giocatoreFlessibile = await new Promise((resolve, reject) => {
             const searchPattern = `%${playerName}%`;
-            getDb().query('SELECT * FROM giocatori WHERE lega_id = $1 AND nome LIKE $2', [legaId, searchPattern], (err, result) => {
+            getDb().query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g.nome LIKE $2', [legaId, searchPattern], (err, result) => {
               if (err) reject(err);
               else resolve(result.rows[0]);
             });

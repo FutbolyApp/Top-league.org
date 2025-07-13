@@ -5,11 +5,10 @@ export async function createGiocatore(data) {
     console.log(`🔄 Creando giocatore nel database:`, JSON.stringify(data, null, 2));
     
     const db = getDb();
-    const sql = `INSERT INTO giocatori (lega_id, squadra_id, nome, cognome, ruolo, squadra_reale, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`;
+    const sql = `INSERT INTO giocatori (squadra_id, nome, cognome, ruolo, squadra_reale, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id`;
     
     const params = [
-      data.lega_id,
       data.squadra_id,
       data.nome,
       data.cognome || null,
@@ -81,9 +80,11 @@ export async function getGiocatoriBySquadra(squadra_id) {
 export async function getGiocatoriByLega(lega_id) {
   const db = getDb();
   const result = await db.query(`
-    SELECT *, 
-           quotazione_attuale
-    FROM giocatori WHERE lega_id = $1
+    SELECT g.*, 
+           g.quotazione_attuale
+    FROM giocatori g
+    JOIN squadre s ON g.squadra_id = s.id
+    WHERE s.lega_id = $1
   `, [lega_id]);
   
   return result.rows;
@@ -103,9 +104,8 @@ export async function getAllGiocatori() {
 export async function updateGiocatore(id, data) {
   const db = getDb();
   // Aggiornamento completo con tutti i campi
-  const sql = `UPDATE giocatori SET lega_id=$1, squadra_id=$2, nome=$3, cognome=$4, ruolo=$5, squadra_reale=$6, quotazione_attuale=$7, salario=$8, costo_attuale=$9, costo_precedente=$10, prestito=$11, anni_contratto=$12, cantera=$13, triggers=$14, valore_prestito=$15, valore_trasferimento=$16, roster=$17 WHERE id=$18`;
+  const sql = `UPDATE giocatori SET squadra_id=$1, nome=$2, cognome=$3, ruolo=$4, squadra_reale=$5, quotazione_attuale=$6, salario=$7, costo_attuale=$8, costo_precedente=$9, prestito=$10, anni_contratto=$11, cantera=$12, triggers=$13, valore_prestito=$14, valore_trasferimento=$15, roster=$16 WHERE id=$17`;
   await db.query(sql, [
-    data.lega_id,
     data.squadra_id,
     data.nome,
     data.cognome || null,
@@ -176,10 +176,9 @@ export async function updateGiocatorePartial(id, data) {
   console.log('Dati finali per aggiornamento:', JSON.stringify(updateData, null, 2));
   
   // Esegui l'aggiornamento completo
-  const sql = `UPDATE giocatori SET lega_id=$1, squadra_id=$2, nome=$3, cognome=$4, ruolo=$5, squadra_reale=$6, quotazione_attuale=$7, salario=$8, costo_attuale=$9, costo_precedente=$10, prestito=$11, anni_contratto=$12, cantera=$13, triggers=$14, valore_prestito=$15, valore_trasferimento=$16, roster=$17 WHERE id=$18`;
+  const sql = `UPDATE giocatori SET squadra_id=$1, nome=$2, cognome=$3, ruolo=$4, squadra_reale=$5, quotazione_attuale=$6, salario=$7, costo_attuale=$8, costo_precedente=$9, prestito=$10, anni_contratto=$11, cantera=$12, triggers=$13, valore_prestito=$14, valore_trasferimento=$15, roster=$16 WHERE id=$17`;
   
   const params = [
-    updateData.lega_id,
     updateData.squadra_id,
     updateData.nome,
     updateData.cognome || null,
