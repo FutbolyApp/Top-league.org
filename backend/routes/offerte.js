@@ -133,7 +133,9 @@ router.get('/roster/stats/:squadraId', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Squadra non trovata o non autorizzato' });
     }
 
-    const rosterManager = createRosterManager(squadra.lega_id);
+    const legaIdResult = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [squadraId]);
+    const legaId = legaIdResult.rows[0]?.lega_id;
+    const rosterManager = createRosterManager(legaId);
     const stats = await rosterManager.getRosterStats(squadraId);
 
     res.json(stats);
@@ -175,7 +177,9 @@ router.get('/roster/:squadraId', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Squadra non trovata o non autorizzato' });
     }
 
-    const rosterManager = createRosterManager(squadra.lega_id);
+    const legaIdResult = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [squadraId]);
+    const legaId = legaIdResult.rows[0]?.lega_id;
+    const rosterManager = createRosterManager(legaId);
     const giocatori = await rosterManager.getGiocatoriByRoster(squadraId);
 
     res.json(giocatori);
@@ -210,7 +214,9 @@ router.post('/roster/loan-return', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Giocatore non trovato o non autorizzato' });
     }
 
-    const rosterManager = createRosterManager(giocatore.lega_id);
+    const legaIdResult = await db.query('SELECT s.lega_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1', [giocatore.id]);
+    const legaId = legaIdResult.rows[0]?.lega_id;
+    const rosterManager = createRosterManager(legaId);
     const result2 = await rosterManager.handleLoanReturn(giocatore.squadra_id, giocatoreId);
 
     res.json(result2);
@@ -310,7 +316,9 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
     }
 
     // Gestisci il sistema Roster A/B se attivato
-    const rosterManager = createRosterManager(offertaData.lega_id);
+    const legaIdResult = await db.query('SELECT s.lega_id FROM offerte o JOIN squadre s ON o.squadra_mittente_id = s.id WHERE o.id = $1', [offerta_id]);
+    const legaId = legaIdResult.rows[0]?.lega_id;
+    const rosterManager = createRosterManager(legaId);
     const isRosterABEnabled = await rosterManager.isRosterABEnabled();
 
     // Verifica spazio nel roster prima di accettare
@@ -1013,6 +1021,8 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
 
     // Se si sta spostando in Roster A, verifica che ci sia spazio
     if (targetRoster === 'A') {
+      const legaIdResult = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [squadraId]);
+      const legaId = legaIdResult.rows[0]?.lega_id;
       const rosterManager = createRosterManager(legaId);
       const isRosterABEnabled = await rosterManager.isRosterABEnabled();
       
@@ -1020,6 +1030,7 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
         // Ottieni il numero massimo di giocatori dalla lega
         const lega = await getLegaById(legaId);
         const maxGiocatori = lega.max_giocatori || 30;
+        const rosterManager = createRosterManager(legaId);
         const giocatori = await rosterManager.getGiocatoriByRoster(squadraId);
         
         if (giocatori.rosterA && giocatori.rosterA.length >= maxGiocatori) {
