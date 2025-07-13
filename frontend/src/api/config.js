@@ -81,6 +81,7 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
   }
 }
 
+export { API_BASE_URL };
 export const api = {
   get: (url, token) => fetchWithRetry(url, {
     method: 'GET',

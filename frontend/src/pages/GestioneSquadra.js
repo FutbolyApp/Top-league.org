@@ -5,7 +5,7 @@ import { getMyTeamByLeague } from '../api/squadre';
 import { pagaContratto, pagaContrattiMultipli, rinnovaContratto, aggiornaImpostazioniTrasferimento, getLogRinnoviGiocatore } from '../api/contratti';
 import styled from 'styled-components';
 import { getRoleClass } from '../utils/roleUtils';
-import { api } from '../api/config.js';
+import { api, API_BASE_URL } from '../api/config.js';
 
 
 // Styled Components
@@ -616,7 +616,7 @@ const GestioneSquadra = () => {
     
     try {
       console.log('fetchRosterData: chiamando API con squadra.id:', squadra.id);
-      const response = await fetch(`${api.baseUrl}/offerte/roster/${squadra.id}`, {
+      const response = await fetch(`${API_BASE_URL}/offerte/roster/${squadra.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -743,7 +743,7 @@ const GestioneSquadra = () => {
     if (!selectedPlayer) return;
     
     try {
-      const response = await fetch(`${api.baseUrl}/squadre/end-loan/${selectedPlayer.id}`, {
+      const response = await fetch(`${API_BASE_URL}/squadre/end-loan/${selectedPlayer.id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -839,7 +839,7 @@ const GestioneSquadra = () => {
         <TeamHeader>
           {squadra.logo_url ? (
             <TeamLogo 
-              src={`${api.baseUrl}/uploads/${squadra.logo_url}`} 
+              src={`${API_BASE_URL}/uploads/${squadra.logo_url}`} 
               alt={squadra.nome} 
             />
           ) : (

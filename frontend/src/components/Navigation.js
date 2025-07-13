@@ -405,89 +405,89 @@ const Navigation = () => {
 
   const renderNavLinks = () => (
     <>
-      <NavLink to="/" className={isActive('/') ? 'active' : ''}>
-        Home
-      </NavLink>
-      <NavLink to="/leghe" className={isActive('/leghe') ? 'active' : ''}>
-        Leghe
-      </NavLink>
-      
-      {user && (
-        <>
-          <NavLink to="/area-manager" className={isActive('/area-manager') ? 'active' : ''}>
-            Area Manager
+          <NavLink to="/" className={isActive('/') ? 'active' : ''}>
+            Home
+          </NavLink>
+          <NavLink to="/leghe" className={isActive('/leghe') ? 'active' : ''}>
+            Leghe
           </NavLink>
           
-          {isAdmin && (
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <NavLink to="/area-admin" className={isActive('/area-admin') ? 'active' : ''}>
-                Area Admin
-                {(() => {
-                  // Usa il conteggio delle richieste pendenti invece delle notifiche non lette
-                  return pendingAdminRequests > 0 && (
-                    <span style={{
-                      background: '#ff3b30',
-                      color: 'white',
-                      borderRadius: '50%',
-                      width: '18px',
-                      height: '18px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '0.7rem',
-                      fontWeight: '600',
-                      marginLeft: '0.5rem'
-                    }}>
-                      {pendingAdminRequests > 9 ? '9+' : pendingAdminRequests}
-                    </span>
-                  );
-                })()}
+          {user && (
+            <>
+              <NavLink to="/area-manager" className={isActive('/area-manager') ? 'active' : ''}>
+                Area Manager
               </NavLink>
-            </div>
+              
+              {isAdmin && (
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <NavLink to="/area-admin" className={isActive('/area-admin') ? 'active' : ''}>
+                    Area Admin
+                    {(() => {
+                      // Usa il conteggio delle richieste pendenti invece delle notifiche non lette
+                      return pendingAdminRequests > 0 && (
+                        <span style={{
+                          background: '#ff3b30',
+                          color: 'white',
+                          borderRadius: '50%',
+                          width: '18px',
+                          height: '18px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.7rem',
+                          fontWeight: '600',
+                          marginLeft: '0.5rem'
+                        }}>
+                          {pendingAdminRequests > 9 ? '9+' : pendingAdminRequests}
+                        </span>
+                      );
+                    })()}
+                  </NavLink>
+                </div>
+              )}
+              
+              {isSuperAdmin && (
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                <NavLink to="/super-admin-dashboard" className={isActive('/super-admin-dashboard') ? 'active' : ''}>
+                  Super Admin
+                </NavLink>
+                </div>
+              )}
+              
+              {isSubadmin && (
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <NavLink to="/subadmin-area" className={isActive('/subadmin-area') ? 'active' : ''}>
+                    Subadmin
+                    {(() => {
+                      // Conta solo le notifiche non lette per subadmin (NON le modifiche in attesa)
+                      const unreadSubadminNotifications = notifications.filter(n => 
+                        (n.tipo === 'subadmin_request' || n.tipo === 'subadmin_response' || n.tipo === 'richiesta_ingresso') && 
+                        (!n.letto || n.letto === 0)
+                      );
+                      
+                      return unreadSubadminNotifications.length > 0 && (
+                      <span style={{
+                        background: '#ff3b30',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '18px',
+                        height: '18px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.7rem',
+                        fontWeight: '600',
+                        marginLeft: '0.5rem'
+                      }}>
+                          {unreadSubadminNotifications.length > 9 ? '9+' : unreadSubadminNotifications.length}
+                      </span>
+                      );
+                    })()}
+                  </NavLink>
+                </div>
+              )}
+            </>
           )}
-          
-          {isSuperAdmin && (
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-            <NavLink to="/super-admin-dashboard" className={isActive('/super-admin-dashboard') ? 'active' : ''}>
-              Super Admin
-            </NavLink>
-            </div>
-          )}
-          
-          {isSubadmin && (
-            <div style={{ position: 'relative', display: 'inline-block' }}>
-              <NavLink to="/subadmin-area" className={isActive('/subadmin-area') ? 'active' : ''}>
-                Subadmin
-                {(() => {
-                  // Conta solo le notifiche non lette per subadmin (NON le modifiche in attesa)
-                  const unreadSubadminNotifications = notifications.filter(n => 
-                    (n.tipo === 'subadmin_request' || n.tipo === 'subadmin_response' || n.tipo === 'richiesta_ingresso') && 
-                    (!n.letto || n.letto === 0)
-                  );
-                  
-                  return unreadSubadminNotifications.length > 0 && (
-                  <span style={{
-                    background: '#ff3b30',
-                    color: 'white',
-                    borderRadius: '50%',
-                    width: '18px',
-                    height: '18px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.7rem',
-                    fontWeight: '600',
-                    marginLeft: '0.5rem'
-                  }}>
-                      {unreadSubadminNotifications.length > 9 ? '9+' : unreadSubadminNotifications.length}
-                  </span>
-                  );
-                })()}
-              </NavLink>
-            </div>
-          )}
-        </>
-      )}
     </>
   );
 
@@ -501,101 +501,101 @@ const Navigation = () => {
           
           <NavMenu>
             {renderNavLinks()}
-          </NavMenu>
+        </NavMenu>
 
           <MobileMenuButton onClick={() => setIsMobileMenuOpen(true)}>
             ☰
           </MobileMenuButton>
 
-          {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              {/* Icona Notifiche */}
-              <div style={{ position: 'relative', display: 'inline-block' }}>
-                <button
-                  onClick={() => navigate('/notifiche')}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#86868b',
-                    cursor: 'pointer',
-                    padding: '0.5rem',
-                    borderRadius: '6px',
-                    fontSize: '1.2rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s'
-                  }}
-                  title="Notifiche"
-                >
-                  🔔
-                  {(() => {
-                    const unreadCount = notifications.filter(n => !n.letto || n.letto === 0).length;
-                    return unreadCount > 0 && (
-                      <span style={{
-                        position: 'absolute',
-                        top: '-5px',
-                        right: '-5px',
-                        background: '#ff3b30',
-                        color: 'white',
-                        borderRadius: '50%',
-                        width: '18px',
-                        height: '18px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '0.7rem',
-                        fontWeight: '600',
-                        border: '2px solid white'
-                      }}>
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                      </span>
-                    );
-                  })()}
-                </button>
-              </div>
-              
-              <UserInfo>
-                {user.username || user.nome}
-              </UserInfo>
-              <button 
-                onClick={refreshUserData}
+        {user ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Icona Notifiche */}
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <button
+                onClick={() => navigate('/notifiche')}
                 style={{
                   background: 'none',
-                  border: '1px solid #5856d6',
-                  color: '#5856d6',
-                  padding: '0.4rem 0.8rem',
-                  borderRadius: '6px',
-                  fontSize: '0.8rem',
+                  border: 'none',
+                  color: '#86868b',
                   cursor: 'pointer',
+                  padding: '0.5rem',
+                  borderRadius: '6px',
+                  fontSize: '1.2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   transition: 'all 0.2s'
                 }}
-                title="Aggiorna dati utente"
+                title="Notifiche"
               >
-                🔄
+                🔔
+                {(() => {
+                  const unreadCount = notifications.filter(n => !n.letto || n.letto === 0).length;
+                  return unreadCount > 0 && (
+                    <span style={{
+                      position: 'absolute',
+                      top: '-5px',
+                      right: '-5px',
+                      background: '#ff3b30',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '18px',
+                      height: '18px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.7rem',
+                      fontWeight: '600',
+                      border: '2px solid white'
+                    }}>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  );
+                })()}
               </button>
-              <LogoutLink 
-                to="/" 
-                onClick={() => {
-                  logoutUser();
-                  navigate('/');
-                }}
-              >
-                Logout
-              </LogoutLink>
             </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <NavLink to="/login" className={isActive('/login') ? 'active' : ''}>
-                Login
-              </NavLink>
-              <NavLink to="/register" className={isActive('/register') ? 'active' : ''}>
-                Registrati
-              </NavLink>
-            </div>
-          )}
-        </NavContainer>
-      </Nav>
+            
+            <UserInfo>
+              {user.username || user.nome}
+            </UserInfo>
+            <button 
+              onClick={refreshUserData}
+              style={{
+                background: 'none',
+                border: '1px solid #5856d6',
+                color: '#5856d6',
+                padding: '0.4rem 0.8rem',
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              title="Aggiorna dati utente"
+            >
+              🔄
+            </button>
+            <LogoutLink 
+              to="/" 
+              onClick={() => {
+                logoutUser();
+                navigate('/');
+              }}
+            >
+              Logout
+            </LogoutLink>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <NavLink to="/login" className={isActive('/login') ? 'active' : ''}>
+              Login
+            </NavLink>
+            <NavLink to="/register" className={isActive('/register') ? 'active' : ''}>
+              Registrati
+            </NavLink>
+          </div>
+        )}
+      </NavContainer>
+    </Nav>
 
       {/* Mobile Menu */}
       <MobileMenu $isOpen={isMobileMenuOpen} onClick={closeMobileMenu}>
