@@ -375,7 +375,10 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
     }
     
     // Verifica che le squadre siano nella stessa lega
-    if (giocatore.lega_id !== squadraDest.lega_id) {
+    const giocatoreSquadraResult = await db.query('SELECT s.lega_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1', [giocatoreId]);
+    const giocatoreSquadra = giocatoreSquadraResult.rows[0];
+    
+    if (!giocatoreSquadra || giocatoreSquadra.lega_id !== squadraDest.lega_id) {
       return res.status(400).json({ error: 'Le squadre devono essere nella stessa lega' });
     }
     
@@ -383,7 +386,7 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
     const giocatoriCountResult = await db.query('SELECT COUNT(*) as count FROM giocatori WHERE squadra_id = $1', [squadra_destinazione_id]);
     const currentPlayers = parseInt(giocatoriCountResult.rows[0].count);
     
-    const legaResult = await db.query('SELECT max_giocatori FROM leghe WHERE id = $1', [giocatore.lega_id]);
+    const legaResult = await db.query('SELECT max_giocatori FROM leghe WHERE id = $1', [giocatoreSquadra.lega_id]);
     const lega = legaResult.rows[0];
     
     const maxGiocatori = lega ? lega.max_giocatori : 30;
