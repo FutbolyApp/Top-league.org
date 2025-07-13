@@ -5,11 +5,28 @@ export async function createGiocatore(data) {
     console.log(`🔄 Creando giocatore nel database:`, JSON.stringify(data, null, 2));
     
     const db = getDb();
-    const sql = `INSERT INTO giocatori (squadra_id, nome, cognome, ruolo, squadra_reale, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING id`;
+    
+    // Prima ottieni il lega_id dalla squadra_id
+    let lega_id = null;
+    if (data.squadra_id) {
+      const squadraResult = await db.query('SELECT lega_id FROM squadre WHERE id = $1', [data.squadra_id]);
+      if (squadraResult.rows.length > 0) {
+        lega_id = squadraResult.rows[0].lega_id;
+      } else {
+        throw new Error(`Squadra con ID ${data.squadra_id} non trovata`);
+      }
+    } else if (data.lega_id) {
+      lega_id = data.lega_id;
+    } else {
+      throw new Error('È richiesto squadra_id o lega_id per creare un giocatore');
+    }
+    
+    const sql = `INSERT INTO giocatori (squadra_id, lega_id, nome, cognome, ruolo, squadra_reale, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`;
     
     const params = [
       data.squadra_id,
+      lega_id,
       data.nome,
       data.cognome || null,
       data.ruolo,
@@ -103,10 +120,21 @@ export async function getAllGiocatori() {
 
 export async function updateGiocatore(id, data) {
   const db = getDb();
+  
+  // Ottieni il lega_id dalla squadra_id se non è fornito direttamente
+  let lega_id = data.lega_id;
+  if (!lega_id && data.squadra_id) {
+    const squadraResult = await db.query('SELECT lega_id FROM squadre WHERE id = $1', [data.squadra_id]);
+    if (squadraResult.rows.length > 0) {
+      lega_id = squadraResult.rows[0].lega_id;
+    }
+  }
+  
   // Aggiornamento completo con tutti i campi
-  const sql = `UPDATE giocatori SET squadra_id=$1, nome=$2, cognome=$3, ruolo=$4, squadra_reale=$5, quotazione_attuale=$6, salario=$7, costo_attuale=$8, costo_precedente=$9, prestito=$10, anni_contratto=$11, cantera=$12, triggers=$13, valore_prestito=$14, valore_trasferimento=$15, roster=$16 WHERE id=$17`;
+  const sql = `UPDATE giocatori SET squadra_id=$1, lega_id=$2, nome=$3, cognome=$4, ruolo=$5, squadra_reale=$6, quotazione_attuale=$7, salario=$8, costo_attuale=$9, costo_precedente=$10, prestito=$11, anni_contratto=$12, cantera=$13, triggers=$14, valore_prestito=$15, valore_trasferimento=$16, roster=$17 WHERE id=$18`;
   await db.query(sql, [
     data.squadra_id,
+    lega_id,
     data.nome,
     data.cognome || null,
     data.ruolo,
@@ -175,11 +203,21 @@ export async function updateGiocatorePartial(id, data) {
   
   console.log('Dati finali per aggiornamento:', JSON.stringify(updateData, null, 2));
   
+  // Ottieni il lega_id dalla squadra_id se non è già presente
+  let lega_id = updateData.lega_id;
+  if (!lega_id && updateData.squadra_id) {
+    const squadraResult = await db.query('SELECT lega_id FROM squadre WHERE id = $1', [updateData.squadra_id]);
+    if (squadraResult.rows.length > 0) {
+      lega_id = squadraResult.rows[0].lega_id;
+    }
+  }
+  
   // Esegui l'aggiornamento completo
-  const sql = `UPDATE giocatori SET squadra_id=$1, nome=$2, cognome=$3, ruolo=$4, squadra_reale=$5, quotazione_attuale=$6, salario=$7, costo_attuale=$8, costo_precedente=$9, prestito=$10, anni_contratto=$11, cantera=$12, triggers=$13, valore_prestito=$14, valore_trasferimento=$15, roster=$16 WHERE id=$17`;
+  const sql = `UPDATE giocatori SET squadra_id=$1, lega_id=$2, nome=$3, cognome=$4, ruolo=$5, squadra_reale=$6, quotazione_attuale=$7, salario=$8, costo_attuale=$9, costo_precedente=$10, prestito=$11, anni_contratto=$12, cantera=$13, triggers=$14, valore_prestito=$15, valore_trasferimento=$16, roster=$17 WHERE id=$18`;
   
   const params = [
     updateData.squadra_id,
+    lega_id,
     updateData.nome,
     updateData.cognome || null,
     updateData.ruolo,
