@@ -9,9 +9,14 @@ services:
         value: production
       - key: PORT
         value: 3001
-      - key: DB_PATH
-        value: /data/db/topleague.db
-    disk:
-      name: sqlite-data
-      mountPath: /data/db
-      sizeGB: 1 
+      - key: DATABASE_URL
+        fromDatabase:
+          name: topleague-postgres
+          property: connectionString
+    plan: starter
+
+databases:
+  - name: topleague-postgres
+    databaseName: topleague
+    user: topleague_user
+    plan: starter 
