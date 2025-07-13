@@ -40,6 +40,9 @@ export async function initializeDatabase() {
     // Create missing tables
     await createMissingTables();
     
+    // Update existing tables with missing columns
+    await updateExistingTables();
+    
     // Migrate data from SQLite if needed
     await migrateDataIfNeeded();
     
@@ -396,6 +399,53 @@ async function migrateDataIfNeeded() {
   }
 }
 
+async function updateExistingTables() {
+  try {
+    console.log('🔄 Updating existing tables with missing columns...');
+    
+    const db = getDb();
+    if (!db) {
+      console.log('Database not available, skipping table updates');
+      return;
+    }
+    
+    // Aggiungi colonna roster alla tabella giocatori se non esiste
+    try {
+      await db.query(`
+        ALTER TABLE giocatori 
+        ADD COLUMN IF NOT EXISTS roster VARCHAR(10) DEFAULT 'A'
+      `);
+      console.log('✅ Added roster column to giocatori table');
+    } catch (error) {
+      console.log('Column roster already exists or error:', error.message);
+    }
+    
+    // Aggiungi colonne per i limiti di ruolo alla tabella leghe se non esistono
+    const roleColumns = [
+      'max_portieri', 'min_portieri',
+      'max_difensori', 'min_difensori', 
+      'max_centrocampisti', 'min_centrocampisti',
+      'max_attaccanti', 'min_attaccanti'
+    ];
+    
+    for (const column of roleColumns) {
+      try {
+        await db.query(`
+          ALTER TABLE leghe 
+          ADD COLUMN IF NOT EXISTS ${column} INTEGER DEFAULT 0
+        `);
+        console.log(`✅ Added ${column} column to leghe table`);
+      } catch (error) {
+        console.log(`Column ${column} already exists or error:`, error.message);
+      }
+    }
+    
+    console.log('✅ Table updates completed');
+  } catch (error) {
+    console.error('❌ Error updating tables:', error);
+  }
+}
+
 // Funzione per inizializzare le tabelle
 export async function initDb() {
   if (!pool) {
@@ -495,6 +545,7 @@ export async function initDb() {
         anni_contratto INTEGER DEFAULT 1,
         cantera BOOLEAN DEFAULT false,
         triggers TEXT,
+        roster VARCHAR(10) DEFAULT 'A',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
