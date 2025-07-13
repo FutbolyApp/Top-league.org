@@ -594,8 +594,9 @@ const GestioneSquadra = () => {
     
     try {
       const response = await getMyTeamByLeague(legaId, token);
+      console.log('fetchSquadra: risposta API:', response);
       setSquadra(response.squadra);
-      
+      console.log('fetchSquadra: squadra impostata:', response.squadra);
       // Ottieni configurazioni della lega se disponibili
       if (response.config) {
         setLeagueConfig(response.config);
@@ -608,9 +609,13 @@ const GestioneSquadra = () => {
   }, [token, legaId]);
 
   const fetchRosterData = useCallback(async () => {
-    if (!squadra || !token) return;
+    if (!squadra || !token || !squadra.id) {
+      console.log('fetchRosterData: squadra o token mancanti, squadra:', squadra);
+      return;
+    }
     
     try {
+      console.log('fetchRosterData: chiamando API con squadra.id:', squadra.id);
       const response = await fetch(`${api.baseUrl}/offerte/roster/${squadra.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -618,6 +623,8 @@ const GestioneSquadra = () => {
       if (response.ok) {
         const data = await response.json();
         setRosterData(data);
+      } else {
+        console.error('fetchRosterData: errore response:', response.status, response.statusText);
       }
     } catch (err) {
       console.error('Errore caricamento dati roster:', err);
