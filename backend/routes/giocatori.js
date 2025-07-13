@@ -26,7 +26,7 @@ router.get('/:giocatoreId', requireAuth, async (req, res) => {
              END as proprietario_nome
       FROM giocatori g 
       LEFT JOIN squadre s ON g.squadra_id = s.id
-      LEFT JOIN leghe l ON g.lega_id = l.id
+      LEFT JOIN leghe l ON s.lega_id = l.id
       LEFT JOIN users u ON s.proprietario_id = u.id
       WHERE g.id = $1
     `, [giocatoreId]);
@@ -130,7 +130,8 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
              sp.nome as squadra_prestito_nome
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
-      WHERE g.lega_id = $1
+      JOIN squadre s ON g.squadra_id = s.id
+      WHERE s.lega_id = $1
     `, [legaId]);
     res.json({ giocatori: result.rows });
   } catch (err) {

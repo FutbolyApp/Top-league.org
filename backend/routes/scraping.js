@@ -941,7 +941,7 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
         SELECT g.*, s.nome as nome_squadra
         FROM giocatori g
         JOIN squadre s ON g.squadra_id = s.id
-        WHERE g.lega_id = $1
+        WHERE s.lega_id = $1
         ORDER BY s.nome, g.nome
       `, [legaId]);
       giocatoriUfficiali = giocatoriResult.rows;
