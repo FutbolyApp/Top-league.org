@@ -1,35 +1,34 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+import { getDb } from './db/postgres.js';
 
-// Percorso del database
-const dbPath = path.join(__dirname, 'db', 'topleague.db');
+async function addCanteraColumn() {
+  console.log('Aggiunta colonna cantera alla tabella giocatori...');
+  
+  const db = getDb();
+  if (!db) {
+    console.error('❌ Database non disponibile');
+    return;
+  }
 
-// Connessione al database
-const db = new sqlite3.Database(dbPath);
-
-console.log('Aggiunta colonna cantera alla tabella giocatori...');
-
-// Aggiungi la colonna cantera (BOOLEAN, default FALSE)
-db.run(`
-  ALTER TABLE giocatori 
-  ADD COLUMN cantera BOOLEAN DEFAULT 0
-`, (err) => {
-  if (err) {
-    if (err.message.includes('duplicate column name')) {
+  try {
+    // Aggiungi la colonna cantera (BOOLEAN, default FALSE)
+    await db.query(`
+      ALTER TABLE giocatori 
+      ADD COLUMN cantera BOOLEAN DEFAULT FALSE
+    `);
+    console.log('Colonna cantera aggiunta con successo');
+  } catch (error) {
+    if (error.message.includes('duplicate column name') || error.message.includes('already exists')) {
       console.log('Colonna cantera già esistente');
     } else {
-      console.error('Errore nell\'aggiunta della colonna cantera:', err.message);
+      console.error('Errore nell\'aggiunta della colonna cantera:', error.message);
     }
-  } else {
-    console.log('Colonna cantera aggiunta con successo');
   }
-  
-  // Chiudi la connessione
-  db.close((err) => {
-    if (err) {
-      console.error('Errore nella chiusura del database:', err.message);
-    } else {
-      console.log('Database chiuso correttamente');
-    }
-  });
+}
+
+addCanteraColumn().then(() => {
+  console.log('✅ Script completato');
+  process.exit(0);
+}).catch(error => {
+  console.error('❌ Errore:', error);
+  process.exit(1);
 }); 

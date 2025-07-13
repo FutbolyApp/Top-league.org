@@ -4,8 +4,6 @@ import { getDb } from '../db/postgres.js';
 import archiver from 'archiver';
 import extract from 'extract-zip';
 
-const db = getDb();
-
 class BackupManager {
   constructor() {
     this.backupDir = path.join(process.cwd(), 'backups');
@@ -106,47 +104,42 @@ class BackupManager {
       const dataPath = path.join(extractPath, 'data.json');
       const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
 
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
       // Inizia transazione
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
+      await db.query('BEGIN');
 
-        try {
-          // Disabilita foreign keys temporaneamente
-          db.run('PRAGMA foreign_keys = OFF');
+      try {
+        // Pulisci database esistente
+        const tables = Object.keys(data);
+        for (const table of tables) {
+          await db.query(`DELETE FROM ${table}`);
+        }
 
-          // Pulisci database esistente
-          const tables = Object.keys(data);
-          for (const table of tables) {
-            db.run(`DELETE FROM ${table}`);
-          }
-
-          // Ripristina dati
-          for (const [table, records] of Object.entries(data)) {
-            if (records.length > 0) {
-              const columns = Object.keys(records[0]);
-              const placeholders = columns.map(() => '?').join(',');
-              const stmt = db.prepare(`INSERT INTO ${table} (${columns.join(',')}) VALUES (${placeholders})`);
-              
-              records.forEach(record => {
-                const values = columns.map(col => record[col]);
-                stmt.run(values);
-              });
-              
-              stmt.finalize();
+        // Ripristina dati
+        for (const [table, records] of Object.entries(data)) {
+          if (records.length > 0) {
+            const columns = Object.keys(records[0]);
+            const placeholders = columns.map((_, index) => `$${index + 1}`).join(',');
+            const stmt = `INSERT INTO ${table} (${columns.join(',')}) VALUES (${placeholders})`;
+            
+            for (const record of records) {
+              const values = columns.map(col => record[col]);
+              await db.query(stmt, values);
             }
           }
-
-          // Riabilita foreign keys
-          db.run('PRAGMA foreign_keys = ON');
-
-          // Commit transazione
-          db.run('COMMIT');
-
-        } catch (error) {
-          db.run('ROLLBACK');
-          throw error;
         }
-      });
+
+        // Commit transazione
+        await db.query('COMMIT');
+
+      } catch (error) {
+        await db.query('ROLLBACK');
+        throw error;
+      }
 
       // Pulisci directory temporanea
       fs.rmSync(extractPath, { recursive: true, force: true });
@@ -202,9 +195,9 @@ class BackupManager {
 
   // Elimina backup
   async deleteBackup(backupName) {
-    const backupPath = path.join(this.backupDir, `${backupName}.zip`);
-    
     try {
+      const backupPath = path.join(this.backupDir, `${backupName}.zip`);
+      
       if (fs.existsSync(backupPath)) {
         fs.unlinkSync(backupPath);
         await this.removeBackupRecord(backupName);
@@ -218,41 +211,92 @@ class BackupManager {
     }
   }
 
-  // Backup automatico programmato
-  async scheduleBackup(cronExpression, description = 'Backup automatico') {
-    // Implementa scheduling con node-cron
-    // Per ora ritorna successo
-    return { success: true, message: 'Backup programmato' };
-  }
-
-  // Funzioni di utilità private
+  // Ottieni lista tabelle
   async getTables() {
-    return new Promise((resolve, reject) => {
-      db.all("SELECT name FROM sqlite_master WHERE type='table'", (err, tables) => {
-        if (err) reject(err);
-        else resolve(tables.map(t => t.name));
-      });
-    });
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
+      const result = await db.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_type = 'BASE TABLE'
+        ORDER BY table_name
+      `);
+      
+      return result.rows.map(row => row.table_name);
+    } catch (error) {
+      console.error('Errore ottenimento tabelle:', error);
+      throw error;
+    }
   }
 
+  // Esporta tabella
   async exportTable(tableName) {
-    return new Promise((resolve, reject) => {
-      db.all(`SELECT * FROM ${tableName}`, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
-      });
-    });
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
+      const result = await db.query(`SELECT * FROM ${tableName}`);
+      return result.rows;
+    } catch (error) {
+      console.error(`Errore esportazione tabella ${tableName}:`, error);
+      throw error;
+    }
   }
 
+  // Esporta schema
   async exportSchema() {
-    return new Promise((resolve, reject) => {
-      db.all("SELECT sql FROM sqlite_master WHERE type='table'", (err, schemas) => {
-        if (err) reject(err);
-        else resolve(schemas.map(s => s.sql).join(';\n'));
-      });
-    });
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
+      const result = await db.query(`
+        SELECT 
+          table_name,
+          column_name,
+          data_type,
+          is_nullable,
+          column_default
+        FROM information_schema.columns 
+        WHERE table_schema = 'public'
+        ORDER BY table_name, ordinal_position
+      `);
+      
+      let schema = '';
+      let currentTable = '';
+      
+      for (const row of result.rows) {
+        if (row.table_name !== currentTable) {
+          if (currentTable) schema += ');\n\n';
+          currentTable = row.table_name;
+          schema += `CREATE TABLE ${row.table_name} (\n`;
+        } else {
+          schema += ',\n';
+        }
+        
+        schema += `  ${row.column_name} ${row.data_type}`;
+        if (row.is_nullable === 'NO') schema += ' NOT NULL';
+        if (row.column_default) schema += ` DEFAULT ${row.column_default}`;
+      }
+      
+      if (currentTable) schema += ');\n';
+      
+      return schema;
+    } catch (error) {
+      console.error('Errore esportazione schema:', error);
+      throw error;
+    }
   }
 
+  // Comprimi directory
   async compressDirectory(sourcePath, destPath) {
     return new Promise((resolve, reject) => {
       const output = fs.createWriteStream(destPath);
@@ -267,34 +311,57 @@ class BackupManager {
     });
   }
 
+  // Registra backup nel database
   async registerBackup(backupName, metadata) {
-    return new Promise((resolve, reject) => {
-      db.run(`
-        INSERT INTO backup_log (nome_backup, descrizione, timestamp, dimensione, record_count)
-        VALUES (?, ?, ?, ?, ?)
-      `, [backupName, metadata.description, metadata.timestamp, 0, metadata.recordCount], function(err) {
-        if (err) reject(err);
-        else resolve(this.lastID);
-      });
-    });
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
+      await db.query(`
+        INSERT INTO backup_log (nome_backup, descrizione, timestamp, metadati)
+        VALUES ($1, $2, $3, $4)
+      `, [backupName, metadata.description, metadata.timestamp, JSON.stringify(metadata)]);
+    } catch (error) {
+      console.error('Errore registrazione backup:', error);
+      throw error;
+    }
   }
 
+  // Ottieni metadati backup
   async getBackupMetadata(backupName) {
-    return new Promise((resolve, reject) => {
-      db.get('SELECT * FROM backup_log WHERE nome_backup = ?', [backupName], (err, row) => {
-        if (err) reject(err);
-        else resolve(row);
-      });
-    });
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
+      const result = await db.query(
+        'SELECT * FROM backup_log WHERE nome_backup = $1',
+        [backupName]
+      );
+      
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('Errore ottenimento metadati backup:', error);
+      return null;
+    }
   }
 
+  // Rimuovi record backup
   async removeBackupRecord(backupName) {
-    return new Promise((resolve, reject) => {
-      db.run('DELETE FROM backup_log WHERE nome_backup = ?', [backupName], function(err) {
-        if (err) reject(err);
-        else resolve(this.changes);
-      });
-    });
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
+      await db.query('DELETE FROM backup_log WHERE nome_backup = $1', [backupName]);
+    } catch (error) {
+      console.error('Errore rimozione record backup:', error);
+      throw error;
+    }
   }
 }
 

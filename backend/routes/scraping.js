@@ -725,15 +725,16 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
     const { legaId } = req.params;
     console.log(`[DEBUG] /dati-scraping/${legaId} - Inizio richiesta`);
     
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
+
     // Verifica che l'utente abbia accesso alla lega
     let lega;
     try {
-      lega = await new Promise((resolve, reject) => {
-        db.get('SELECT * FROM leghe WHERE id = ?', [legaId], (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        });
-      });
+      const legaResult = await db.query('SELECT * FROM leghe WHERE id = $1', [legaId]);
+      lega = legaResult.rows[0];
     } catch (err) {
       console.error(`[DEBUG] Errore query lega:`, err);
       return res.status(500).json({ error: 'Errore query lega', details: err.message });
@@ -747,17 +748,13 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
     // Ottieni squadre di scraping
     let squadreScraping;
     try {
-      squadreScraping = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT id, nome, data_scraping, fonte_scraping 
-          FROM squadre_scraping 
-          WHERE lega_id = ? 
-          ORDER BY nome
-        `, [legaId], (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      });
+      const squadreResult = await db.query(`
+        SELECT id, nome, data_scraping, fonte_scraping 
+        FROM squadre_scraping 
+        WHERE lega_id = $1 
+        ORDER BY nome
+      `, [legaId]);
+      squadreScraping = squadreResult.rows;
     } catch (err) {
       console.error(`[DEBUG] Errore query squadre_scraping:`, err);
       return res.status(500).json({ error: 'Errore query squadre_scraping', details: err.message });
@@ -766,18 +763,14 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
     // Ottieni giocatori di scraping
     let giocatoriScraping;
     try {
-      giocatoriScraping = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT gs.*, ss.nome as nome_squadra_scraping
-          FROM giocatori_scraping gs
-          JOIN squadre_scraping ss ON gs.squadra_scraping_id = ss.id
-          WHERE gs.lega_id = ?
-          ORDER BY ss.nome, gs.nome
-        `, [legaId], (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      });
+      const giocatoriResult = await db.query(`
+        SELECT gs.*, ss.nome as nome_squadra_scraping
+        FROM giocatori_scraping gs
+        JOIN squadre_scraping ss ON gs.squadra_scraping_id = ss.id
+        WHERE gs.lega_id = $1
+        ORDER BY ss.nome, gs.nome
+      `, [legaId]);
+      giocatoriScraping = giocatoriResult.rows;
     } catch (err) {
       console.error(`[DEBUG] Errore query giocatori_scraping:`, err);
       return res.status(500).json({ error: 'Errore query giocatori_scraping', details: err.message });
@@ -792,17 +785,13 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
     // Ottieni classifica di scraping
     let classificaScraping;
     try {
-      classificaScraping = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT posizione, squadra, punti, partite, data_scraping
-          FROM classifica_scraping 
-          WHERE lega_id = ? 
-          ORDER BY posizione
-        `, [legaId], (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      });
+      const classificaResult = await db.query(`
+        SELECT posizione, squadra, punti, partite, data_scraping
+        FROM classifica_scraping 
+        WHERE lega_id = $1 
+        ORDER BY posizione
+      `, [legaId]);
+      classificaScraping = classificaResult.rows;
     } catch (err) {
       console.error(`[DEBUG] Errore query classifica_scraping:`, err);
       classificaScraping = [];
@@ -811,17 +800,13 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
     // Ottieni voti di scraping
     let votiScraping;
     try {
-      votiScraping = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT giocatore, voto, squadra, giornata, data_scraping
-          FROM voti_scraping 
-          WHERE lega_id = ? 
-          ORDER BY giornata DESC, voto DESC
-        `, [legaId], (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      });
+      const votiResult = await db.query(`
+        SELECT giocatore, voto, squadra, giornata, data_scraping
+        FROM voti_scraping 
+        WHERE lega_id = $1 
+        ORDER BY giornata DESC, voto DESC
+      `, [legaId]);
+      votiScraping = votiResult.rows;
     } catch (err) {
       console.error(`[DEBUG] Errore query voti_scraping:`, err);
       votiScraping = [];
@@ -830,35 +815,31 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
     // Ottieni formazioni di scraping
     let formazioniScraping;
     try {
-      formazioniScraping = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT squadra, modulo, titolari, panchinari, data_scraping
-          FROM formazioni_scraping 
-          WHERE lega_id = ? 
-          ORDER BY squadra
-        `, [legaId], (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows.map(row => ({
-            ...row,
-            titolari: row.titolari ? (() => {
-              try {
-                return JSON.parse(row.titolari);
-              } catch (e) {
-                console.warn(`[DEBUG] Errore parsing JSON titolari per formazione ${row.id}:`, e.message);
-                return [];
-              }
-            })() : [],
-            panchinari: row.panchinari ? (() => {
-              try {
-                return JSON.parse(row.panchinari);
-              } catch (e) {
-                console.warn(`[DEBUG] Errore parsing JSON panchinari per formazione ${row.id}:`, e.message);
-                return [];
-              }
-            })() : []
-          })));
-        });
-      });
+      const formazioniResult = await db.query(`
+        SELECT squadra, modulo, titolari, panchinari, data_scraping
+        FROM formazioni_scraping 
+        WHERE lega_id = $1 
+        ORDER BY squadra
+      `, [legaId]);
+      formazioniScraping = formazioniResult.rows.map(row => ({
+        ...row,
+        titolari: row.titolari ? (() => {
+          try {
+            return JSON.parse(row.titolari);
+          } catch (e) {
+            console.warn(`[DEBUG] Errore parsing JSON titolari per formazione ${row.id}:`, e.message);
+            return [];
+          }
+        })() : [],
+        panchinari: row.panchinari ? (() => {
+          try {
+            return JSON.parse(row.panchinari);
+          } catch (e) {
+            console.warn(`[DEBUG] Errore parsing JSON panchinari per formazione ${row.id}:`, e.message);
+            return [];
+          }
+        })() : []
+      }));
     } catch (err) {
       console.error(`[DEBUG] Errore query formazioni_scraping:`, err);
       formazioniScraping = [];
@@ -867,17 +848,13 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
     // Ottieni mercato di scraping
     let mercatoScraping;
     try {
-      mercatoScraping = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT giocatore, da, a, prezzo, tipo, data_scraping
-          FROM mercato_scraping 
-          WHERE lega_id = ? 
-          ORDER BY data_scraping DESC
-        `, [legaId], (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      });
+      const mercatoResult = await db.query(`
+        SELECT giocatore, da, a, prezzo, tipo, data_scraping
+        FROM mercato_scraping 
+        WHERE lega_id = $1 
+        ORDER BY data_scraping DESC
+      `, [legaId]);
+      mercatoScraping = mercatoResult.rows;
     } catch (err) {
       console.error(`[DEBUG] Errore query mercato_scraping:`, err);
       mercatoScraping = [];
@@ -919,15 +896,16 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     const { legaId } = req.params;
     console.log(`[DEBUG] /confronto/${legaId} - Inizio richiesta`);
     
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database non disponibile' });
+    }
+
     // Verifica che l'utente abbia accesso alla lega
     let lega;
     try {
-      lega = await new Promise((resolve, reject) => {
-        db.get('SELECT * FROM leghe WHERE id = ?', [legaId], (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        });
-      });
+      const legaResult = await db.query('SELECT * FROM leghe WHERE id = $1', [legaId]);
+      lega = legaResult.rows[0];
     } catch (err) {
       console.error(`[DEBUG] Errore query lega:`, err);
       return res.status(500).json({ error: 'Errore query lega', details: err.message });
@@ -941,17 +919,13 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     // Ottieni squadre ufficiali
     let squadreUfficiali;
     try {
-      squadreUfficiali = await new Promise((resolve, reject) => {
-        db.all(`
-          SELECT id, nome, casse_societarie, valore_squadra 
-          FROM squadre 
-          WHERE lega_id = ? 
-          ORDER BY nome
-        `, [legaId], (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows);
-        });
-      });
+      const squadreResult = await db.query(`
+        SELECT id, nome, casse_societarie, valore_squadra 
+        FROM squadre 
+        WHERE lega_id = $1 
+        ORDER BY nome
+      `, [legaId]);
+      squadreUfficiali = squadreResult.rows;
     } catch (err) {
       console.error(`[DEBUG] Errore query squadre ufficiali:`, err);
       return res.status(500).json({ error: 'Errore query squadre ufficiali', details: err.message });
@@ -1424,16 +1398,11 @@ router.post('/playwright-classifica', requireAuth, async (req, res) => {
         console.log('URL:', leagueUrl);
 
         // Recupera il tipo di lega dal database
-        const legaInfo = await new Promise((resolve, reject) => {
-            db.get(
-                'SELECT tipo_lega FROM leghe WHERE id = ?',
-                [lega_id],
-                (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                }
-            );
-        });
+        const legaResult = await db.query(
+            'SELECT tipo_lega FROM leghe WHERE id = $1',
+            [lega_id]
+        );
+        const legaInfo = legaResult.rows[0];
 
         if (!legaInfo) {
             return res.status(400).json({
@@ -1538,17 +1507,17 @@ router.post('/playwright-formazioni', requireAuth, async (req, res) => {
         console.log('URL:', leagueUrl);
         console.log('Giornata:', giornata || 'non specificata');
 
+        const db = getDb();
+        if (!db) {
+            return res.status(503).json({ error: 'Database non disponibile' });
+        }
+
         // Recupera il tipo di lega dal database
-        const legaInfo = await new Promise((resolve, reject) => {
-            db.get(
-                'SELECT tipo_lega FROM leghe WHERE id = ?',
-                [lega_id],
-                (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                }
-            );
-        });
+        const legaResult = await db.query(
+            'SELECT tipo_lega FROM leghe WHERE id = $1',
+            [lega_id]
+        );
+        const legaInfo = legaResult.rows[0];
 
         if (!legaInfo) {
             return res.status(400).json({
@@ -1840,21 +1809,18 @@ router.get('/preferiti/:lega_id', requireAuth, async (req, res) => {
         
         console.log('📂 [PREFERITI] Caricamento preferiti per lega:', lega_id);
         
-        const tornei = await new Promise((resolve, reject) => {
-            db.all(
-                'SELECT torneo_id, torneo_nome, torneo_url, created_at FROM tornei_preferiti WHERE utente_id = ? AND lega_id = ? ORDER BY created_at DESC',
-                [utente_id, lega_id],
-                (err, rows) => {
-                    if (err) {
-                        console.error('❌ [PREFERITI] Errore query:', err);
-                        reject(err);
-                    } else {
-                        console.log('✅ [PREFERITI] Tornei trovati:', rows?.length || 0);
-                        resolve(rows || []);
-                    }
-                }
-            );
-        });
+        const db = getDb();
+        if (!db) {
+            return res.status(503).json({ error: 'Database non disponibile' });
+        }
+
+        const torneiResult = await db.query(
+            'SELECT torneo_id, torneo_nome, torneo_url, created_at FROM tornei_preferiti WHERE utente_id = $1 AND lega_id = $2 ORDER BY created_at DESC',
+            [utente_id, lega_id]
+        );
+        const tornei = torneiResult.rows;
+        
+        console.log('✅ [PREFERITI] Tornei trovati:', tornei?.length || 0);
         
         res.json({
             success: true,
@@ -1890,34 +1856,25 @@ router.post('/preferiti/salva', requireAuth, async (req, res) => {
             });
         }
         
+        const db = getDb();
+        if (!db) {
+            return res.status(503).json({ error: 'Database non disponibile' });
+        }
+
         // Prima rimuovi tutti i preferiti esistenti per questa lega
-        await new Promise((resolve, reject) => {
-            db.run(
-                'DELETE FROM tornei_preferiti WHERE utente_id = ? AND lega_id = ?',
-                [utente_id, lega_id],
-                (err) => {
-                    if (err) reject(err);
-                    else resolve();
-                }
-            );
-        });
+        await db.query(
+            'DELETE FROM tornei_preferiti WHERE utente_id = $1 AND lega_id = $2',
+            [utente_id, lega_id]
+        );
         
         // Poi inserisci i nuovi preferiti
         let torneiSalvati = 0;
         for (const torneo of tornei) {
-            await new Promise((resolve, reject) => {
-                db.run(
-                    'INSERT INTO tornei_preferiti (utente_id, lega_id, torneo_id, torneo_nome, torneo_url, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-                    [utente_id, lega_id, torneo.id, torneo.nome, torneo.url || null, new Date().toISOString()],
-                    (err) => {
-                        if (err) reject(err);
-                        else {
-                            torneiSalvati++;
-                            resolve();
-                        }
-                    }
-                );
-            });
+            await db.query(
+                'INSERT INTO tornei_preferiti (utente_id, lega_id, torneo_id, torneo_nome, torneo_url, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
+                [utente_id, lega_id, torneo.id, torneo.nome, torneo.url || null, new Date().toISOString()]
+            );
+            torneiSalvati++;
         }
         
         console.log('✅ [PREFERITI] Salvati', torneiSalvati, 'tornei preferiti');
@@ -1945,16 +1902,15 @@ router.delete('/preferiti/:lega_id/:torneo_id', requireAuth, async (req, res) =>
         
         console.log('🗑️ [PREFERITI] Rimozione torneo dai preferiti:', { lega_id, torneo_id });
         
-        await new Promise((resolve, reject) => {
-            db.run(
-                'DELETE FROM tornei_preferiti WHERE utente_id = ? AND lega_id = ? AND torneo_id = ?',
-                [utente_id, lega_id, torneo_id],
-                (err) => {
-                    if (err) reject(err);
-                    else resolve();
-                }
-            );
-        });
+        const db = getDb();
+        if (!db) {
+            return res.status(503).json({ error: 'Database non disponibile' });
+        }
+
+        await db.query(
+            'DELETE FROM tornei_preferiti WHERE utente_id = $1 AND lega_id = $2 AND torneo_id = $3',
+            [utente_id, lega_id, torneo_id]
+        );
         
         console.log('✅ [PREFERITI] Torneo rimosso dai preferiti');
         
@@ -1979,21 +1935,18 @@ router.get('/formazioni/:lega_id', requireAuth, async (req, res) => {
         
         console.log('📊 [FORMAZIONI] Caricamento formazioni per lega:', lega_id);
         
-        const formazioni = await new Promise((resolve, reject) => {
-            db.all(
-                'SELECT * FROM formazioni_scraping WHERE lega_id = ? ORDER BY created_at DESC',
-                [lega_id],
-                (err, rows) => {
-                    if (err) {
-                        console.error('❌ [FORMAZIONI] Errore query:', err);
-                        reject(err);
-                    } else {
-                        console.log('✅ [FORMAZIONI] Formazioni trovate:', rows?.length || 0);
-                        resolve(rows || []);
-                    }
-                }
-            );
-        });
+        const db = getDb();
+        if (!db) {
+            return res.status(503).json({ error: 'Database non disponibile' });
+        }
+
+        const formazioniResult = await db.query(
+            'SELECT * FROM formazioni_scraping WHERE lega_id = $1 ORDER BY created_at DESC',
+            [lega_id]
+        );
+        const formazioni = formazioniResult.rows;
+        
+        console.log('✅ [FORMAZIONI] Formazioni trovate:', formazioni?.length || 0);
         
         // Parsa i dati JSON per ogni formazione
         const formazioniParsate = formazioni.map(formazione => {
@@ -2039,17 +1992,17 @@ router.get('/bonus-images/:lega_id', requireAuth, async (req, res) => {
         
         console.log('🔍 [BONUS IMAGES] Raccolta immagini bonus per lega:', lega_id);
         
+        const db = getDb();
+        if (!db) {
+            return res.status(503).json({ error: 'Database non disponibile' });
+        }
+
         // Trova l'URL delle formazioni per questa lega
-        const lega = await new Promise((resolve, reject) => {
-            db.get(
-                'SELECT fantacalcio_url FROM leghe WHERE id = ?',
-                [lega_id],
-                (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                }
-            );
-        });
+        const legaResult = await db.query(
+            'SELECT fantacalcio_url FROM leghe WHERE id = $1',
+            [lega_id]
+        );
+        const lega = legaResult.rows[0];
         
         if (!lega || !lega.fantacalcio_url) {
             return res.status(404).json({

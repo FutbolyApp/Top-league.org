@@ -1,35 +1,34 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { getDb } = require('./db/postgres.js');
 
-// Percorso del database
-const dbPath = path.join(__dirname, 'db', 'topleague.db');
+async function addCanteraOfferte() {
+  console.log('Aggiunta colonna cantera alla tabella offerte...');
+  
+  const db = getDb();
+  if (!db) {
+    console.error('❌ Database non disponibile');
+    return;
+  }
 
-// Connessione al database
-const db = new sqlite3.Database(dbPath);
-
-console.log('Aggiunta colonna cantera alla tabella offerte...');
-
-// Aggiungi la colonna cantera (BOOLEAN, default FALSE)
-db.run(`
-  ALTER TABLE offerte 
-  ADD COLUMN cantera BOOLEAN DEFAULT 0
-`, (err) => {
-  if (err) {
-    if (err.message.includes('duplicate column name')) {
+  try {
+    // Aggiungi la colonna cantera (BOOLEAN, default FALSE)
+    await db.query(`
+      ALTER TABLE offerte 
+      ADD COLUMN cantera BOOLEAN DEFAULT FALSE
+    `);
+    console.log('Colonna cantera aggiunta con successo alla tabella offerte');
+  } catch (error) {
+    if (error.message.includes('duplicate column name') || error.message.includes('already exists')) {
       console.log('Colonna cantera già esistente nella tabella offerte');
     } else {
-      console.error('Errore nell\'aggiunta della colonna cantera:', err.message);
+      console.error('Errore nell\'aggiunta della colonna cantera:', error.message);
     }
-  } else {
-    console.log('Colonna cantera aggiunta con successo alla tabella offerte');
   }
-  
-  // Chiudi la connessione
-  db.close((err) => {
-    if (err) {
-      console.error('Errore nella chiusura del database:', err.message);
-    } else {
-      console.log('Database chiuso correttamente');
-    }
-  });
+}
+
+addCanteraOfferte().then(() => {
+  console.log('✅ Script completato');
+  process.exit(0);
+}).catch(error => {
+  console.error('❌ Errore:', error);
+  process.exit(1);
 }); 

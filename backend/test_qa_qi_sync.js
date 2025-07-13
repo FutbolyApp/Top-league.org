@@ -1,20 +1,24 @@
-import { getDb } from './db/config.js';
-
-const db = getDb();
+import { getDb } from './db/postgres.js';
 
 async function testQAQISync() {
     console.log('🧪 Test sincronizzazione QA/QI...');
     
+    const db = getDb();
+    if (!db) {
+        console.error('❌ Database non disponibile');
+        return;
+    }
+
     // Test 1: Verifica che le colonne esistano
     console.log('\n1. Verifica colonne QA/QI nella tabella giocatori...');
     try {
-        const result = await new Promise((resolve, reject) => {
-            db.get("PRAGMA table_info(giocatori)", (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
-        console.log('✅ Colonne giocatori verificate');
+        const result = await db.query(`
+            SELECT column_name, data_type 
+            FROM information_schema.columns 
+            WHERE table_name = 'giocatori' 
+            AND column_name IN ('qa', 'qi')
+        `);
+        console.log('✅ Colonne giocatori verificate:', result.rows);
     } catch (error) {
         console.error('❌ Errore verifica colonne:', error);
     }
@@ -22,13 +26,12 @@ async function testQAQISync() {
     // Test 2: Verifica tabella qa_history
     console.log('\n2. Verifica tabella qa_history...');
     try {
-        const result = await new Promise((resolve, reject) => {
-            db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='qa_history'", (err, row) => {
-                if (err) reject(err);
-                else resolve(row);
-            });
-        });
-        if (result) {
+        const result = await db.query(`
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_name = 'qa_history'
+        `);
+        if (result.rows.length > 0) {
             console.log('✅ Tabella qa_history esiste');
         } else {
             console.log('❌ Tabella qa_history non trovata');
@@ -40,24 +43,18 @@ async function testQAQISync() {
     // Test 3: Verifica dati di scraping
     console.log('\n3. Verifica dati di scraping...');
     try {
-        const result = await new Promise((resolve, reject) => {
-            db.all("SELECT COUNT(*) as count FROM giocatori_scraping", (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows[0]);
-            });
-        });
-        console.log(`✅ Giocatori di scraping trovati: ${result.count}`);
+        const result = await db.query("SELECT COUNT(*) as count FROM giocatori_scraping");
+        console.log(`✅ Giocatori di scraping trovati: ${result.rows[0].count}`);
         
         // Mostra alcuni esempi
-        const examples = await new Promise((resolve, reject) => {
-            db.all("SELECT nome, ruolo, squadra_reale, quotazione, qi, fv_mp FROM giocatori_scraping LIMIT 5", (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
+        const examples = await db.query(`
+            SELECT nome, ruolo, squadra_reale, quotazione, qi, fv_mp 
+            FROM giocatori_scraping 
+            LIMIT 5
+        `);
         
         console.log('\n📊 Esempi giocatori di scraping:');
-        examples.forEach((g, i) => {
+        examples.rows.forEach((g, i) => {
             console.log(`  ${i+1}. ${g.nome} (${g.ruolo}) - Squadra: ${g.squadra_reale} - QA: ${g.quotazione} - QI: ${g.qi} - FV: ${g.fv_mp}`);
         });
         
@@ -68,24 +65,23 @@ async function testQAQISync() {
     // Test 4: Verifica sincronizzazione
     console.log('\n4. Verifica sincronizzazione QA/QI...');
     try {
-        const result = await new Promise((resolve, reject) => {
-            db.all("SELECT COUNT(*) as count FROM giocatori WHERE qa IS NOT NULL OR qi IS NOT NULL", (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows[0]);
-            });
-        });
-        console.log(`✅ Giocatori con QA/QI sincronizzati: ${result.count}`);
+        const result = await db.query(`
+            SELECT COUNT(*) as count 
+            FROM giocatori 
+            WHERE qa IS NOT NULL OR qi IS NOT NULL
+        `);
+        console.log(`✅ Giocatori con QA/QI sincronizzati: ${result.rows[0].count}`);
         
         // Mostra alcuni esempi
-        const examples = await new Promise((resolve, reject) => {
-            db.all("SELECT nome, squadra_reale, qa, qi FROM giocatori WHERE qa IS NOT NULL OR qi IS NOT NULL LIMIT 5", (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows);
-            });
-        });
+        const examples = await db.query(`
+            SELECT nome, squadra_reale, qa, qi 
+            FROM giocatori 
+            WHERE qa IS NOT NULL OR qi IS NOT NULL 
+            LIMIT 5
+        `);
         
         console.log('\n📊 Esempi giocatori sincronizzati:');
-        examples.forEach((g, i) => {
+        examples.rows.forEach((g, i) => {
             console.log(`  ${i+1}. ${g.nome} - Squadra: ${g.squadra_reale} - QA: ${g.qa} - QI: ${g.qi}`);
         });
         
@@ -96,31 +92,21 @@ async function testQAQISync() {
     // Test 5: Verifica cronologia QA
     console.log('\n5. Verifica cronologia QA...');
     try {
-        const result = await new Promise((resolve, reject) => {
-            db.all("SELECT COUNT(*) as count FROM qa_history", (err, rows) => {
-                if (err) reject(err);
-                else resolve(rows[0]);
-            });
-        });
-        console.log(`✅ Record cronologia QA: ${result.count}`);
+        const result = await db.query("SELECT COUNT(*) as count FROM qa_history");
+        console.log(`✅ Record cronologia QA: ${result.rows[0].count}`);
         
-        if (result.count > 0) {
+        if (result.rows[0].count > 0) {
             // Mostra alcuni esempi
-            const examples = await new Promise((resolve, reject) => {
-                db.all(`
-                    SELECT qh.qa_value, qh.data_registrazione, g.nome 
-                    FROM qa_history qh 
-                    JOIN giocatori g ON qh.giocatore_id = g.id 
-                    ORDER BY qh.data_registrazione DESC 
-                    LIMIT 5
-                `, (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
-            });
+            const examples = await db.query(`
+                SELECT qh.qa_value, qh.data_registrazione, g.nome 
+                FROM qa_history qh 
+                JOIN giocatori g ON qh.giocatore_id = g.id 
+                ORDER BY qh.data_registrazione DESC 
+                LIMIT 5
+            `);
             
             console.log('\n📊 Esempi cronologia QA:');
-            examples.forEach((h, i) => {
+            examples.rows.forEach((h, i) => {
                 console.log(`  ${i+1}. ${h.nome} - QA: ${h.qa_value} - Data: ${h.data_registrazione}`);
             });
         }

@@ -1,49 +1,63 @@
-import { getDb } from './db/config.js';
+import { getDb } from './db/postgres.js';
 
-const db = getDb();
-
-console.log('Aggiungendo colonne alla tabella pending_changes...');
-
-// Aggiungi colonna description se non esiste
-db.all("PRAGMA table_info(pending_changes)", (err, columns) => {
-  if (err) {
-    console.error('Errore nel controllo struttura tabella pending_changes:', err);
+async function addPendingChangesColumns() {
+  console.log('Aggiungendo colonne alla tabella pending_changes...');
+  
+  const db = getDb();
+  if (!db) {
+    console.error('❌ Database non disponibile');
     return;
   }
-  
-  if (!columns || columns.length === 0) {
-    console.error('Nessuna colonna trovata nella tabella pending_changes');
-    return;
-  }
-  
-  const columnNames = columns.map(col => col.name);
-  console.log('Colonne esistenti:', columnNames);
-  
-  if (!columnNames.includes('description')) {
-    console.log('Aggiungendo colonna description...');
-    db.run('ALTER TABLE pending_changes ADD COLUMN description TEXT', (err) => {
-      if (err) {
-        console.error('Errore aggiunta colonna description:', err);
-      } else {
+
+  try {
+    // Controlla la struttura della tabella pending_changes
+    const columnsResult = await db.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'pending_changes'
+    `);
+    
+    if (!columnsResult.rows || columnsResult.rows.length === 0) {
+      console.error('Nessuna colonna trovata nella tabella pending_changes');
+      return;
+    }
+    
+    const columnNames = columnsResult.rows.map(col => col.column_name);
+    console.log('Colonne esistenti:', columnNames);
+    
+    if (!columnNames.includes('description')) {
+      console.log('Aggiungendo colonna description...');
+      try {
+        await db.query('ALTER TABLE pending_changes ADD COLUMN description TEXT');
         console.log('Colonna description aggiunta con successo');
+      } catch (error) {
+        console.error('Errore aggiunta colonna description:', error.message);
       }
-    });
-  } else {
-    console.log('Colonna description già esistente');
-  }
-  
-  if (!columnNames.includes('details')) {
-    console.log('Aggiungendo colonna details...');
-    db.run('ALTER TABLE pending_changes ADD COLUMN details TEXT', (err) => {
-      if (err) {
-        console.error('Errore aggiunta colonna details:', err);
-      } else {
+    } else {
+      console.log('Colonna description già esistente');
+    }
+    
+    if (!columnNames.includes('details')) {
+      console.log('Aggiungendo colonna details...');
+      try {
+        await db.query('ALTER TABLE pending_changes ADD COLUMN details TEXT');
         console.log('Colonna details aggiunta con successo');
+      } catch (error) {
+        console.error('Errore aggiunta colonna details:', error.message);
       }
-    });
-  } else {
-    console.log('Colonna details già esistente');
+    } else {
+      console.log('Colonna details già esistente');
+    }
+    
+  } catch (error) {
+    console.error('Errore nel controllo struttura tabella pending_changes:', error);
   }
-});
+}
 
-console.log('Script completato. Controlla i log sopra per i risultati.'); 
+addPendingChangesColumns().then(() => {
+  console.log('Script completato. Controlla i log sopra per i risultati.');
+  process.exit(0);
+}).catch(error => {
+  console.error('❌ Errore:', error);
+  process.exit(1);
+}); 

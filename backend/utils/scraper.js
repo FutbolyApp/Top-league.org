@@ -203,22 +203,26 @@ export async function updateClassificaFromScraping(legaId, url) {
   try {
     const classifica = await scrapeClassifica(url);
     
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+
     // Aggiorna i punti delle squadre nel database
     for (const posizione of classifica) {
-      db.run(
-        `UPDATE squadre 
-         SET punti_campionato = ?, 
-             gol_fatti = ?, 
-             gol_subiti = ?, 
-             differenza_reti = ?
-         WHERE lega_id = ? AND nome = ?`,
-        [posizione.punti, posizione.g_fatti, posizione.g_subiti, posizione.differenza, legaId, posizione.squadra],
-        function(err) {
-          if (err) {
-            console.error(`Errore aggiornamento squadra ${posizione.squadra}:`, err);
-          }
-        }
-      );
+      try {
+        await db.query(
+          `UPDATE squadre 
+           SET punti_campionato = $1, 
+               gol_fatti = $2, 
+               gol_subiti = $3, 
+               differenza_reti = $4
+           WHERE lega_id = $5 AND nome = $6`,
+          [posizione.punti, posizione.g_fatti, posizione.g_subiti, posizione.differenza, legaId, posizione.squadra]
+        );
+      } catch (err) {
+        console.error(`Errore aggiornamento squadra ${posizione.squadra}:`, err);
+      }
     }
     
     console.log(`Classifica aggiornata per lega ${legaId}`);
@@ -235,20 +239,24 @@ export async function updateVotiFromScraping(legaId, url) {
   try {
     const voti = await scrapeVoti(url);
     
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+
     // Aggiorna i voti dei giocatori nel database
     for (const voto of voti) {
-      db.run(
-        `UPDATE giocatori 
-         SET voto_ultima_giornata = ?,
-             data_ultimo_voto = datetime('now')
-         WHERE lega_id = ? AND nome = ? AND squadra_reale = ?`,
-        [voto.voto, legaId, voto.nome, voto.squadra_reale],
-        function(err) {
-          if (err) {
-            console.error(`Errore aggiornamento voto ${voto.nome}:`, err);
-          }
-        }
-      );
+      try {
+        await db.query(
+          `UPDATE giocatori 
+           SET voto_ultima_giornata = $1,
+               data_ultimo_voto = NOW()
+           WHERE lega_id = $2 AND nome = $3 AND squadra_reale = $4`,
+          [voto.voto, legaId, voto.nome, voto.squadra_reale]
+        );
+      } catch (err) {
+        console.error(`Errore aggiornamento voto ${voto.nome}:`, err);
+      }
     }
     
     console.log(`Voti aggiornati per lega ${legaId}`);
@@ -265,19 +273,29 @@ export async function importCalciatoriFromScraping(legaId, url) {
   try {
     const calciatori = await scrapeCalciatori(url);
     
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+
     // Importa i calciatori nel database
     for (const calciatore of calciatori) {
-      db.run(
-        `INSERT OR REPLACE INTO giocatori 
-         (nome, ruolo, squadra_reale, quotazione, costo_attuale, lega_id, stato)
-         VALUES (?, ?, ?, ?, ?, ?, 'disponibile')`,
-        [calciatore.nome, calciatore.ruolo, calciatore.squadra_reale, calciatore.quotazione, calciatore.costo_attuale, legaId],
-        function(err) {
-          if (err) {
-            console.error(`Errore importazione calciatore ${calciatore.nome}:`, err);
-          }
-        }
-      );
+      try {
+        await db.query(
+          `INSERT INTO giocatori 
+           (nome, ruolo, squadra_reale, quotazione, costo_attuale, lega_id, stato)
+           VALUES ($1, $2, $3, $4, $5, $6, 'disponibile')
+           ON CONFLICT (nome, lega_id) DO UPDATE SET
+           ruolo = EXCLUDED.ruolo,
+           squadra_reale = EXCLUDED.squadra_reale,
+           quotazione = EXCLUDED.quotazione,
+           costo_attuale = EXCLUDED.costo_attuale,
+           stato = EXCLUDED.stato`,
+          [calciatore.nome, calciatore.ruolo, calciatore.squadra_reale, calciatore.quotazione, calciatore.costo_attuale, legaId]
+        );
+      } catch (err) {
+        console.error(`Errore importazione calciatore ${calciatore.nome}:`, err);
+      }
     }
     
     console.log(`Calciatori importati per lega ${legaId}`);
