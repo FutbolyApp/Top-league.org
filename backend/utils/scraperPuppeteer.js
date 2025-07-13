@@ -1739,7 +1739,7 @@ class FantacalcioScraper {
                     
                     // Prima ottieni il giocatore_id dalla tabella principale
                     const giocatoreResult = await db.query(
-                        'SELECT id, qa FROM giocatori WHERE lega_id = $1 AND nome = $2',
+                        'SELECT g.id, g.qa FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g.nome = $2',
                         [legaId, giocatore.nome]
                     );
                     

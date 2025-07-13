@@ -121,11 +121,11 @@ async function migrateData() {
     for (const giocatore of giocatori) {
       try {
         await pgDb.query(`
-          INSERT INTO giocatori (id, lega_id, squadra_id, nome, cognome, ruolo, squadra_reale, eta, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, created_at, qi, site_id, nazione_campionato, media_voto, fantamedia_voto, presenze, goalfatti, goalsubiti, rigoriparati, rigoricalciati, rigorisegnati, rigorisbagliati, assist, ammonizioni, espulsioni, autogol, r, fr, valore_trasferimento, ultimo_pagamento_contratto, valore_prestito, ultimo_rinnovo_contratto, roster, squadra_prestito_id, trasferimento)
+          INSERT INTO giocatori (id, squadra_id, nome, cognome, ruolo, squadra_reale, eta, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, created_at, qi, site_id, nazione_campionato, media_voto, fantamedia_voto, presenze, goalfatti, goalsubiti, rigoriparati, rigoricalciati, rigorisegnati, rigorisbagliati, assist, ammonizioni, espulsioni, autogol, r, fr, valore_trasferimento, ultimo_pagamento_contratto, valore_prestito, ultimo_rinnovo_contratto, roster, squadra_prestito_id, trasferimento)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42)
           ON CONFLICT (id) DO NOTHING
         `, [
-          giocatore.id, giocatore.lega_id, giocatore.squadra_id, giocatore.nome,
+          giocatore.id, giocatore.squadra_id, giocatore.nome,
           giocatore.cognome, giocatore.ruolo, giocatore.squadra_reale, giocatore.eta,
           giocatore.quotazione_attuale, giocatore.salario, giocatore.costo_attuale,
           giocatore.costo_precedente, giocatore.prestito, giocatore.anni_contratto,

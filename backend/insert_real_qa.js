@@ -64,7 +64,7 @@ async function insertRealQA() {
     
     for (const giocatore of giocatori) {
       const giocatoreResult = await db.query(
-        'SELECT id, qa FROM giocatori WHERE lega_id = 76 AND nome = $1',
+        'SELECT g.id, g.qa FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = 76 AND g.nome = $1',
         [giocatore.nome]
       );
       
