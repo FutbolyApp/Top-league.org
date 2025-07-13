@@ -420,6 +420,28 @@ async function updateExistingTables() {
       console.log('Column roster already exists or error:', error.message);
     }
     
+    // Aggiungi colonna valore_prestito alla tabella giocatori se non esiste
+    try {
+      await db.query(`
+        ALTER TABLE giocatori 
+        ADD COLUMN IF NOT EXISTS valore_prestito REAL DEFAULT 0
+      `);
+      console.log('✅ Added valore_prestito column to giocatori table');
+    } catch (error) {
+      console.log('Column valore_prestito already exists or error:', error.message);
+    }
+    
+    // Aggiungi colonna valore_trasferimento alla tabella giocatori se non esiste
+    try {
+      await db.query(`
+        ALTER TABLE giocatori 
+        ADD COLUMN IF NOT EXISTS valore_trasferimento REAL DEFAULT 0
+      `);
+      console.log('✅ Added valore_trasferimento column to giocatori table');
+    } catch (error) {
+      console.log('Column valore_trasferimento already exists or error:', error.message);
+    }
+    
     // Aggiungi colonne per i limiti di ruolo alla tabella leghe se non esistono
     const roleColumns = [
       'max_portieri', 'min_portieri',
@@ -546,6 +568,8 @@ export async function initDb() {
         cantera BOOLEAN DEFAULT false,
         triggers TEXT,
         roster VARCHAR(10) DEFAULT 'A',
+        valore_prestito REAL DEFAULT 0,
+        valore_trasferimento REAL DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -737,4 +761,4 @@ export async function initDb() {
   }
 }
 
-export default pool; 
+export default pool;
