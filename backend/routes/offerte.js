@@ -56,6 +56,13 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
     const { legaId } = req.params;
     const db = getDb();
     
+    if (!db) {
+      return res.status(503).json({ 
+        error: 'Database non disponibile',
+        message: 'Il servizio database non è attualmente disponibile. Riprova più tardi.'
+      });
+    }
+
     const query = `
       SELECT o.id, o.tipo, o.valore, o.created_at as data,
              g.nome as giocatore_nome, g.cognome as giocatore_cognome,
@@ -93,7 +100,11 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
     res.json({ movimenti });
   } catch (err) {
     console.error('Errore query movimenti:', err);
-    res.status(500).json({ error: 'Errore DB', details: err.message });
+    res.status(500).json({ 
+      error: 'Errore interno del server',
+      message: 'Si è verificato un errore durante il recupero dei movimenti di mercato.',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 });
 
@@ -139,6 +150,13 @@ router.get('/roster/:squadraId', authenticateToken, async (req, res) => {
     const { id: userId, ruolo } = req.user;
     const db = getDb();
 
+    if (!db) {
+      return res.status(503).json({ 
+        error: 'Database non disponibile',
+        message: 'Il servizio database non è attualmente disponibile. Riprova più tardi.'
+      });
+    }
+
     // Verifica che l'utente sia proprietario della squadra O sia admin
     let squadra;
     
@@ -163,7 +181,11 @@ router.get('/roster/:squadraId', authenticateToken, async (req, res) => {
     res.json(giocatori);
   } catch (error) {
     console.error('Errore recupero giocatori roster:', error);
-    res.status(500).json({ error: 'Errore interno del server' });
+    res.status(500).json({ 
+      error: 'Errore interno del server',
+      message: 'Si è verificato un errore durante il recupero dei giocatori del roster.',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

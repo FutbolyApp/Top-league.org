@@ -54,6 +54,9 @@ export class RosterManager {
       };
     } catch (error) {
       console.error('Errore in getGiocatoriByRoster:', error);
+      if (error.message === 'Database non disponibile') {
+        throw new Error('Il servizio database non è attualmente disponibile. Riprova più tardi.');
+      }
       throw error;
     }
   }

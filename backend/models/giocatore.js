@@ -56,14 +56,26 @@ export async function getGiocatoreById(id) {
 }
 
 export async function getGiocatoriBySquadra(squadra_id) {
-  const db = getDb();
-  const result = await db.query(`
-    SELECT *, 
-           quotazione_attuale
-    FROM giocatori WHERE squadra_id = $1
-  `, [squadra_id]);
-  
-  return result.rows;
+  try {
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
+    const result = await db.query(`
+      SELECT *, 
+             quotazione_attuale
+      FROM giocatori WHERE squadra_id = $1
+    `, [squadra_id]);
+    
+    return result.rows;
+  } catch (error) {
+    console.error('Errore in getGiocatoriBySquadra:', error);
+    if (error.message === 'Database non disponibile') {
+      throw new Error('Il servizio database non è attualmente disponibile. Riprova più tardi.');
+    }
+    throw error;
+  }
 }
 
 export async function getGiocatoriByLega(lega_id) {
