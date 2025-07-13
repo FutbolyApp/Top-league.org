@@ -425,26 +425,36 @@ export async function initDb() {
       );
     `);
     
-    // Tabella leghe
+    // Tabella leghe (aggiornata con colonne di configurazione)
     await client.query(`
       CREATE TABLE IF NOT EXISTS leghe (
         id SERIAL PRIMARY KEY,
-        nome VARCHAR(255) NOT NULL,
-        modalita VARCHAR(50) NOT NULL,
-        admin_id INTEGER NOT NULL REFERENCES users(id),
+        nome TEXT NOT NULL,
+        descrizione TEXT,
+        admin_id INTEGER NOT NULL,
+        modalita TEXT DEFAULT 'Classic Serie A',
+        max_squadre INTEGER DEFAULT 20,
         is_pubblica BOOLEAN DEFAULT true,
-        password VARCHAR(255),
-        max_squadre INTEGER,
-        min_giocatori INTEGER,
-        max_giocatori INTEGER,
-        roster_ab BOOLEAN DEFAULT false,
-        cantera BOOLEAN DEFAULT false,
-        contratti BOOLEAN DEFAULT false,
-        triggers BOOLEAN DEFAULT false,
-        regolamento_pdf TEXT,
-        excel_originale TEXT,
-        excel_modificato TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        data_modifica TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        stato TEXT DEFAULT 'attiva',
+        password TEXT,
+        is_privata BOOLEAN DEFAULT false,
+        subadmin_id INTEGER,
+        roster_ab INTEGER DEFAULT 0,
+        cantera INTEGER DEFAULT 0,
+        contratti INTEGER DEFAULT 0,
+        triggers INTEGER DEFAULT 0,
+        max_portieri INTEGER DEFAULT 3,
+        min_portieri INTEGER DEFAULT 2,
+        max_difensori INTEGER DEFAULT 8,
+        min_difensori INTEGER DEFAULT 5,
+        max_centrocampisti INTEGER DEFAULT 8,
+        min_centrocampisti INTEGER DEFAULT 5,
+        max_attaccanti INTEGER DEFAULT 6,
+        min_attaccanti INTEGER DEFAULT 3,
+        FOREIGN KEY (admin_id) REFERENCES users(id),
+        FOREIGN KEY (subadmin_id) REFERENCES users(id)
       );
     `);
     

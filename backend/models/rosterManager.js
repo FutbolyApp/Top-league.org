@@ -2,8 +2,6 @@ import { getDb } from '../db/postgres.js';
 import { getLegaById } from './lega.js';
 import { getGiocatoriBySquadra } from './giocatore.js';
 
-const db = getDb();
-
 /**
  * Gestisce il sistema Roster A/B per una lega
  */
@@ -16,40 +14,48 @@ export class RosterManager {
    * Verifica se una lega ha il sistema Roster A/B attivato
    */
   async isRosterABEnabled() {
-    return new Promise((resolve, reject) => {
-      getLegaById(this.legaId, (err, lega) => {
-        if (err) return reject(err);
-        resolve(lega && lega.roster_ab === 1);
-      });
-    });
+    try {
+      const lega = await getLegaById(this.legaId);
+      return lega && lega.roster_ab === 1;
+    } catch (error) {
+      console.error('Errore in isRosterABEnabled:', error);
+      return false;
+    }
   }
 
   /**
    * Ottiene i giocatori di una squadra divisi per roster
    */
   async getGiocatoriByRoster(squadraId) {
-    return new Promise((resolve, reject) => {
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
       const sql = `
         SELECT *,
                quotazione_attuale
         FROM giocatori 
-        WHERE squadra_id = ? 
+        WHERE squadra_id = $1 
         ORDER BY roster, nome, cognome
       `;
       
-      db.all(sql, [squadraId], (err, giocatori) => {
-        if (err) return reject(err);
-        
-        const rosterA = giocatori.filter(g => g.roster === 'A');
-        const rosterB = giocatori.filter(g => g.roster === 'B');
-        
-        resolve({
-          rosterA,
-          rosterB,
-          total: giocatori.length
-        });
-      });
-    });
+      const result = await db.query(sql, [squadraId]);
+      const giocatori = result.rows || [];
+      
+      const rosterA = giocatori.filter(g => g.roster === 'A');
+      const rosterB = giocatori.filter(g => g.roster === 'B');
+      
+      return {
+        rosterA,
+        rosterB,
+        total: giocatori.length
+      };
+    } catch (error) {
+      console.error('Errore in getGiocatoriByRoster:', error);
+      throw error;
+    }
   }
 
   /**
@@ -57,26 +63,31 @@ export class RosterManager {
    * Solo se il giocatore è in prestito
    */
   async moveToRosterB(giocatoreId) {
-    return new Promise((resolve, reject) => {
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
       // Prima verifica se il giocatore è in prestito
-      db.get('SELECT prestito FROM giocatori WHERE id = ?', [giocatoreId], (err, giocatore) => {
-        if (err) return reject(err);
-        
-        if (!giocatore) {
-          return reject(new Error('Giocatore non trovato'));
-        }
-        
-        if (!giocatore.prestito) {
-          return reject(new Error('Solo i giocatori in prestito possono essere spostati in Roster B'));
-        }
-        
-        const sql = `UPDATE giocatori SET roster = 'B' WHERE id = ?`;
-        db.run(sql, [giocatoreId], function(err) {
-          if (err) return reject(err);
-          resolve(this.changes > 0);
-        });
-      });
-    });
+      const giocatoreResult = await db.query('SELECT prestito FROM giocatori WHERE id = $1', [giocatoreId]);
+      const giocatore = giocatoreResult.rows[0];
+      
+      if (!giocatore) {
+        throw new Error('Giocatore non trovato');
+      }
+      
+      if (!giocatore.prestito) {
+        throw new Error('Solo i giocatori in prestito possono essere spostati in Roster B');
+      }
+      
+      const sql = `UPDATE giocatori SET roster = 'B' WHERE id = $1`;
+      const result = await db.query(sql, [giocatoreId]);
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Errore in moveToRosterB:', error);
+      throw error;
+    }
   }
 
   /**
@@ -84,26 +95,31 @@ export class RosterManager {
    * Solo se il giocatore non è più in prestito
    */
   async moveToRosterA(giocatoreId) {
-    return new Promise((resolve, reject) => {
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
       // Prima verifica se il giocatore è ancora in prestito
-      db.get('SELECT prestito FROM giocatori WHERE id = ?', [giocatoreId], (err, giocatore) => {
-        if (err) return reject(err);
-        
-        if (!giocatore) {
-          return reject(new Error('Giocatore non trovato'));
-        }
-        
-        if (giocatore.prestito) {
-          return reject(new Error('I giocatori in prestito devono rimanere in Roster B'));
-        }
-        
-        const sql = `UPDATE giocatori SET roster = 'A' WHERE id = ?`;
-        db.run(sql, [giocatoreId], function(err) {
-          if (err) return reject(err);
-          resolve(this.changes > 0);
-        });
-      });
-    });
+      const giocatoreResult = await db.query('SELECT prestito FROM giocatori WHERE id = $1', [giocatoreId]);
+      const giocatore = giocatoreResult.rows[0];
+      
+      if (!giocatore) {
+        throw new Error('Giocatore non trovato');
+      }
+      
+      if (giocatore.prestito) {
+        throw new Error('I giocatori in prestito devono rimanere in Roster B');
+      }
+      
+      const sql = `UPDATE giocatori SET roster = 'A' WHERE id = $1`;
+      const result = await db.query(sql, [giocatoreId]);
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Errore in moveToRosterA:', error);
+      throw error;
+    }
   }
 
   /**
@@ -147,41 +163,40 @@ export class RosterManager {
       return { success: true, message: 'Sistema Roster A/B non attivato' };
     }
 
-    // Prima imposta prestito = 0 per indicare che il giocatore non è più in prestito
-    await new Promise((resolve, reject) => {
-      db.run('UPDATE giocatori SET prestito = 0 WHERE id = ?', [giocatoreId], function(err) {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
 
-    // Ottieni il numero massimo di giocatori dalla lega
-    const lega = await new Promise((resolve, reject) => {
-      getLegaById(this.legaId, (err, lega) => {
-        if (err) reject(err);
-        else resolve(lega);
-      });
-    });
+      // Prima imposta prestito = 0 per indicare che il giocatore non è più in prestito
+      await db.query('UPDATE giocatori SET prestito = 0 WHERE id = $1', [giocatoreId]);
 
-    const maxGiocatori = lega.max_giocatori || 30;
-    const giocatori = await this.getGiocatoriByRoster(squadraId);
-    
-    if (giocatori.total >= maxGiocatori) {
-      // Squadra al limite massimo, giocatore rimane in Roster B
-      await this.moveToRosterB(giocatoreId);
-      return {
-        success: true,
-        message: `Squadra al limite massimo di ${maxGiocatori} giocatori. Il giocatore è stato spostato in Roster B.`,
-        requiresAction: true
-      };
-    } else {
-      // Squadra sotto il limite, giocatore può tornare in Roster A
-      await this.moveToRosterA(giocatoreId);
-      return {
-        success: true,
-        message: 'Giocatore riportato in Roster A.',
-        requiresAction: false
-      };
+      // Ottieni il numero massimo di giocatori dalla lega
+      const lega = await getLegaById(this.legaId);
+      const maxGiocatori = lega.max_giocatori || 30;
+      const giocatori = await this.getGiocatoriByRoster(squadraId);
+      
+      if (giocatori.total >= maxGiocatori) {
+        // Squadra al limite massimo, giocatore rimane in Roster B
+        await this.moveToRosterB(giocatoreId);
+        return {
+          success: true,
+          message: `Squadra al limite massimo di ${maxGiocatori} giocatori. Il giocatore è stato spostato in Roster B.`,
+          requiresAction: true
+        };
+      } else {
+        // Squadra sotto il limite, giocatore può tornare in Roster A
+        await this.moveToRosterA(giocatoreId);
+        return {
+          success: true,
+          message: 'Giocatore riportato in Roster A.',
+          requiresAction: false
+        };
+      }
+    } catch (error) {
+      console.error('Errore in handleLoanReturn:', error);
+      throw error;
     }
   }
 
@@ -189,18 +204,24 @@ export class RosterManager {
    * Calcola il costo salariale solo per i giocatori in Roster A
    */
   async calculateRosterASalary(squadraId) {
-    return new Promise((resolve, reject) => {
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
       const sql = `
         SELECT SUM(salario) as totale_salari
         FROM giocatori 
-        WHERE squadra_id = ? AND roster = 'A'
+        WHERE squadra_id = $1 AND roster = 'A'
       `;
       
-      db.get(sql, [squadraId], (err, result) => {
-        if (err) return reject(err);
-        resolve(result ? result.totale_salari || 0 : 0);
-      });
-    });
+      const result = await db.query(sql, [squadraId]);
+      return result.rows[0]?.totale_salari || 0;
+    } catch (error) {
+      console.error('Errore in calculateRosterASalary:', error);
+      return 0;
+    }
   }
 
   /**
@@ -232,33 +253,45 @@ export class RosterManager {
       throw new Error('Roster deve essere A o B');
     }
 
-    return new Promise((resolve, reject) => {
-      const sql = `UPDATE giocatori SET roster = ? WHERE id = ?`;
-      db.run(sql, [targetRoster, giocatoreId], function(err) {
-        if (err) return reject(err);
-        resolve(this.changes > 0);
-      });
-    });
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
+      const sql = `UPDATE giocatori SET roster = $1 WHERE id = $2`;
+      const result = await db.query(sql, [targetRoster, giocatoreId]);
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Errore in forceRosterMove:', error);
+      throw error;
+    }
   }
 
   /**
    * Verifica se una squadra ha giocatori in prestito che potrebbero tornare
    */
   async getPendingLoanReturns(squadraId) {
-    return new Promise((resolve, reject) => {
+    try {
+      const db = getDb();
+      if (!db) {
+        throw new Error('Database non disponibile');
+      }
+
       const sql = `
         SELECT *,
                quotazione_attuale
         FROM giocatori 
-        WHERE squadra_id = ? AND prestito = 1 AND roster = 'B'
+        WHERE squadra_id = $1 AND prestito = 1 AND roster = 'B'
         ORDER BY nome, cognome
       `;
       
-      db.all(sql, [squadraId], (err, giocatori) => {
-        if (err) return reject(err);
-        resolve(giocatori);
-      });
-    });
+      const result = await db.query(sql, [squadraId]);
+      return result.rows || [];
+    } catch (error) {
+      console.error('Errore in getPendingLoanReturns:', error);
+      throw error;
+    }
   }
 }
 
