@@ -1,9 +1,13 @@
 import { getDb } from '../db/postgres.js';
 
 export async function createUtente(data) {
-  const client = await getDb().connect();
   try {
-    const result = await client.query(`
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
+    const result = await db.query(`
       INSERT INTO users (nome, cognome, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo, username)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
     `, [
@@ -18,59 +22,99 @@ export async function createUtente(data) {
       data.username || null
     ]);
     return result.rows[0].id;
-  } finally {
-    client.release();
+  } catch (error) {
+    console.error('Errore in createUtente:', error);
+    if (error.message === 'Database non disponibile') {
+      throw new Error('Il servizio database non è attualmente disponibile. Riprova più tardi.');
+    }
+    throw error;
   }
 }
 
 export async function getUtenteById(id) {
-  const client = await getDb().connect();
   try {
-    const result = await client.query('SELECT * FROM users WHERE id = $1', [id]);
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
+    const result = await db.query('SELECT * FROM users WHERE id = $1', [id]);
     return result.rows[0];
-  } finally {
-    client.release();
+  } catch (error) {
+    console.error('Errore in getUtenteById:', error);
+    if (error.message === 'Database non disponibile') {
+      throw new Error('Il servizio database non è attualmente disponibile. Riprova più tardi.');
+    }
+    throw error;
   }
 }
 
 export async function getUtenteByEmail(email) {
-  const client = await getDb().connect();
   try {
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
     console.log('getUtenteByEmail called with email:', email);
-    const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     console.log('getUtenteByEmail result:', result.rows[0] ? 'found' : 'not found');
     return result.rows[0];
-  } finally {
-    client.release();
+  } catch (error) {
+    console.error('Errore in getUtenteByEmail:', error);
+    if (error.message === 'Database non disponibile') {
+      throw new Error('Il servizio database non è attualmente disponibile. Riprova più tardi.');
+    }
+    throw error;
   }
 }
 
 export async function getUtenteByUsername(username) {
-  const client = await getDb().connect();
   try {
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
     console.log('getUtenteByUsername called with username:', username);
-    const result = await client.query('SELECT * FROM users WHERE username = $1', [username]);
+    const result = await db.query('SELECT * FROM users WHERE username = $1', [username]);
     console.log('getUtenteByUsername result:', result.rows[0] ? 'found' : 'not found');
     return result.rows[0];
-  } finally {
-    client.release();
+  } catch (error) {
+    console.error('Errore in getUtenteByUsername:', error);
+    if (error.message === 'Database non disponibile') {
+      throw new Error('Il servizio database non è attualmente disponibile. Riprova più tardi.');
+    }
+    throw error;
   }
 }
 
 export async function getAllUtenti() {
-  const client = await getDb().connect();
   try {
-    const result = await client.query('SELECT * FROM users');
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
+    const result = await db.query('SELECT * FROM users');
     return result.rows;
-  } finally {
-    client.release();
+  } catch (error) {
+    console.error('Errore in getAllUtenti:', error);
+    if (error.message === 'Database non disponibile') {
+      throw new Error('Il servizio database non è attualmente disponibile. Riprova più tardi.');
+    }
+    throw error;
   }
 }
 
 export async function updateUtente(id, data) {
-  const client = await getDb().connect();
   try {
-    await client.query(`
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
+    await db.query(`
       UPDATE users SET nome=$1, cognome=$2, provenienza=$3, squadra_cuore=$4, come_conosciuto=$5, email=$6, password_hash=$7, ruolo=$8, username=$9 WHERE id=$10
     `, [
       data.nome,
@@ -84,25 +128,45 @@ export async function updateUtente(id, data) {
       data.username || null,
       id
     ]);
-  } finally {
-    client.release();
+  } catch (error) {
+    console.error('Errore in updateUtente:', error);
+    if (error.message === 'Database non disponibile') {
+      throw new Error('Il servizio database non è attualmente disponibile. Riprova più tardi.');
+    }
+    throw error;
   }
 }
 
 export async function updateUtenteRole(id, ruolo) {
-  const client = await getDb().connect();
   try {
-    await client.query('UPDATE users SET ruolo=$1 WHERE id=$2', [ruolo, id]);
-  } finally {
-    client.release();
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
+    await db.query('UPDATE users SET ruolo=$1 WHERE id=$2', [ruolo, id]);
+  } catch (error) {
+    console.error('Errore in updateUtenteRole:', error);
+    if (error.message === 'Database non disponibile') {
+      throw new Error('Il servizio database non è attualmente disponibile. Riprova più tardi.');
+    }
+    throw error;
   }
 }
 
 export async function deleteUtente(id) {
-  const client = await getDb().connect();
   try {
-    await client.query('DELETE FROM users WHERE id = $1', [id]);
-  } finally {
-    client.release();
+    const db = getDb();
+    if (!db) {
+      throw new Error('Database non disponibile');
+    }
+    
+    await db.query('DELETE FROM users WHERE id = $1', [id]);
+  } catch (error) {
+    console.error('Errore in deleteUtente:', error);
+    if (error.message === 'Database non disponibile') {
+      throw new Error('Il servizio database non è attualmente disponibile. Riprova più tardi.');
+    }
+    throw error;
   }
 } 

@@ -85,28 +85,69 @@ router.post('/login', async (req, res) => {
     console.log('User authenticated:', utente.username, 'ID:', utente.id);
     
     // Ottieni le leghe di cui l'utente è admin
-    const db = getDb();
-    const legheResult = await db.query('SELECT id, nome FROM leghe WHERE admin_id = $1', [utente.id]);
-    const legheAdmin = legheResult.rows;
-    
-    const token = generateToken(utente);
-    console.log('Login successful for:', utente.username, 'Leghe admin:', legheAdmin.length);
-    
-    res.json({ 
-      token, 
-      user: { 
-        id: utente.id, 
-        nome: utente.nome, 
-        cognome: utente.cognome, 
-        username: utente.username,
-        email: utente.email, 
-        ruolo: utente.ruolo,
-        leghe_admin: legheAdmin
-      } 
-    });
+    try {
+      const db = getDb();
+      if (!db) {
+        console.log('Database not available, proceeding without leghe admin');
+        const token = generateToken(utente);
+        return res.json({ 
+          token, 
+          user: { 
+            id: utente.id, 
+            nome: utente.nome, 
+            cognome: utente.cognome, 
+            username: utente.username,
+            email: utente.email, 
+            ruolo: utente.ruolo,
+            leghe_admin: []
+          } 
+        });
+      }
+      
+      const legheResult = await db.query('SELECT id, nome FROM leghe WHERE admin_id = $1', [utente.id]);
+      const legheAdmin = legheResult.rows;
+      
+      const token = generateToken(utente);
+      console.log('Login successful for:', utente.username, 'Leghe admin:', legheAdmin.length);
+      
+      res.json({ 
+        token, 
+        user: { 
+          id: utente.id, 
+          nome: utente.nome, 
+          cognome: utente.cognome, 
+          username: utente.username,
+          email: utente.email, 
+          ruolo: utente.ruolo,
+          leghe_admin: legheAdmin
+        } 
+      });
+    } catch (dbError) {
+      console.error('Database error in login:', dbError);
+      // Se c'è un errore del database, procedi comunque con il login
+      const token = generateToken(utente);
+      res.json({ 
+        token, 
+        user: { 
+          id: utente.id, 
+          nome: utente.nome, 
+          cognome: utente.cognome, 
+          username: utente.username,
+          email: utente.email, 
+          ruolo: utente.ruolo,
+          leghe_admin: []
+        } 
+      });
+    }
     
   } catch (e) {
     console.error('Unexpected error in login:', e);
+    if (e.message && e.message.includes('Database non disponibile')) {
+      return res.status(503).json({ 
+        error: 'Servizio temporaneamente non disponibile',
+        message: 'Il servizio database non è attualmente disponibile. Riprova più tardi.'
+      });
+    }
     res.status(500).json({ error: 'Errore interno del server', details: e.message });
   }
 });
