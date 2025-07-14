@@ -340,6 +340,31 @@ router.post('/update-schema', requireSuperAdmin, async (req, res) => {
       console.log('Error updating default values:', error.message);
     }
     
+    // Crea o aggiorna la tabella richieste_unione_squadra
+    try {
+      await db.query(`
+        CREATE TABLE IF NOT EXISTS richieste_unione_squadra (
+          id SERIAL PRIMARY KEY,
+          utente_id INTEGER NOT NULL,
+          squadra_id INTEGER NOT NULL,
+          lega_id INTEGER NOT NULL,
+          stato VARCHAR(50) DEFAULT 'in_attesa',
+          data_richiesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          data_risposta TIMESTAMP,
+          risposta_admin_id INTEGER,
+          messaggio_richiesta TEXT,
+          messaggio_risposta TEXT,
+          FOREIGN KEY (utente_id) REFERENCES users(id),
+          FOREIGN KEY (squadra_id) REFERENCES squadre(id),
+          FOREIGN KEY (lega_id) REFERENCES leghe(id),
+          FOREIGN KEY (risposta_admin_id) REFERENCES users(id)
+        )
+      `);
+      console.log('✅ Created/updated richieste_unione_squadra table');
+    } catch (error) {
+      console.log('Error creating richieste_unione_squadra table:', error.message);
+    }
+    
     console.log('✅ Schema update completed');
     
     res.json({ 
