@@ -216,15 +216,19 @@ async function createMissingTables() {
       // Tabella richieste_unione_squadra
       `CREATE TABLE IF NOT EXISTS richieste_unione_squadra (
         id SERIAL PRIMARY KEY,
-        squadra_richiedente_id INTEGER NOT NULL,
-        squadra_destinatario_id INTEGER NOT NULL,
-        stato TEXT DEFAULT 'pending',
+        utente_id INTEGER NOT NULL,
+        squadra_id INTEGER NOT NULL,
+        lega_id INTEGER NOT NULL,
+        stato TEXT DEFAULT 'in_attesa',
         data_richiesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         data_risposta TIMESTAMP,
+        risposta_admin_id INTEGER,
         messaggio_richiesta TEXT,
         messaggio_risposta TEXT,
-        FOREIGN KEY (squadra_richiedente_id) REFERENCES squadre(id),
-        FOREIGN KEY (squadra_destinatario_id) REFERENCES squadre(id)
+        FOREIGN KEY (utente_id) REFERENCES users(id),
+        FOREIGN KEY (squadra_id) REFERENCES squadre(id),
+        FOREIGN KEY (lega_id) REFERENCES leghe(id),
+        FOREIGN KEY (risposta_admin_id) REFERENCES users(id)
       )`,
       
       // Tabella squadre_scraping
@@ -708,6 +712,22 @@ export async function initDb() {
         data_richiesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         data_risposta TIMESTAMP,
         risposta_admin_id INTEGER REFERENCES users(id),
+        messaggio_risposta TEXT
+      );
+    `);
+    
+    // Tabella richieste_unione_squadra
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS richieste_unione_squadra (
+        id SERIAL PRIMARY KEY,
+        utente_id INTEGER NOT NULL REFERENCES users(id),
+        squadra_id INTEGER NOT NULL REFERENCES squadre(id),
+        lega_id INTEGER NOT NULL REFERENCES leghe(id),
+        stato VARCHAR(50) DEFAULT 'in_attesa',
+        data_richiesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        data_risposta TIMESTAMP,
+        risposta_admin_id INTEGER REFERENCES users(id),
+        messaggio_richiesta TEXT,
         messaggio_risposta TEXT
       );
     `);
