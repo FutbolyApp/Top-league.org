@@ -9,11 +9,12 @@ const ModalOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 99999;
+  backdrop-filter: blur(5px);
 `;
 
 const Modal = styled.div`
@@ -22,19 +23,26 @@ const Modal = styled.div`
   padding: 2rem;
   max-width: 400px;
   width: 90%;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 2px solid #007bff;
+  position: relative;
+  z-index: 100000;
 `;
 
 const Title = styled.h2`
   margin: 0 0 1rem 0;
-  color: #333;
+  color: #dc3545;
   text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
 `;
 
 const Message = styled.p`
   color: #666;
   text-align: center;
   margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+  line-height: 1.4;
 `;
 
 const Form = styled.form`
@@ -161,7 +169,7 @@ const TokenExpiredHandler = ({ children }) => {
           {console.log('Rendering login modal')}
           <ModalOverlay>
             <Modal>
-              <Title>🔐 Sessione Scaduta</Title>
+              <Title>⚠️ Sessione Scaduta</Title>
               <Message>
                 La tua sessione è scaduta. Effettua di nuovo il login per continuare.
               </Message>
@@ -174,6 +182,7 @@ const TokenExpiredHandler = ({ children }) => {
                   value={loginData.email}
                   onChange={handleInputChange}
                   required
+                  style={{ borderColor: '#007bff' }}
                 />
                 
                 <Input
@@ -183,6 +192,7 @@ const TokenExpiredHandler = ({ children }) => {
                   value={loginData.password}
                   onChange={handleInputChange}
                   required
+                  style={{ borderColor: '#007bff' }}
                 />
                 
                 {error && <ErrorMessage>{error}</ErrorMessage>}
