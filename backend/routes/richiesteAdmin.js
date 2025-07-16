@@ -22,32 +22,41 @@ router.post('/create', authenticateToken, async (req, res) => {
     const { squadra_id, tipo_richiesta, dati_richiesta } = req.body;
     const user_id = req.user.id;
 
-    console.log('Creating admin request:', { squadra_id, tipo_richiesta, user_id });
+    console.log('🔍 Creating admin request:', { squadra_id, tipo_richiesta, user_id });
 
     // Verifica che l'utente sia proprietario della squadra
     const squadra = await getSquadraById(squadra_id);
+    console.log('🔍 Squadra found:', squadra ? 'yes' : 'no');
+    
     if (!squadra) {
+      console.log('❌ Squadra non trovata');
       return res.status(404).json({ error: 'Squadra non trovata' });
     }
+    
+    console.log('🔍 Squadra proprietario_id:', squadra.proprietario_id, 'user_id:', user_id);
+    
     if (squadra.proprietario_id !== user_id) {
+      console.log('❌ Non autorizzato - proprietario_id:', squadra.proprietario_id, 'user_id:', user_id);
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
     // Crea la richiesta
+    console.log('🔍 Creating richiesta admin...');
     const richiesta_id = await createRichiestaAdmin(squadra_id, tipo_richiesta, dati_richiesta);
+    console.log('✅ Richiesta created with ID:', richiesta_id);
 
     // Ottieni l'admin della lega
     const db = getDb();
-    console.log('Creating admin request - squadra_id:', squadra_id, 'lega_id:', squadra.lega_id);
+    console.log('🔍 Getting league admin for squadra_id:', squadra_id, 'lega_id:', squadra.lega_id);
     const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [squadra.lega_id]);
     const lega = legaResult.rows[0];
     
     if (!lega) {
-      console.error('Errore nel recupero admin lega:', 'lega:', lega);
+      console.error('❌ Errore nel recupero admin lega:', 'lega:', lega);
       return res.status(500).json({ error: 'Errore del server' });
     }
 
-    console.log('Found league admin:', lega.admin_id);
+    console.log('✅ Found league admin:', lega.admin_id);
 
     // Crea notifica per l'admin della lega
     const notifica_data = {
@@ -63,18 +72,20 @@ router.post('/create', authenticateToken, async (req, res) => {
       }
     };
 
-    console.log('Creating notification with data:', notifica_data);
+    console.log('🔍 Creating notification with data:', notifica_data);
 
     try {
       await createNotifica(notifica_data);
-      console.log('Notification created successfully');
+      console.log('✅ Notification created successfully');
     } catch (err) {
-      console.error('Errore creazione notifica:', err);
+      console.error('❌ Errore creazione notifica:', err);
     }
 
+    console.log('✅ Admin request created successfully');
     res.json({ success: true, richiesta_id });
   } catch (err) {
-    console.error('Errore creazione richiesta admin:', err);
+    console.error('❌ Errore creazione richiesta admin:', err);
+    console.error('❌ Error stack:', err.stack);
     res.status(500).json({ error: 'Errore del server' });
   }
 });
@@ -85,16 +96,27 @@ router.get('/squadra/:squadra_id', authenticateToken, async (req, res) => {
     const { squadra_id } = req.params;
     const user_id = req.user.id;
 
+    console.log('🔍 RichiesteAdmin - squadra/:squadra_id called with:', { squadra_id, user_id });
+
     // Verifica che l'utente sia proprietario della squadra
     const squadra = await getSquadraById(squadra_id);
+    console.log('🔍 Squadra found:', squadra ? 'yes' : 'no');
+    
     if (!squadra) {
+      console.log('❌ Squadra non trovata');
       return res.status(404).json({ error: 'Squadra non trovata' });
     }
+    
+    console.log('🔍 Squadra proprietario_id:', squadra.proprietario_id, 'user_id:', user_id);
+    
     if (squadra.proprietario_id !== user_id) {
+      console.log('❌ Non autorizzato - proprietario_id:', squadra.proprietario_id, 'user_id:', user_id);
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
+    console.log('🔍 Getting richieste for squadra_id:', squadra_id);
     const richieste = await getRichiesteBySquadra(squadra_id);
+    console.log('🔍 Richieste found:', richieste.length);
 
     // Parsing dei dati JSON
     const richieste_parsed = richieste.map(r => ({
@@ -102,9 +124,11 @@ router.get('/squadra/:squadra_id', authenticateToken, async (req, res) => {
       dati_richiesta: JSON.parse(r.dati_richiesta || '{}')
     }));
 
+    console.log('✅ Richieste retrieved successfully');
     res.json({ richieste: richieste_parsed });
   } catch (err) {
-    console.error('Errore recupero richieste squadra:', err);
+    console.error('❌ Errore recupero richieste squadra:', err);
+    console.error('❌ Error stack:', err.stack);
     res.status(500).json({ error: 'Errore nel recupero delle richieste' });
   }
 });
