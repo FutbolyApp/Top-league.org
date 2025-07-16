@@ -381,7 +381,8 @@ const RichiestaAdmin = () => {
 
   const getRequestDetails = (richiesta) => {
     try {
-      const dati = JSON.parse(richiesta.dati_richiesta || '{}');
+      // The backend already parses the dati_richiesta, so we don't need to parse it again
+      const dati = richiesta.dati_richiesta || {};
       
       switch (richiesta.tipo_richiesta) {
         case 'cantera':
