@@ -346,11 +346,15 @@ router.post('/impostazioni/:giocatoreId', requireAuth, async (req, res) => {
       updateData.valore_trasferimento = valoreTrasferimento || 0;
     }
 
-    const updateFields = Object.keys(updateData).map(field => `${field} = $${Object.keys(updateData).length + 1}`).join(', ');
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'Nessun dato da aggiornare' });
+    }
+
+    const updateFields = Object.keys(updateData).map((field, index) => `${field} = $${index + 1}`).join(', ');
     const updateValues = Object.values(updateData);
 
     await db.query(
-      `UPDATE giocatori SET ${updateFields} WHERE id = $${Object.keys(updateData).length + 2}`,
+      `UPDATE giocatori SET ${updateFields} WHERE id = $${updateValues.length + 1}`,
       [...updateValues, giocatoreId]
     );
 

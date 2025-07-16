@@ -54,6 +54,7 @@ router.post('/create', authenticateToken, async (req, res) => {
       tipo: 'richiesta_admin',
       messaggio: `Nuova richiesta ${tipo_richiesta} da ${squadra.nome}`,
       utente_id: lega.admin_id,
+      lega_id: squadra.lega_id,
       dati_aggiuntivi: {
         richiesta_id: richiesta_id,
         squadra_id: squadra_id,
@@ -189,6 +190,7 @@ router.post('/:richiesta_id/gestisci', authenticateToken, async (req, res) => {
       tipo: 'risposta_richiesta_admin',
       messaggio: messaggio_notifica,
       utente_id: squadra.proprietario_id,
+      lega_id: squadra.lega_id,
       dati_aggiuntivi: {
         richiesta_id: richiesta_id,
         squadra_id: richiesta.squadra_id,
@@ -209,6 +211,7 @@ router.post('/:richiesta_id/gestisci', authenticateToken, async (req, res) => {
       tipo: 'richiesta_admin_gestita',
       messaggio: `Hai ${azione === 'accepted' ? 'accettato' : azione === 'rejected' ? 'rifiutato' : 'messo in revisione'} la richiesta ${richiesta.tipo_richiesta} di ${squadra.nome}`,
       utente_id: lega.admin_id,
+      lega_id: squadra.lega_id,
       dati_aggiuntivi: {
         richiesta_id: richiesta_id,
         squadra_id: richiesta.squadra_id,
@@ -461,6 +464,7 @@ router.post('/:richiesta_id/annulla', authenticateToken, async (req, res) => {
       tipo: 'richiesta_admin_annullata',
       messaggio: `La richiesta ${richiesta.tipo_richiesta} è stata annullata dall'admin`,
       utente_id: squadra.proprietario_id,
+      lega_id: squadra.lega_id,
       dati_aggiuntivi: {
         richiesta_id: richiesta_id,
         squadra_id: richiesta.squadra_id,
@@ -480,6 +484,7 @@ router.post('/:richiesta_id/annulla', authenticateToken, async (req, res) => {
       tipo: 'richiesta_admin_annullata',
       messaggio: `Hai annullato la richiesta ${richiesta.tipo_richiesta} di ${squadra.nome}`,
       utente_id: lega.admin_id,
+      lega_id: squadra.lega_id,
       dati_aggiuntivi: {
         richiesta_id: richiesta_id,
         squadra_id: richiesta.squadra_id,
