@@ -49,6 +49,7 @@ import GestioneRichiesteAdmin from './pages/GestioneRichiesteAdmin';
 import GestioneRosterAdmin from './pages/GestioneRosterAdmin';
 import NotFound from './pages/NotFound';
 import NetworkErrorHandler from './components/NetworkErrorHandler';
+import TokenExpiredHandler from './components/TokenExpiredHandler';
 import './index.css';
 
 function AppRoutes() {
@@ -110,8 +111,10 @@ function App() {
     <NetworkErrorHandler>
       <AuthProvider>
         <NotificationProvider>
-          <AppRoutes />
-          <ApiMonitor />
+          <TokenExpiredHandler>
+            <AppRoutes />
+            <ApiMonitor />
+          </TokenExpiredHandler>
         </NotificationProvider>
       </AuthProvider>
     </NetworkErrorHandler>
