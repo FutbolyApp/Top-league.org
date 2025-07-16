@@ -407,68 +407,151 @@ async function updateExistingTables() {
   try {
     console.log('🔄 Updating existing tables with missing columns...');
     
-    const db = getDb();
-    if (!db) {
-      console.log('Database not available, skipping table updates');
-      return;
+    // Update richieste_admin table if needed
+    try {
+      // Check if dati_richiesta column exists
+      const checkDatiRichiesta = await pool.query(`
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name = 'richieste_admin' AND column_name = 'dati_richiesta'
+      `);
+      
+      if (checkDatiRichiesta.rows.length === 0) {
+        console.log('📄 Adding dati_richiesta column to richieste_admin table...');
+        await pool.query(`
+          ALTER TABLE richieste_admin ADD COLUMN dati_richiesta TEXT
+        `);
+        console.log('✅ dati_richiesta column added');
+      } else {
+        console.log('✅ dati_richiesta column already exists');
+      }
+    } catch (error) {
+      console.log(`Column dati_richiesta already exists or error: ${error.message}`);
     }
     
-    // Aggiungi colonna roster alla tabella giocatori se non esiste
     try {
-      await db.query(`
+      // Check if data_creazione column exists
+      const checkDataCreazione = await pool.query(`
+        SELECT column_name FROM information_schema.columns 
+        WHERE table_name = 'richieste_admin' AND column_name = 'data_creazione'
+      `);
+      
+      if (checkDataCreazione.rows.length === 0) {
+        console.log('📄 Adding data_creazione column to richieste_admin table...');
+        await pool.query(`
+          ALTER TABLE richieste_admin ADD COLUMN data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        `);
+        console.log('✅ data_creazione column added');
+      } else {
+        console.log('✅ data_creazione column already exists');
+      }
+    } catch (error) {
+      console.log(`Column data_creazione already exists or error: ${error.message}`);
+    }
+    
+    // Update other tables as needed
+    try {
+      await pool.query(`
         ALTER TABLE giocatori 
         ADD COLUMN IF NOT EXISTS roster VARCHAR(10) DEFAULT 'A'
       `);
-      console.log('✅ Added roster column to giocatori table');
     } catch (error) {
-      console.log('Column roster already exists or error:', error.message);
+      console.log(`Column roster already exists or error: ${error.message}`);
     }
     
-    // Aggiungi colonna valore_prestito alla tabella giocatori se non esiste
     try {
-      await db.query(`
+      await pool.query(`
         ALTER TABLE giocatori 
         ADD COLUMN IF NOT EXISTS valore_prestito REAL DEFAULT 0
       `);
-      console.log('✅ Added valore_prestito column to giocatori table');
     } catch (error) {
-      console.log('Column valore_prestito already exists or error:', error.message);
+      console.log(`Column valore_prestito already exists or error: ${error.message}`);
     }
     
-    // Aggiungi colonna valore_trasferimento alla tabella giocatori se non esiste
     try {
-      await db.query(`
+      await pool.query(`
         ALTER TABLE giocatori 
         ADD COLUMN IF NOT EXISTS valore_trasferimento REAL DEFAULT 0
       `);
-      console.log('✅ Added valore_trasferimento column to giocatori table');
     } catch (error) {
-      console.log('Column valore_trasferimento already exists or error:', error.message);
+      console.log(`Column valore_trasferimento already exists or error: ${error.message}`);
     }
     
-    // Aggiungi colonne per i limiti di ruolo alla tabella leghe se non esistono
-    const roleColumns = [
-      'max_portieri', 'min_portieri',
-      'max_difensori', 'min_difensori', 
-      'max_centrocampisti', 'min_centrocampisti',
-      'max_attaccanti', 'min_attaccanti'
-    ];
+    try {
+      await pool.query(`
+        ALTER TABLE leghe 
+        ADD COLUMN IF NOT EXISTS max_portieri INTEGER DEFAULT 3
+      `);
+    } catch (error) {
+      console.log(`Column max_portieri already exists or error: ${error.message}`);
+    }
     
-    for (const column of roleColumns) {
-      try {
-        await db.query(`
-          ALTER TABLE leghe 
-          ADD COLUMN IF NOT EXISTS ${column} INTEGER DEFAULT 0
-        `);
-        console.log(`✅ Added ${column} column to leghe table`);
-      } catch (error) {
-        console.log(`Column ${column} already exists or error:`, error.message);
-      }
+    try {
+      await pool.query(`
+        ALTER TABLE leghe 
+        ADD COLUMN IF NOT EXISTS min_portieri INTEGER DEFAULT 2
+      `);
+    } catch (error) {
+      console.log(`Column min_portieri already exists or error: ${error.message}`);
+    }
+    
+    try {
+      await pool.query(`
+        ALTER TABLE leghe 
+        ADD COLUMN IF NOT EXISTS max_difensori INTEGER DEFAULT 8
+      `);
+    } catch (error) {
+      console.log(`Column max_difensori already exists or error: ${error.message}`);
+    }
+    
+    try {
+      await pool.query(`
+        ALTER TABLE leghe 
+        ADD COLUMN IF NOT EXISTS min_difensori INTEGER DEFAULT 5
+      `);
+    } catch (error) {
+      console.log(`Column min_difensori already exists or error: ${error.message}`);
+    }
+    
+    try {
+      await pool.query(`
+        ALTER TABLE leghe 
+        ADD COLUMN IF NOT EXISTS max_centrocampisti INTEGER DEFAULT 8
+      `);
+    } catch (error) {
+      console.log(`Column max_centrocampisti already exists or error: ${error.message}`);
+    }
+    
+    try {
+      await pool.query(`
+        ALTER TABLE leghe 
+        ADD COLUMN IF NOT EXISTS min_centrocampisti INTEGER DEFAULT 5
+      `);
+    } catch (error) {
+      console.log(`Column min_centrocampisti already exists or error: ${error.message}`);
+    }
+    
+    try {
+      await pool.query(`
+        ALTER TABLE leghe 
+        ADD COLUMN IF NOT EXISTS max_attaccanti INTEGER DEFAULT 6
+      `);
+    } catch (error) {
+      console.log(`Column max_attaccanti already exists or error: ${error.message}`);
+    }
+    
+    try {
+      await pool.query(`
+        ALTER TABLE leghe 
+        ADD COLUMN IF NOT EXISTS min_attaccanti INTEGER DEFAULT 3
+      `);
+    } catch (error) {
+      console.log(`Column min_attaccanti already exists or error: ${error.message}`);
     }
     
     console.log('✅ Table updates completed');
+    
   } catch (error) {
-    console.error('❌ Error updating tables:', error);
+    console.error('❌ Error updating existing tables:', error);
   }
 }
 
