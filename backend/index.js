@@ -6,8 +6,8 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { initializeDatabase, getDb } from './db/postgres.js';
 
-// Carica le variabili d'ambiente dal file .env
-dotenv.config();
+// Carica le variabili d'ambiente dal file env.local
+dotenv.config({ path: './env.local' });
 import { initializeWebSocket } from './websocket.js';
 import legheRouter from './routes/leghe.js';
 import authRouter from './routes/auth.js';
@@ -36,7 +36,7 @@ const PORT = process.env.PORT || 3001;
 
 // Configurazione CORS ottimizzata
 app.use(cors({
-  origin: 'https://topleague-frontend-new.onrender.com', // il tuo frontend
+  origin: ['https://topleague-frontend-new.onrender.com', 'http://localhost:3000'], // frontend production e locale
   methods: ['GET','POST','PUT','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization','Cache-Control','Pragma','Expires'],
   credentials: true

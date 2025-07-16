@@ -1,5 +1,14 @@
 import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { getDb } from '../db/postgres.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Carica le variabili d'ambiente dal file env.local
+dotenv.config({ path: path.join(__dirname, '../env.local') });
 
 const db = getDb();
 
@@ -7,12 +16,23 @@ const db = getDb();
 async function createSuperAdmin() {
   try {
     const hashedPassword = await bcrypt.hash('admin123', 10);
-    // Inserisco tutti i campi nell'ordine corretto
-    const stmt = db.prepare(`
-      INSERT OR IGNORE INTO users (nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    stmt.run(
+    
+    // Verifica se l'utente esiste già
+    const existingUser = await db.query(
+      'SELECT id FROM users WHERE email = $1',
+      ['admin@topleague.com']
+    );
+
+    if (existingUser.rows.length > 0) {
+      console.log('SuperAdmin già esistente!');
+      return;
+    }
+
+    // Inserisci il SuperAdmin
+    await db.query(`
+      INSERT INTO users (nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `, [
       'Futboly',
       'Admin',
       'futboly', // username
@@ -22,11 +42,11 @@ async function createSuperAdmin() {
       'admin@topleague.com',
       hashedPassword,
       'SuperAdmin'
-    );
-    stmt.finalize();
+    ]);
+
     console.log('SuperAdmin creato con successo!');
     console.log('Email: admin@topleague.com');
-    console.log('Username: superadmin');
+    console.log('Username: futboly');
     console.log('Password: admin123');
   } catch (error) {
     console.error('Errore creazione SuperAdmin:', error);
@@ -61,13 +81,25 @@ async function createTestUsers() {
         ruolo: 'Utente'
       }
     ];
-    const stmt = db.prepare(`
-      INSERT OR IGNORE INTO users 
-      (nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    testUsers.forEach(user => {
-      stmt.run(
+
+    for (const user of testUsers) {
+      // Verifica se l'utente esiste già
+      const existingUser = await db.query(
+        'SELECT id FROM users WHERE email = $1',
+        [user.email]
+      );
+
+      if (existingUser.rows.length > 0) {
+        console.log(`Utente ${user.email} già esistente!`);
+        continue;
+      }
+
+      // Inserisci l'utente
+      await db.query(`
+        INSERT INTO users 
+        (nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `, [
         user.nome,
         user.cognome,
         user.username,
@@ -77,9 +109,9 @@ async function createTestUsers() {
         user.email,
         user.password_hash,
         user.ruolo
-      );
-    });
-    stmt.finalize();
+      ]);
+    }
+
     console.log('Utenti di test creati con successo!');
     console.log('Email: mario@test.com, giulia@test.com');
     console.log('Username: mariorossi, giuliabianchi');
@@ -90,9 +122,14 @@ async function createTestUsers() {
 }
 
 // Esegui le funzioni
-createSuperAdmin().then(() => {
-  createTestUsers().then(() => {
-    db.close();
+async function main() {
+  try {
+    await createSuperAdmin();
+    await createTestUsers();
     console.log('Setup completato!');
-  });
-}); 
+  } catch (error) {
+    console.error('Errore durante il setup:', error);
+  }
+}
+
+main(); 

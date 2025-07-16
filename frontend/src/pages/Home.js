@@ -439,6 +439,69 @@ const MoneyValue = styled.span`
   color: #28a745;
 `;
 
+// --- INIZIO: COMPONENTI PER IL BOOKMARK MOBILE ---
+const BookmarkButton = styled.button`
+  display: none;
+  @media (max-width: 768px) {
+    display: block;
+    margin: 1.5rem auto 0 auto;
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    padding: 0.9rem 2rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: all 0.2s;
+    &:hover {
+      filter: brightness(0.95);
+      transform: translateY(-2px);
+    }
+  }
+`;
+
+const BookmarkModalOverlay = styled.div`
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+`;
+const BookmarkModalContent = styled.div`
+  background: white;
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  max-width: 350px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+`;
+const BookmarkModalTitle = styled.h3`
+  color: #ff6b35;
+  margin-bottom: 1rem;
+`;
+const BookmarkModalText = styled.p`
+  color: #333;
+  font-size: 1.05rem;
+  margin-bottom: 1.5rem;
+`;
+const BookmarkModalClose = styled.button`
+  background: #eee;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  &:hover { background: #ddd; }
+`;
+// --- FINE: COMPONENTI PER IL BOOKMARK MOBILE ---
+
 const Home = () => {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -455,6 +518,18 @@ const Home = () => {
   // Stati per la scheda espandibile
   const [expandedSquadra, setExpandedSquadra] = useState(null);
   const [movimenti, setMovimenti] = useState([]);
+
+  // --- INIZIO: LOGICA BOOKMARK MOBILE ---
+  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+  const [os, setOs] = useState(null);
+  useEffect(() => {
+    // Rileva il sistema operativo mobile
+    const ua = window.navigator.userAgent;
+    if (/android/i.test(ua)) setOs('android');
+    else if (/iphone|ipad|ipod/i.test(ua)) setOs('ios');
+    else setOs(null);
+  }, []);
+  // --- FINE: LOGICA BOOKMARK MOBILE ---
 
   useEffect(() => {
     const loadData = async () => {
@@ -598,7 +673,37 @@ const Home = () => {
               Registrati
             </CTAButton>
           </CTAButtons>
+          {/* --- PULSANTE BOOKMARK SOLO MOBILE --- */}
+          <BookmarkButton onClick={() => setShowBookmarkModal(true)}>
+            📲 Salva nella Home
+          </BookmarkButton>
         </HeroSection>
+        {/* --- MODAL ISTRUZIONI --- */}
+        {showBookmarkModal && (
+          <BookmarkModalOverlay onClick={() => setShowBookmarkModal(false)}>
+            <BookmarkModalContent onClick={e => e.stopPropagation()}>
+              <BookmarkModalTitle>Aggiungi a Home</BookmarkModalTitle>
+              {os === 'ios' ? (
+                <BookmarkModalText>
+                  Su <b>iPhone/iPad</b>:<br />
+                  Premi il pulsante <b>Condividi</b> <span style={{fontSize:'1.3em'}}>⤴️</span> in basso e poi <b>"Aggiungi a Home"</b>.<br /><br />
+                  <img src="https://developer.apple.com/design/human-interface-guidelines/images/intro/intro-share-action_2x.png" alt="share" style={{width:60,margin:'0.5em auto'}} />
+                </BookmarkModalText>
+              ) : os === 'android' ? (
+                <BookmarkModalText>
+                  Su <b>Android</b>:<br />
+                  Premi il menu <b>⋮</b> in alto a destra e poi <b>"Aggiungi a schermata Home"</b>.<br /><br />
+                  <img src="https://i.imgur.com/2yQF1Qp.png" alt="android add" style={{width:60,margin:'0.5em auto'}} />
+                </BookmarkModalText>
+              ) : (
+                <BookmarkModalText>
+                  Usa questa funzione da un dispositivo mobile per aggiungere TopLeague alla schermata Home!
+                </BookmarkModalText>
+              )}
+              <BookmarkModalClose onClick={() => setShowBookmarkModal(false)}>Chiudi</BookmarkModalClose>
+            </BookmarkModalContent>
+          </BookmarkModalOverlay>
+        )}
       </Container>
     );
   }

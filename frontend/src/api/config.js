@@ -36,6 +36,19 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
       });
       window.dispatchEvent(errorEvent);
       
+      // Gestione speciale per errori 401 (token scaduto)
+      if (response.status === 401) {
+        // Emetti evento specifico per token scaduto
+        const tokenExpiredEvent = new CustomEvent('token-expired', {
+          detail: {
+            message: 'Sessione scaduta. Effettua di nuovo il login.',
+            url: fullUrl
+          }
+        });
+        window.dispatchEvent(tokenExpiredEvent);
+        throw new Error('Token non valido');
+      }
+      
       let errorMessage = 'Errore del server';
       try {
         // Prova a leggere come JSON
