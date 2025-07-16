@@ -255,7 +255,7 @@ const GestioneRichiesteAdmin = () => {
             <strong>Giocatori selezionati:</strong>
             <ul>
               {dati.giocatori_selezionati?.map(id => {
-                const giocatore = richiesta.giocatori?.find(g => g.id === id);
+                const giocatore = richiesta.giocatori?.find(gioc => gioc.id === id);
                 return (
                   <li key={id}>
                     {giocatore ? `${giocatore.nome} ${giocatore.cognome}` : `ID: ${id}`}

@@ -308,7 +308,7 @@ const OfferteManager = () => {
     return offerte;
   };
 
-  const getGiocatore = (id) => giocatori.find(g => g.id === id);
+  const getGiocatore = (id) => giocatori.find(gioc => gioc.id === id);
   const getSquadra = (id) => squadre.find(s => s.id === id);
 
   const handleFilter = async () => {

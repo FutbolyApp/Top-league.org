@@ -594,7 +594,7 @@ const RequestGiocatoriModification = () => {
       
       for (const [squadraId, giocatoriMods] of Object.entries(modifications)) {
         for (const [giocatoreId, modifiche] of Object.entries(giocatoriMods)) {
-          const giocatore = giocatoriPerSquadra[squadraId]?.find(g => g.id === giocatoreId);
+          const giocatore = giocatoriPerSquadra[squadraId]?.find(gioc => gioc.id === giocatoreId);
           if (giocatore) {
             const squadra = squadre.find(s => s.id === parseInt(squadraId) || s.id === squadraId);
             
@@ -1039,7 +1039,7 @@ const RequestGiocatoriModification = () => {
               <div key={squadraId} style={{ marginBottom: '1rem' }}>
                 <h4>{squadra?.nome}</h4>
                 {Object.entries(giocatoriMods).map(([giocatoreId, modifiche]) => {
-                  const giocatore = giocatoriPerSquadra[squadraId]?.find(g => g.id === giocatoreId);
+                  const giocatore = giocatoriPerSquadra[squadraId]?.find(gioc => gioc.id === giocatoreId);
                   return (
                     <div key={giocatoreId} style={{ 
                       background: '#f8f9fa', 

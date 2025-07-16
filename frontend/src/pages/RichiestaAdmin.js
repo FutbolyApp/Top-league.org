@@ -314,7 +314,7 @@ const RichiestaAdmin = () => {
           dati_richiesta.giocatori_selezionati = formData.giocatori_selezionati || [];
           dati_richiesta.costi_dimezzati = {};
           formData.giocatori_selezionati.forEach(giocatore_id => {
-            const giocatore = giocatori.find(g => g.id === giocatore_id);
+            const giocatore = giocatori.find(gioc => gioc.id === giocatore_id);
             if (giocatore) {
               dati_richiesta.costi_dimezzati[giocatore_id] = Math.floor(giocatore.costo_attuale / 2);
             }
@@ -388,7 +388,7 @@ const RichiestaAdmin = () => {
         case 'cantera':
           if (dati.giocatori_selezionati && dati.giocatori_selezionati.length > 0) {
             const nomiGiocatori = dati.giocatori_selezionati.map(id => {
-              const giocatore = giocatori.find(g => g.id === id);
+              const giocatore = giocatori.find(gioc => gioc.id === id);
               return giocatore ? `${giocatore.nome} ${giocatore.cognome}` : `ID: ${id}`;
             }).join(', ');
             return `Richiesta Cantera per: ${nomiGiocatori}`;
@@ -544,7 +544,7 @@ const RichiestaAdmin = () => {
                       Giocatori selezionati:
                     </label>
                     {formData.giocatori_selezionati.map((id, index) => {
-                      const giocatore = giocatori.find(g => g.id === id);
+                      const giocatore = giocatori.find(gioc => gioc.id === id);
                       return (
                         <PlayerItem key={index}>
                           <span style={{flex: 1}}>
