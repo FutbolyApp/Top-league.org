@@ -33,7 +33,7 @@ router.post('/update', async (req, res) => {
     res.status(500).json({ 
       error: 'Schema update failed',
       message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      timestamp: new Date().toISOString()
     });
   }
 });
@@ -49,36 +49,23 @@ router.get('/status', async (req, res) => {
       });
     }
 
-    // Verifica le tabelle principali
-    const tables = ['users', 'leghe', 'squadre', 'giocatori', 'notifiche', 'richieste_admin'];
-    const tableStatus = {};
-
-    for (const table of tables) {
-      try {
-        const result = await db.query(`SELECT COUNT(*) as count FROM ${table}`);
-        tableStatus[table] = {
-          exists: true,
-          count: parseInt(result.rows[0].count)
-        };
-      } catch (error) {
-        tableStatus[table] = {
-          exists: false,
-          error: error.message
-        };
-      }
-    }
-
+    // Test connection
+    const client = await db.connect();
+    await client.query('SELECT NOW()');
+    client.release();
+    
     res.json({ 
-      database: 'available',
-      tables: tableStatus,
+      success: true, 
+      message: 'Database connection successful',
       timestamp: new Date().toISOString()
     });
     
   } catch (error) {
     console.error('❌ Database status check failed:', error);
     res.status(500).json({ 
-      error: 'Database status check failed',
-      message: error.message
+      error: 'Database connection failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
