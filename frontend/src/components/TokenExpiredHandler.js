@@ -97,6 +97,7 @@ const TokenExpiredHandler = ({ children }) => {
   useEffect(() => {
     const handleTokenExpired = (event) => {
       console.log('Token expired event received:', event.detail);
+      console.log('Setting showLoginModal to true');
       setShowLoginModal(true);
       setError('');
     };
@@ -107,6 +108,11 @@ const TokenExpiredHandler = ({ children }) => {
       window.removeEventListener('token-expired', handleTokenExpired);
     };
   }, []);
+
+  // Debug log for modal state
+  useEffect(() => {
+    console.log('TokenExpiredHandler - showLoginModal state:', showLoginModal);
+  }, [showLoginModal]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -151,48 +157,51 @@ const TokenExpiredHandler = ({ children }) => {
     <>
       {children}
       {showLoginModal && (
-        <ModalOverlay>
-          <Modal>
-            <Title>🔐 Sessione Scaduta</Title>
-            <Message>
-              La tua sessione è scaduta. Effettua di nuovo il login per continuare.
-            </Message>
-            
-            <Form onSubmit={handleLogin}>
-              <Input
-                type="email"
-                name="email"
-                placeholder="Email"
-                value={loginData.email}
-                onChange={handleInputChange}
-                required
-              />
+        <>
+          {console.log('Rendering login modal')}
+          <ModalOverlay>
+            <Modal>
+              <Title>🔐 Sessione Scaduta</Title>
+              <Message>
+                La tua sessione è scaduta. Effettua di nuovo il login per continuare.
+              </Message>
               
-              <Input
-                type="password"
-                name="password"
-                placeholder="Password"
-                value={loginData.password}
-                onChange={handleInputChange}
-                required
-              />
-              
-              {error && <ErrorMessage>{error}</ErrorMessage>}
-              
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Accesso in corso...' : 'Accedi'}
-              </Button>
-              
-              <Button 
-                type="button" 
-                onClick={handleClose}
-                style={{ background: '#6c757d', marginTop: '0.5rem' }}
-              >
-                Vai alla pagina di login
-              </Button>
-            </Form>
-          </Modal>
-        </ModalOverlay>
+              <Form onSubmit={handleLogin}>
+                <Input
+                  type="email"
+                  name="email"
+                  placeholder="Email"
+                  value={loginData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+                
+                <Input
+                  type="password"
+                  name="password"
+                  placeholder="Password"
+                  value={loginData.password}
+                  onChange={handleInputChange}
+                  required
+                />
+                
+                {error && <ErrorMessage>{error}</ErrorMessage>}
+                
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Accesso in corso...' : 'Accedi'}
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  onClick={handleClose}
+                  style={{ background: '#6c757d', marginTop: '0.5rem' }}
+                >
+                  Vai alla pagina di login
+                </Button>
+              </Form>
+            </Modal>
+          </ModalOverlay>
+        </>
       )}
     </>
   );
