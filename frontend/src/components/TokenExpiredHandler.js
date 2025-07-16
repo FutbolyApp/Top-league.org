@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useAuth } from './AuthContext';
-import { apiLogin } from '../api/auth';
+import { login } from '../api/auth';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -114,7 +114,7 @@ const TokenExpiredHandler = ({ children }) => {
     setError('');
 
     try {
-      const response = await apiLogin({
+      const response = await login({
         email: loginData.email,
         password: loginData.password
       });
