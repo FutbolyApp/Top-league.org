@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { initializeDatabase, getDb } from './db/postgres.js';
+import { fixNotificheColumns } from './scripts/fix_remaining_columns.js';
 
 // Carica le variabili d'ambiente dal file env.local
 dotenv.config({ path: './env.local' });
@@ -319,6 +320,8 @@ const startServer = async () => {
       try {
         console.log('Initializing database...');
         await initializeDatabase();
+        // Fix colonne notifiche
+        await fixNotificheColumns();
         console.log('Database initialization completed successfully');
       } catch (dbError) {
         console.error('Database initialization failed:', dbError.message);
