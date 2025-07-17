@@ -525,7 +525,7 @@ const NotifichePage = () => {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/notifiche', { headers: { 'Authorization': `Bearer ${token}` } });
+      const response = await api.get('/notifiche', token);
       
       if (response.ok) {
         const data = response.data;
@@ -573,7 +573,7 @@ const NotifichePage = () => {
 
   const markAsRead = async (notificationId) => {
     try {
-      await api.put(`/notifiche/${notificationId}/letta`, { headers: { 'Authorization': `Bearer ${token}` } });
+      await api.put(`/notifiche/${notificationId}/letta`, {}, token);
       
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, letta: true, letto: 1 } : n)
@@ -588,7 +588,7 @@ const NotifichePage = () => {
 
   const markAllAsRead = async () => {
     try {
-      await api.put('/notifiche/tutte-lette', { headers: { 'Authorization': `Bearer ${token}` } });
+      await api.put('/notifiche/tutte-lette', {}, token);
       
       setNotifications(prev => 
         prev.map(n => ({ ...n, letta: true, letto: 1 }))
