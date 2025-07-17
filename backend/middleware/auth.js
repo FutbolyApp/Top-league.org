@@ -82,7 +82,7 @@ export function generateToken(user) {
       ruolo: user.ruolo 
     }, 
     JWT_SECRET, 
-    { expiresIn: '24h' }
+    { expiresIn: '7d' }
   );
 } 
 
