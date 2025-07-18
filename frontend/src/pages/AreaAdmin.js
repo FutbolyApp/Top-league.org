@@ -854,12 +854,23 @@ const AreaAdmin = () => {
                       <RequestDetails>
                         <div><strong>Lega:</strong> {richiesta.lega_nome}</div>
                         <div><strong>Squadra:</strong> {richiesta.squadra_nome}</div>
-                        <div><strong>Data:</strong> {formatDate(richiesta.data_creazione)}</div>
+                        <div><strong>Utente:</strong> {richiesta.utente_nome || 'N/A'}</div>
+                        <div><strong>Email:</strong> {richiesta.utente_email || 'N/A'}</div>
+                        <div><strong>Data:</strong> {formatDate(richiesta.data_creazione || richiesta.data_richiesta)}</div>
+                        {richiesta.tipo_richiesta_richiesta && (
+                          <div><strong>Tipo Richiesta:</strong> {richiesta.tipo_richiesta_richiesta}</div>
+                        )}
                       </RequestDetails>
                       
                       {richiesta.messaggio && (
                         <RequestMessage>
-                          {richiesta.messaggio}
+                          <strong>Messaggio:</strong> {richiesta.messaggio}
+                        </RequestMessage>
+                      )}
+                      
+                      {richiesta.dati_richiesta && (
+                        <RequestMessage>
+                          <strong>Dettagli Richiesta:</strong> {JSON.stringify(richiesta.dati_richiesta, null, 2)}
                         </RequestMessage>
                       )}
                     </RequestCard>
@@ -955,12 +966,23 @@ const AreaAdmin = () => {
                     <RequestDetails>
                       <div><strong>Lega:</strong> {richiesta.lega_nome}</div>
                       <div><strong>Squadra:</strong> {richiesta.squadra_nome}</div>
-                      <div><strong>Data:</strong> {formatDate(richiesta.data_creazione)}</div>
+                      <div><strong>Utente:</strong> {richiesta.utente_nome || 'N/A'}</div>
+                      <div><strong>Email:</strong> {richiesta.utente_email || 'N/A'}</div>
+                      <div><strong>Data:</strong> {formatDate(richiesta.data_creazione || richiesta.data_richiesta)}</div>
+                      {richiesta.tipo_richiesta_richiesta && (
+                        <div><strong>Tipo Richiesta:</strong> {richiesta.tipo_richiesta_richiesta}</div>
+                      )}
                     </RequestDetails>
                     
                     {richiesta.messaggio && (
                       <RequestMessage>
-                        {richiesta.messaggio}
+                        <strong>Messaggio:</strong> {richiesta.messaggio}
+                      </RequestMessage>
+                    )}
+                    
+                    {richiesta.dati_richiesta && (
+                      <RequestMessage>
+                        <strong>Dettagli Richiesta:</strong> {JSON.stringify(richiesta.dati_richiesta, null, 2)}
                       </RequestMessage>
                     )}
                   </RequestCard>
@@ -1015,12 +1037,23 @@ const AreaAdmin = () => {
                 <RequestDetails>
                   <div><strong>Lega:</strong> {selectedRequest.lega_nome}</div>
                   <div><strong>Squadra:</strong> {selectedRequest.squadra_nome}</div>
-                  <div><strong>Data:</strong> {formatDate(selectedRequest.data_creazione)}</div>
+                  <div><strong>Utente:</strong> {selectedRequest.utente_nome || 'N/A'}</div>
+                  <div><strong>Email:</strong> {selectedRequest.utente_email || 'N/A'}</div>
+                  <div><strong>Data:</strong> {formatDate(selectedRequest.data_creazione || selectedRequest.data_richiesta)}</div>
+                  {selectedRequest.tipo_richiesta_richiesta && (
+                    <div><strong>Tipo Richiesta:</strong> {selectedRequest.tipo_richiesta_richiesta}</div>
+                  )}
                 </RequestDetails>
                 
                 {selectedRequest.messaggio && (
                   <RequestMessage>
-                    {selectedRequest.messaggio}
+                    <strong>Messaggio:</strong> {selectedRequest.messaggio}
+                  </RequestMessage>
+                )}
+                
+                {selectedRequest.dati_richiesta && (
+                  <RequestMessage>
+                    <strong>Dettagli Richiesta:</strong> {JSON.stringify(selectedRequest.dati_richiesta, null, 2)}
                   </RequestMessage>
                 )}
               </RequestCard>
