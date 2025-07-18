@@ -61,14 +61,14 @@ router.post('/create', authenticateToken, async (req, res) => {
     // Crea notifica per l'admin della lega
     const notifica_data = {
       tipo: 'richiesta_admin',
-      messaggio: `Nuova richiesta ${tipo_richiesta} da ${squadra.nome}`,
+      messaggio: `Nuova richiesta ${tipo_richiesta} da ${squadra?.nome || 'Squadra'}`,
       utente_id: lega.admin_id,
-      lega_id: squadra.lega_id,
+      lega_id: squadra?.lega_id,
       dati_aggiuntivi: {
         richiesta_id: richiesta_id,
         squadra_id: squadra_id,
         tipo_richiesta: tipo_richiesta,
-        lega_id: squadra.lega_id
+        lega_id: squadra?.lega_id
       }
     };
 
@@ -233,13 +233,13 @@ router.post('/:richiesta_id/gestisci', authenticateToken, async (req, res) => {
     // Crea notifica per l'admin della lega
     const notifica_admin = {
       tipo: 'richiesta_admin_gestita',
-      messaggio: `Hai ${azione === 'accepted' ? 'accettato' : azione === 'rejected' ? 'rifiutato' : 'messo in revisione'} la richiesta ${richiesta.tipo_richiesta} di ${squadra.nome}`,
+      messaggio: `Hai ${azione === 'accepted' ? 'accettato' : azione === 'rejected' ? 'rifiutato' : 'messo in revisione'} la richiesta ${richiesta.tipo_richiesta} di ${squadra?.nome || 'Squadra'}`,
       utente_id: lega.admin_id,
-      lega_id: squadra.lega_id,
+      lega_id: squadra?.lega_id,
       dati_aggiuntivi: {
         richiesta_id: richiesta_id,
         squadra_id: richiesta.squadra_id,
-        squadra_nome: squadra.nome,
+        squadra_nome: squadra?.nome || 'Squadra',
         tipo_richiesta: richiesta.tipo_richiesta,
         stato: nuovo_stato,
         note_admin: note_admin,
@@ -506,13 +506,13 @@ router.post('/:richiesta_id/annulla', authenticateToken, async (req, res) => {
     // Crea notifica per l'admin della lega
     const notifica_admin = {
       tipo: 'richiesta_admin_annullata',
-      messaggio: `Hai annullato la richiesta ${richiesta.tipo_richiesta} di ${squadra.nome}`,
+      messaggio: `Hai annullato la richiesta ${richiesta.tipo_richiesta} di ${squadra?.nome || 'Squadra'}`,
       utente_id: lega.admin_id,
-      lega_id: squadra.lega_id,
+      lega_id: squadra?.lega_id,
       dati_aggiuntivi: {
         richiesta_id: richiesta_id,
         squadra_id: richiesta.squadra_id,
-        squadra_nome: squadra.nome,
+        squadra_nome: squadra?.nome || 'Squadra',
         tipo_richiesta: richiesta.tipo_richiesta,
         stato: 'cancelled'
       }

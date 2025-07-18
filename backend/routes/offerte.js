@@ -814,13 +814,13 @@ router.post('/crea', authenticateToken, async (req, res) => {
 
     // Crea messaggio dettagliato
     const messaggioNotifica = tipo === 'scambio'
-      ? `Offerta di scambio ricevuta per ${giocatoreTargetData.nome}${giocatoreTargetData.cognome ? ` ${giocatoreTargetData.cognome}` : ''} da ${casseMittenteData.nome} (${proprietarioMittenteData.nome} ${proprietarioMittenteData.cognome}). In scambio: ${giocatoreScambio.nome}${giocatoreScambio.cognome ? ` ${giocatoreScambio.cognome}` : ''}`
-      : `Offerta di ${tipo} ricevuta per ${giocatoreTargetData.nome}${giocatoreTargetData.cognome ? ` ${giocatoreTargetData.cognome}` : ''} da ${casseMittenteData.nome} (${proprietarioMittenteData.nome} ${proprietarioMittenteData.cognome}) - Valore: ${valoreOfferta} FM`;
+      ? `Offerta di scambio ricevuta per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData.cognome}` : ''} da ${casseMittenteData?.nome || 'Squadra'} (${proprietarioMittenteData?.nome || 'Utente'} ${proprietarioMittenteData?.cognome || ''}). In scambio: ${giocatoreScambio?.nome || 'Giocatore'}${giocatoreScambio?.cognome ? ` ${giocatoreScambio.cognome}` : ''}`
+      : `Offerta di ${tipo} ricevuta per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData.cognome}` : ''} da ${casseMittenteData?.nome || 'Squadra'} (${proprietarioMittenteData?.nome || 'Utente'} ${proprietarioMittenteData?.cognome || ''}) - Valore: ${valoreOfferta} FM`;
 
     // Crea messaggio di conferma per il mittente
     const messaggioConfermaMittente = tipo === 'scambio'
-      ? `Hai inviato un'offerta di scambio per ${giocatoreTargetData.nome}${giocatoreTargetData.cognome ? ` ${giocatoreTargetData.cognome}` : ''} a ${casseDestinatarioData.nome}. In scambio: ${giocatoreScambio.nome}${giocatoreScambio.cognome ? ` ${giocatoreScambio.cognome}` : ''}`
-      : `Hai inviato un'offerta di ${tipo} per ${giocatoreTargetData.nome}${giocatoreTargetData.cognome ? ` ${giocatoreTargetData.cognome}` : ''} a ${casseDestinatarioData.nome} - Valore: ${valoreOfferta} FM${richiestaFM > 0 ? ` - Richiesta: ${richiestaFM} FM` : ''}`;
+      ? `Hai inviato un'offerta di scambio per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData.cognome}` : ''} a ${casseDestinatarioData?.nome || 'Squadra'}. In scambio: ${giocatoreScambio?.nome || 'Giocatore'}${giocatoreScambio?.cognome ? ` ${giocatoreScambio.cognome}` : ''}`
+      : `Hai inviato un'offerta di ${tipo} per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData.cognome}` : ''} a ${casseDestinatarioData?.nome || 'Squadra'} - Valore: ${valoreOfferta} FM${richiestaFM > 0 ? ` - Richiesta: ${richiestaFM} FM` : ''}`;
 
     console.log('Creazione notifica offerta:');
     console.log('- Lega ID:', giocatoreTargetData.lega_id);
@@ -847,14 +847,14 @@ router.post('/crea', authenticateToken, async (req, res) => {
           valore: valoreOfferta,
           richiesta_fm: richiestaFM,
           giocatore_scambio_id: giocatore_scambio_id,
-          giocatore_scambio_nome: giocatoreScambio.nome,
-          giocatore_scambio_cognome: giocatoreScambio.cognome,
-          proprietario_destinatario: `${proprietarioDestinatarioData.nome} ${proprietarioDestinatarioData.cognome}`,
-          squadra_destinatario: casseDestinatarioData.nome,
-          proprietario_mittente: `${proprietarioMittenteData.nome} ${proprietarioMittenteData.cognome}`,
-          squadra_mittente: casseMittenteData.nome,
-          giocatore_nome: giocatoreTargetData.nome,
-          giocatore_cognome: giocatoreTargetData.cognome,
+          giocatore_scambio_nome: giocatoreScambio?.nome || 'Giocatore',
+          giocatore_scambio_cognome: giocatoreScambio?.cognome || '',
+          proprietario_destinatario: `${proprietarioDestinatarioData?.nome || 'Utente'} ${proprietarioDestinatarioData?.cognome || ''}`,
+          squadra_destinatario: casseDestinatarioData?.nome || 'Squadra',
+          proprietario_mittente: `${proprietarioMittenteData?.nome || 'Utente'} ${proprietarioMittenteData?.cognome || ''}`,
+          squadra_mittente: casseMittenteData?.nome || 'Squadra',
+          giocatore_nome: giocatoreTargetData?.nome || 'Giocatore',
+          giocatore_cognome: giocatoreTargetData?.cognome || '',
           casse_mittente_prima: casseMittenteData.casse_societarie,
           casse_mittente_dopo: casseMittenteDopo,
           casse_destinatario_prima: casseDestinatarioData.casse_societarie,
@@ -869,7 +869,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
       'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5)',
       [
         casseMittenteData.proprietario_id,
-        `Offerta inviata per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome}`,
+        `Offerta inviata per ${giocatoreTargetData?.nome || 'Giocatore'} ${giocatoreTargetData?.cognome || ''}`,
         messaggioConfermaMittente,
         'offerta_inviata',
         JSON.stringify({
@@ -881,14 +881,14 @@ router.post('/crea', authenticateToken, async (req, res) => {
           valore: valoreOfferta,
           richiesta_fm: richiestaFM,
           giocatore_scambio_id: giocatore_scambio_id,
-          giocatore_scambio_nome: giocatoreScambio.nome,
-          giocatore_scambio_cognome: giocatoreScambio.cognome,
-          proprietario_destinatario: `${proprietarioDestinatarioData.nome} ${proprietarioDestinatarioData.cognome}`,
-          squadra_destinatario: casseDestinatarioData.nome,
-          proprietario_mittente: `${proprietarioMittenteData.nome} ${proprietarioMittenteData.cognome}`,
-          squadra_mittente: casseMittenteData.nome,
-          giocatore_nome: giocatoreTargetData.nome,
-          giocatore_cognome: giocatoreTargetData.cognome,
+          giocatore_scambio_nome: giocatoreScambio?.nome || 'Giocatore',
+          giocatore_scambio_cognome: giocatoreScambio?.cognome || '',
+          proprietario_destinatario: `${proprietarioDestinatarioData?.nome || 'Utente'} ${proprietarioDestinatarioData?.cognome || ''}`,
+          squadra_destinatario: casseDestinatarioData?.nome || 'Squadra',
+          proprietario_mittente: `${proprietarioMittenteData?.nome || 'Utente'} ${proprietarioMittenteData?.cognome || ''}`,
+          squadra_mittente: casseMittenteData?.nome || 'Squadra',
+          giocatore_nome: giocatoreTargetData?.nome || 'Giocatore',
+          giocatore_cognome: giocatoreTargetData?.cognome || '',
           casse_mittente_prima: casseMittenteData.casse_societarie,
           casse_mittente_dopo: casseMittenteDopo,
           casse_destinatario_prima: casseDestinatarioData.casse_societarie,
@@ -905,8 +905,8 @@ router.post('/crea', authenticateToken, async (req, res) => {
       lega_id: legaIdMittenteResult,
       tipo_evento: TIPI_EVENTI.OFFERTA_INVIATA,
       categoria: CATEGORIE_EVENTI.OFFERTA,
-      titolo: `Offerta inviata per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome}`,
-      descrizione: `Offerta di ${tipo} inviata a ${casseDestinatarioData.nome} per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome} - Valore: ${valoreOfferta} FM`,
+      titolo: `Offerta inviata per ${giocatoreTargetData?.nome || 'Giocatore'} ${giocatoreTargetData?.cognome || ''}`,
+      descrizione: `Offerta di ${tipo} inviata a ${casseDestinatarioData?.nome || 'Squadra'} per ${giocatoreTargetData?.nome || 'Giocatore'} ${giocatoreTargetData?.cognome || ''} - Valore: ${valoreOfferta} FM`,
       dati_aggiuntivi: {
         offerta_id: offertaId.rows[0].id,
         giocatore_id: giocatoreTargetData.id,
@@ -926,8 +926,8 @@ router.post('/crea', authenticateToken, async (req, res) => {
       lega_id: legaIdDestinatarioResult,
       tipo_evento: TIPI_EVENTI.OFFERTA_RICEVUTA,
       categoria: CATEGORIE_EVENTI.OFFERTA,
-      titolo: `Offerta ricevuta per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome}`,
-      descrizione: `Offerta di ${tipo} ricevuta da ${casseMittenteData.nome} per ${giocatoreTargetData.nome} ${giocatoreTargetData.cognome} - Valore: ${valoreOfferta} FM`,
+      titolo: `Offerta ricevuta per ${giocatoreTargetData?.nome || 'Giocatore'} ${giocatoreTargetData?.cognome || ''}`,
+      descrizione: `Offerta di ${tipo} ricevuta da ${casseMittenteData?.nome || 'Squadra'} per ${giocatoreTargetData?.nome || 'Giocatore'} ${giocatoreTargetData?.cognome || ''} - Valore: ${valoreOfferta} FM`,
       dati_aggiuntivi: {
         offerta_id: offertaId.rows[0].id,
         giocatore_id: giocatoreTargetData.id,
