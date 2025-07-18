@@ -683,14 +683,27 @@ const AreaAdmin = () => {
         if (costiEntries.length > 0) {
           details.push(`Giocatori Selezionati: ${data.giocatori_selezionati ? data.giocatori_selezionati.length : 0}`);
           details.push(`Costi Dimezzati: ${costiEntries.length} giocatori`);
-          // Aggiungi dettagli per ogni giocatore se disponibili
-          if (data.giocatori_selezionati && Array.isArray(data.giocatori_selezionati)) {
-            data.giocatori_selezionati.forEach((giocatoreId, index) => {
-              const costoDimezzato = data.costi_dimezzati[giocatoreId];
-              if (costoDimezzato !== undefined) {
-                details.push(`  • Giocatore ${index + 1}: ${costoDimezzato} FM`);
-              }
+          
+          // Aggiungi dettagli completi per ogni giocatore se disponibili
+          if (data.dettagli_giocatori && typeof data.dettagli_giocatori === 'object') {
+            Object.entries(data.dettagli_giocatori).forEach(([giocatoreId, dettagli]) => {
+              details.push(`  • ${dettagli.nome} ${dettagli.cognome} (${dettagli.ruolo})`);
+              details.push(`    Squadra Reale: ${dettagli.squadra_reale}`);
+              details.push(`    QA: ${dettagli.qa}`);
+              details.push(`    QI: ${dettagli.qi}`);
+              details.push(`    Ingaggio Attuale: ${dettagli.costo_attuale} FM`);
+              details.push(`    Ingaggio Cantera: ${dettagli.costo_dimezzato} FM`);
             });
+          } else {
+            // Fallback per richieste esistenti senza dettagli
+            if (data.giocatori_selezionati && Array.isArray(data.giocatori_selezionati)) {
+              data.giocatori_selezionati.forEach((giocatoreId, index) => {
+                const costoDimezzato = data.costi_dimezzati[giocatoreId];
+                if (costoDimezzato !== undefined) {
+                  details.push(`  • Giocatore ${index + 1}: ${costoDimezzato} FM`);
+                }
+              });
+            }
           }
         }
       }

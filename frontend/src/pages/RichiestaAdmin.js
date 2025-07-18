@@ -313,10 +313,21 @@ const RichiestaAdmin = () => {
         case 'cantera':
           dati_richiesta.giocatori_selezionati = formData.giocatori_selezionati || [];
           dati_richiesta.costi_dimezzati = {};
+          dati_richiesta.dettagli_giocatori = {};
           formData.giocatori_selezionati.forEach(giocatore_id => {
             const giocatore = giocatori.find(gioc => gioc.id === giocatore_id);
             if (giocatore) {
               dati_richiesta.costi_dimezzati[giocatore_id] = Math.floor(giocatore.costo_attuale / 2);
+              dati_richiesta.dettagli_giocatori[giocatore_id] = {
+                nome: giocatore.nome,
+                cognome: giocatore.cognome,
+                ruolo: giocatore.ruolo,
+                squadra_reale: giocatore.squadra_reale,
+                qi: giocatore.qi,
+                qa: giocatore.qa || giocatore.quotazione_attuale,
+                costo_attuale: giocatore.costo_attuale,
+                costo_dimezzato: Math.floor(giocatore.costo_attuale / 2)
+              };
             }
           });
           break;
