@@ -5,7 +5,7 @@ export const login = async (credentials) => {
   try {
     const response = await api.post('/auth/login', credentials);
     console.log('Login response received:', response);
-    return response;
+    return response.data; // Return the data directly, not the wrapper
   } catch (error) {
     console.error('Login error:', error);
     throw error;
