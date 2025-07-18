@@ -1,6 +1,8 @@
-// Configurazione API URL - Forced to production
-const isDevelopment = false; // Force production mode
-const API_BASE_URL = 'https://topleaguem.onrender.com/api'; // URL del backend su Render
+// Configurazione API URL
+const isDevelopment = process.env.NODE_ENV === 'development';
+const API_BASE_URL = isDevelopment 
+  ? 'http://localhost:3001/api'
+  : 'https://topleaguem.onrender.com/api'; // URL del backend su Render
 
 console.log('API_BASE_URL:', API_BASE_URL);
 console.log('NODE_ENV:', process.env.NODE_ENV);
