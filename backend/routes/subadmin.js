@@ -25,6 +25,36 @@ import {
 
 const router = express.Router();
 
+// Middleware per gestire CORS preflight per tutte le route
+router.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://topleaguem-frontend.onrender.com',
+    'https://topleague-frontend-new.onrender.com',
+    'https://topleague-frontend.onrender.com',
+    'https://topleaguem.onrender.com'
+  ];
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Content-Length');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400');
+  
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 // Ottieni tutti i subadmin (solo SuperAdmin)
 router.get('/all', requireSuperAdmin, async (req, res) => {
   try {

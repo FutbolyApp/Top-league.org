@@ -850,7 +850,7 @@ const NotifichePage = () => {
       else if (filter === 'trasferimenti' && !['trasferimento', 'prestito', 'scambio'].includes(notification.tipo)) return false;
       else if (filter === 'pagamenti' && !notification.tipo.includes('pagamento')) return false;
       else if (filter === 'offerte' && !notification.tipo.includes('offerta')) return false;
-      else if (filter === 'admin' && !notification.tipo.includes('admin')) return false;
+      else if (filter === 'admin' && notification.tipo !== 'richiesta_admin') return false;
       else if (filter !== 'tutte') return false;
 
       // Filtro per lega
