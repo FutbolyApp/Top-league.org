@@ -1,7 +1,7 @@
 // Forza nuovo deploy - fix finale URL API
 // Ultima revisione: tutti gli URL localhost rimossi
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
 import { NotificationProvider } from './components/NotificationSystem';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -111,19 +111,17 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router basename="/">
-      <NetworkErrorHandler>
-        <AuthProvider>
-          <NotificationProvider>
-            <TokenExpiredHandler>
-              <AuthRedirect />
-              <AppRoutes />
-              <ApiMonitor />
-            </TokenExpiredHandler>
-          </NotificationProvider>
-        </AuthProvider>
-      </NetworkErrorHandler>
-    </Router>
+    <NetworkErrorHandler>
+      <AuthProvider>
+        <NotificationProvider>
+          <TokenExpiredHandler>
+            <AuthRedirect />
+            <AppRoutes />
+            <ApiMonitor />
+          </TokenExpiredHandler>
+        </NotificationProvider>
+      </AuthProvider>
+    </NetworkErrorHandler>
   );
 }
 
