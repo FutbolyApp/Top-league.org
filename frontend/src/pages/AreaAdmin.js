@@ -614,6 +614,84 @@ const AreaAdmin = () => {
     });
   };
 
+  // Funzione per formattare il tipo di richiesta in modo leggibile
+  const formatRequestType = (requestType) => {
+    if (!requestType) return 'N/A';
+    
+    const typeMap = {
+      'club_level': 'Club Level',
+      'acquisto_giocatore': 'Acquisto Giocatore',
+      'vendita_giocatore': 'Vendita Giocatore',
+      'scambio_giocatori': 'Scambio Giocatori',
+      'trasferimento_giocatore': 'Trasferimento Giocatore',
+      'modifica_roster': 'Modifica Roster',
+      'richiesta_ingresso': 'Richiesta Ingresso',
+      'richiesta_admin': 'Richiesta Admin',
+      'admin': 'Richiesta Admin',
+      'user': 'Richiesta Ingresso'
+    };
+    
+    return typeMap[requestType] || requestType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Funzione per formattare i dettagli della richiesta in modo leggibile
+  const formatRequestDetails = (datiRichiesta) => {
+    if (!datiRichiesta) return null;
+    
+    try {
+      // Se è una stringa JSON, parsala
+      const data = typeof datiRichiesta === 'string' ? JSON.parse(datiRichiesta) : datiRichiesta;
+      
+      const details = [];
+      
+      // Gestisci i diversi tipi di dettagli
+      if (data.nuovo_club_level !== undefined) {
+        details.push(`Nuovo Club Level: ${data.nuovo_club_level}`);
+      }
+      
+      if (data.giocatore_nome) {
+        details.push(`Giocatore: ${data.giocatore_nome}`);
+      }
+      
+      if (data.squadra_destinatario) {
+        details.push(`Squadra Destinatario: ${data.squadra_destinatario}`);
+      }
+      
+      if (data.valore_costo !== undefined) {
+        details.push(`Valore: ${data.valore_costo} FM`);
+      }
+      
+      if (data.squadra_mittente) {
+        details.push(`Squadra Mittente: ${data.squadra_mittente}`);
+      }
+      
+      if (data.giocatore_offerto) {
+        details.push(`Giocatore Offerto: ${data.giocatore_offerto}`);
+      }
+      
+      if (data.giocatore_richiesto) {
+        details.push(`Giocatore Richiesto: ${data.giocatore_richiesto}`);
+      }
+      
+      if (data.motivo) {
+        details.push(`Motivo: ${data.motivo}`);
+      }
+      
+      // Se non abbiamo mappato nessun campo specifico, mostra tutti i campi
+      if (details.length === 0) {
+        Object.entries(data).forEach(([key, value]) => {
+          const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          details.push(`${formattedKey}: ${value}`);
+        });
+      }
+      
+      return details;
+    } catch (error) {
+      console.error('Errore parsing dettagli richiesta:', error);
+      return [`Dettagli: ${datiRichiesta}`];
+    }
+  };
+
   const handleGestioneTornei = (legaId) => {
     navigate(`/gestione-tornei/${legaId}`);
   };
@@ -858,7 +936,7 @@ const AreaAdmin = () => {
                         <div><strong>Email:</strong> {richiesta.utente_email || 'N/A'}</div>
                         <div><strong>Data:</strong> {formatDate(richiesta.data_creazione || richiesta.data_richiesta)}</div>
                         {richiesta.tipo_richiesta_richiesta && (
-                          <div><strong>Tipo Richiesta:</strong> {richiesta.tipo_richiesta_richiesta}</div>
+                          <div><strong>Tipo Richiesta:</strong> {formatRequestType(richiesta.tipo_richiesta_richiesta)}</div>
                         )}
                       </RequestDetails>
                       
@@ -870,7 +948,14 @@ const AreaAdmin = () => {
                       
                       {richiesta.dati_richiesta && (
                         <RequestMessage>
-                          <strong>Dettagli Richiesta:</strong> {JSON.stringify(richiesta.dati_richiesta, null, 2)}
+                          <strong>Dettagli Richiesta:</strong>
+                          <div style={{ marginTop: '0.5rem' }}>
+                            {formatRequestDetails(richiesta.dati_richiesta)?.map((detail, index) => (
+                              <div key={index} style={{ fontSize: '0.85rem', color: '#374151', marginBottom: '0.25rem' }}>
+                                {detail}
+                              </div>
+                            ))}
+                          </div>
                         </RequestMessage>
                       )}
                     </RequestCard>
@@ -970,7 +1055,7 @@ const AreaAdmin = () => {
                       <div><strong>Email:</strong> {richiesta.utente_email || 'N/A'}</div>
                       <div><strong>Data:</strong> {formatDate(richiesta.data_creazione || richiesta.data_richiesta)}</div>
                       {richiesta.tipo_richiesta_richiesta && (
-                        <div><strong>Tipo Richiesta:</strong> {richiesta.tipo_richiesta_richiesta}</div>
+                        <div><strong>Tipo Richiesta:</strong> {formatRequestType(richiesta.tipo_richiesta_richiesta)}</div>
                       )}
                     </RequestDetails>
                     
@@ -982,7 +1067,14 @@ const AreaAdmin = () => {
                     
                     {richiesta.dati_richiesta && (
                       <RequestMessage>
-                        <strong>Dettagli Richiesta:</strong> {JSON.stringify(richiesta.dati_richiesta, null, 2)}
+                        <strong>Dettagli Richiesta:</strong>
+                        <div style={{ marginTop: '0.5rem' }}>
+                          {formatRequestDetails(richiesta.dati_richiesta)?.map((detail, index) => (
+                            <div key={index} style={{ fontSize: '0.85rem', color: '#374151', marginBottom: '0.25rem' }}>
+                              {detail}
+                            </div>
+                          ))}
+                        </div>
                       </RequestMessage>
                     )}
                   </RequestCard>
@@ -1041,7 +1133,7 @@ const AreaAdmin = () => {
                   <div><strong>Email:</strong> {selectedRequest.utente_email || 'N/A'}</div>
                   <div><strong>Data:</strong> {formatDate(selectedRequest.data_creazione || selectedRequest.data_richiesta)}</div>
                   {selectedRequest.tipo_richiesta_richiesta && (
-                    <div><strong>Tipo Richiesta:</strong> {selectedRequest.tipo_richiesta_richiesta}</div>
+                    <div><strong>Tipo Richiesta:</strong> {formatRequestType(selectedRequest.tipo_richiesta_richiesta)}</div>
                   )}
                 </RequestDetails>
                 
@@ -1053,7 +1145,14 @@ const AreaAdmin = () => {
                 
                 {selectedRequest.dati_richiesta && (
                   <RequestMessage>
-                    <strong>Dettagli Richiesta:</strong> {JSON.stringify(selectedRequest.dati_richiesta, null, 2)}
+                    <strong>Dettagli Richiesta:</strong>
+                    <div style={{ marginTop: '0.5rem' }}>
+                      {formatRequestDetails(selectedRequest.dati_richiesta)?.map((detail, index) => (
+                        <div key={index} style={{ fontSize: '0.85rem', color: '#374151', marginBottom: '0.25rem' }}>
+                          {detail}
+                        </div>
+                      ))}
+                    </div>
                   </RequestMessage>
                 )}
               </RequestCard>
