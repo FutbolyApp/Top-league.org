@@ -1035,6 +1035,18 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
               richiesta.dati_richiesta = JSON.stringify(datiRichiesta);
               
               console.log('Dati richiesta aggiornati:', richiesta.dati_richiesta);
+              
+              // Salva i dettagli aggiornati nel database
+              try {
+                await db.query(`
+                  UPDATE richieste_admin 
+                  SET dati_richiesta = $1 
+                  WHERE id = $2
+                `, [richiesta.dati_richiesta, richiesta.id]);
+                console.log('Dettagli giocatori salvati nel database per richiesta:', richiesta.id);
+              } catch (updateError) {
+                console.error('Errore nel salvataggio dettagli nel database:', updateError);
+              }
             }
           } else {
             console.log('Richiesta già ha dettagli giocatori o non ha giocatori selezionati');
