@@ -188,6 +188,182 @@ const ActionButton = styled.button`
   }
 `;
 
+// Modal components for admin requests
+const Modal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+`;
+
+const ModalTitle = styled.h2`
+  color: #1e293b;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+`;
+
+const ModalCloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #64748b;
+  padding: 0.5rem;
+  
+  &:hover {
+    color: #1e293b;
+  }
+`;
+
+const RequestCard = styled.div`
+  background: ${props => props.$answered ? '#f8fafc' : 'white'};
+  border: 1px solid ${props => props.$answered ? '#e2e8f0' : '#d1d5db'};
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: ${props => props.$answered ? '#f1f5f9' : '#f8fafc'};
+  }
+`;
+
+const RequestHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+`;
+
+const RequestTitle = styled.h4`
+  color: ${props => props.$color || '#1e293b'};
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+`;
+
+const RequestStatus = styled.span`
+  background: ${props => props.$color};
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+`;
+
+const RequestDetails = styled.div`
+  color: #64748b;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+`;
+
+const RequestMessage = styled.div`
+  color: #374151;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #f8fafc;
+  border-radius: 4px;
+`;
+
+const PaginationContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+`;
+
+const PaginationButton = styled.button`
+  background: ${props => props.$active ? '#3b82f6' : 'white'};
+  color: ${props => props.$active ? 'white' : '#374151'};
+  border: 1px solid ${props => props.$active ? '#3b82f6' : '#d1d5db'};
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  
+  &:hover {
+    background: ${props => props.$active ? '#2563eb' : '#f8fafc'};
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ResponseForm = styled.div`
+  margin-top: 1rem;
+`;
+
+const ResponseTextarea = styled.textarea`
+  width: 100%;
+  min-height: 100px;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  resize: vertical;
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const ResponseButtons = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  justify-content: flex-end;
+`;
+
+const ShowMoreButton = styled.button`
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #2563eb;
+  }
+`;
+
 // Loading and empty states
 const LoadingMessage = styled.div`
   text-align: center;
@@ -252,68 +428,7 @@ const RequestItem = styled.div`
   }
 `;
 
-const RequestHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
-`;
 
-const RequestInfo = styled.div`
-  flex: 1;
-`;
-
-const RequestUser = styled.div`
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 0.8rem;
-  margin-bottom: 0.25rem;
-`;
-
-const RequestEmail = styled.div`
-  color: #64748b;
-  font-size: 0.7rem;
-`;
-
-const RequestDetails = styled.div`
-  margin-bottom: 0.5rem;
-`;
-
-const RequestLega = styled.div`
-  font-weight: 500;
-  color: #3b82f6;
-  margin-bottom: 0.25rem;
-  font-size: 0.8rem;
-`;
-
-const RequestSquadra = styled.div`
-  color: #10b981;
-  font-weight: 500;
-  font-size: 0.8rem;
-`;
-
-const RequestMessage = styled.div`
-  background: #f8fafc;
-  padding: 0.5rem;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-  font-style: italic;
-  color: #475569;
-  border-left: 2px solid #3b82f6;
-  font-size: 0.8rem;
-`;
-
-const RequestActions = styled.div`
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-`;
-
-const RequestDate = styled.div`
-  font-size: 0.7rem;
-  color: #64748b;
-  text-align: right;
-`;
 
 // Success message
 const SuccessMessage = styled.div`
@@ -329,14 +444,28 @@ const SuccessMessage = styled.div`
 `;
 
 const AreaAdmin = () => {
-  const { token, user } = useAuth();
-  const { notifications, markSubadminRequestsAsRead, markAsRead } = useNotification();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
+  
   const [leghe, setLeghe] = useState([]);
   const [richieste, setRichieste] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [successMessage, setSuccessMessage] = useState('');
   const [pendingCounts, setPendingCounts] = useState({});
+  const [loading, setLoading] = useState(true);
+  
+  // Stati per i popup delle richieste admin
+  const [showAllRequestsModal, setShowAllRequestsModal] = useState(false);
+  const [showRequestResponseModal, setShowRequestResponseModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [responseMessage, setResponseMessage] = useState('');
+  const [processingResponse, setProcessingResponse] = useState(false);
+  
+  // Stati per la paginazione
+  const [currentPage, setCurrentPage] = useState(1);
+  const [requestsPerPage] = useState(5);
+  
+  // Stati per le richieste mostrate (massimo 3)
+  const [displayedRequests, setDisplayedRequests] = useState([]);
 
   const loadAdminData = useCallback(async () => {
     try {
@@ -400,53 +529,79 @@ const AreaAdmin = () => {
     }
   }, [token, loadAdminData]);
 
-  // Removed excessive notification refresh - handled by NotificationSystem
+  // Aggiorna le richieste mostrate quando cambiano le richieste
+  useEffect(() => {
+    // Mostra solo le prime 3 richieste
+    setDisplayedRequests(richieste.slice(0, 3));
+  }, [richieste]);
 
-  const handleRispostaRichiesta = async (richiestaId, risposta) => {
+  // Funzione per gestire la risposta a una richiesta admin
+  const handleAdminRequestResponse = async (richiesta, risposta) => {
     try {
-      // Determina se è una richiesta di ingresso o admin
-      if (richiestaId.startsWith('ingresso_')) {
-        const realId = richiestaId.replace('ingresso_', '');
-        await rispondiRichiesta(realId, { risposta, messaggio: '' }, token);
-        
-        // Marca come lette le notifiche relative a questa richiesta
-        const relatedNotifications = notifications.filter(n => {
-          if (n.tipo !== 'richiesta_ingresso' || !n.dati_aggiuntivi) return false;
-          
-          try {
-            let dati;
-            // Se è già un oggetto, usalo direttamente
-            if (typeof n.dati_aggiuntivi === 'object') {
-              dati = n.dati_aggiuntivi;
-            } else {
-              // Altrimenti prova a parsarlo come JSON
-              dati = JSON.parse(n.dati_aggiuntivi);
-            }
-            return dati.richiesta_id === parseInt(realId);
-          } catch (error) {
-            console.error('Errore parsing dati_aggiuntivi per notifica:', n.id, error);
-            return false;
-          }
-        });
-        
-        for (const notification of relatedNotifications) {
-          await markAsRead(notification.id);
-        }
-      } else if (richiestaId.startsWith('admin_')) {
-        const realId = richiestaId.replace('admin_', '');
-        // Per ora, naviga alla gestione richieste admin
-        // TODO: Implementare gestione diretta delle richieste admin
-        navigate(`/gestione-richieste-admin/${realId}`);
-        return;
-      }
+      setProcessingResponse(true);
       
-      setSuccessMessage(`Richiesta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo!`);
-      setTimeout(() => setSuccessMessage(''), 3000);
-      await loadAdminData();
+      const response = await api.post(`/richieste-admin/${richiesta.id}/gestisci`, {
+        azione: risposta === 'accetta' ? 'accepted' : 'rejected',
+        note_admin: responseMessage,
+        valore_costo: richiesta.dati_richiesta?.valore_costo || 0
+      }, token);
+
+      if (response.ok) {
+        showNotification(
+          `Richiesta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo!`,
+          'success'
+        );
+        
+        // Ricarica i dati
+        await loadAdminData();
+        
+        // Chiudi i popup
+        setShowRequestResponseModal(false);
+        setSelectedRequest(null);
+        setResponseMessage('');
+      } else {
+        showNotification('Errore durante la gestione della richiesta', 'error');
+      }
     } catch (error) {
-      console.error('Errore risposta richiesta:', error);
+      console.error('Errore gestione richiesta admin:', error);
+      showNotification('Errore durante la gestione della richiesta', 'error');
+    } finally {
+      setProcessingResponse(false);
     }
   };
+
+  // Funzione per aprire il popup di risposta
+  const openResponseModal = (richiesta) => {
+    setSelectedRequest(richiesta);
+    setResponseMessage('');
+    setShowRequestResponseModal(true);
+  };
+
+  // Funzione per calcolare le richieste paginate
+  const getPaginatedRequests = () => {
+    const startIndex = (currentPage - 1) * requestsPerPage;
+    const endIndex = startIndex + requestsPerPage;
+    return richieste.slice(startIndex, endIndex);
+  };
+
+  // Funzione per ottenere lo stato della richiesta
+  const getRequestStatus = (richiesta) => {
+    if (richiesta.stato === 'accepted') return { text: 'Richiesta Confermata', color: '#10b981' };
+    if (richiesta.stato === 'rejected') return { text: 'Richiesta Rifiutata', color: '#ef4444' };
+    if (richiesta.stato === 'revision') return { text: 'In Revisione', color: '#f59e0b' };
+    return { text: 'In Attesa', color: '#6b7280' };
+  };
+
+  // Funzione per ottenere il colore della richiesta basato sullo stato
+  const getRequestColor = (richiesta) => {
+    const status = getRequestStatus(richiesta);
+    if (status.text === 'In Attesa') return '#1e293b';
+    return '#9ca3af'; // Grigio per richieste risposte
+  };
+
+  // Removed excessive notification refresh - handled by NotificationSystem
+
+
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -468,25 +623,6 @@ const AreaAdmin = () => {
   };
 
   const handleGestioneSubadmin = async (legaId) => {
-    // Marca come lette le notifiche subadmin_request per questa lega
-    const unreadNotifications = notifications.filter(n => 
-      n.tipo === 'subadmin_request' && 
-      (!n.letto || n.letto === 0) &&
-      n.lega_id === legaId
-    );
-    
-    if (unreadNotifications.length > 0) {
-      try {
-        // Marca come lette solo le notifiche non lette per questa lega
-        for (const notification of unreadNotifications) {
-          await markAsRead(notification.id);
-        }
-        console.log(`Marcate come lette ${unreadNotifications.length} notifiche per la lega ${legaId}`);
-      } catch (error) {
-        console.error('Errore marcatura notifiche come lette:', error);
-      }
-    }
-    
     navigate(`/league-admin/${legaId}`);
   };
 
@@ -513,12 +649,7 @@ const AreaAdmin = () => {
           <Subtitle>Gestisci le tue leghe e monitora le attività</Subtitle>
         </Header>
 
-        {successMessage && (
-          <SuccessMessage>
-            <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%' }}></div>
-            {successMessage}
-          </SuccessMessage>
-        )}
+
 
         {/* Statistiche */}
         <StatsGrid>
@@ -687,98 +818,62 @@ const AreaAdmin = () => {
           <Section>
             <SectionHeader>
               <SectionTitle>
-                Richieste
+                📋 Richieste Admin
                 <Badge $color="#ef4444">{totalRichieste}</Badge>
               </SectionTitle>
             </SectionHeader>
             
             {richieste.length === 0 ? (
-              <EmptyState style={{ margin: '1rem 0', padding: '1rem' }}>
-                <EmptyIcon style={{ fontSize: '1.5rem' }}>✅</EmptyIcon>
-                <EmptyTitle style={{ fontSize: '0.9rem' }}>Nessuna richiesta</EmptyTitle>
-                <EmptyText style={{ fontSize: '0.8rem' }}>
-                  Non ci sono richieste di ingresso o richieste admin in attesa.
-                </EmptyText>
+              <EmptyState>
+                <EmptyIcon>📭</EmptyIcon>
+                <EmptyTitle>Nessuna richiesta</EmptyTitle>
+                <EmptyText>Non ci sono richieste admin in attesa.</EmptyText>
               </EmptyState>
             ) : (
               <div>
-                {richieste.map(richiesta => (
-                  <RequestItem key={richiesta.id}>
-                    <RequestHeader>
-                      <RequestInfo>
-                        <RequestUser>
-                          {richiesta.tipo_richiesta === 'admin' ? 
-                            `Richiesta Admin - ${richiesta.utente_nome}` : 
-                            richiesta.utente_nome
-                          }
-                        </RequestUser>
-                        <RequestEmail>
-                          {richiesta.tipo_richiesta === 'admin' ? 
-                            `Tipo: ${richiesta.tipo_richiesta_richiesta} | Email: ${richiesta.utente_email}` : 
-                            richiesta.utente_email
-                          }
-                        </RequestEmail>
-                      </RequestInfo>
-                      <RequestDate>{formatDate(richiesta.data_richiesta)}</RequestDate>
-                    </RequestHeader>
-                    
-                    <RequestDetails>
-                      <RequestLega>{richiesta.lega_nome}</RequestLega>
-                      <RequestSquadra>{richiesta.squadra_nome}</RequestSquadra>
-                      {richiesta.tipo_richiesta === 'admin' && (
-                        <div style={{ fontSize: '0.8rem', color: '#f59e0b', fontWeight: '600', marginTop: '0.25rem' }}>
-                          📋 Richiesta: {richiesta.tipo_richiesta_richiesta}
-                        </div>
+                {/* Mostra solo le prime 3 richieste */}
+                {displayedRequests.map(richiesta => {
+                  const status = getRequestStatus(richiesta);
+                  const isAnswered = richiesta.stato !== 'pending';
+                  
+                  return (
+                    <RequestCard 
+                      key={richiesta.id} 
+                      $answered={isAnswered}
+                      onClick={() => openResponseModal(richiesta)}
+                    >
+                      <RequestHeader>
+                        <RequestTitle $color={getRequestColor(richiesta)}>
+                          {richiesta.tipo_richiesta === 'admin' ? 'Richiesta Admin' : 'Richiesta Ingresso'}
+                        </RequestTitle>
+                        <RequestStatus $color={status.color}>
+                          {status.text}
+                        </RequestStatus>
+                      </RequestHeader>
+                      
+                      <RequestDetails>
+                        <div><strong>Lega:</strong> {richiesta.lega_nome}</div>
+                        <div><strong>Squadra:</strong> {richiesta.squadra_nome}</div>
+                        <div><strong>Data:</strong> {formatDate(richiesta.data_creazione)}</div>
+                      </RequestDetails>
+                      
+                      {richiesta.messaggio && (
+                        <RequestMessage>
+                          {richiesta.messaggio}
+                        </RequestMessage>
                       )}
-                      {richiesta.tipo_richiesta === 'user' && richiesta.messaggio_richiesta && (
-                        <div style={{ fontSize: '0.8rem', color: '#3b82f6', fontWeight: '500', marginTop: '0.25rem' }}>
-                          💬 Messaggio: {richiesta.messaggio_richiesta}
-                        </div>
-                      )}
-                    </RequestDetails>
-                    
-                    <RequestActions>
-                      {richiesta.tipo_richiesta === 'admin' ? (
-                        <>
-                          <ActionButton 
-                            $variant="success"
-                            onClick={() => {
-                              // Fallback: se richiesta.lega_id è undefined, cerca la lega per nome
-                              let targetLegaId = richiesta.lega_id;
-                              if (!targetLegaId && richiesta.lega_nome) {
-                                const matchingLega = leghe.find(l => l.nome === richiesta.lega_nome);
-                                targetLegaId = matchingLega ? matchingLega.id : null;
-                              }
-                              if (targetLegaId) {
-                                navigate(`/gestione-richieste-admin/${targetLegaId}`);
-                              } else {
-                                console.error('Impossibile trovare lega_id per richiesta:', richiesta);
-                                alert('Errore: impossibile determinare la lega per questa richiesta');
-                              }
-                            }}
-                          >
-                            Gestisci
-                          </ActionButton>
-                        </>
-                      ) : (
-                        <>
-                          <ActionButton 
-                            $variant="success"
-                            onClick={() => handleRispostaRichiesta(richiesta.id, 'accetta')}
-                          >
-                            Accetta
-                          </ActionButton>
-                          <ActionButton 
-                            $variant="danger"
-                            onClick={() => handleRispostaRichiesta(richiesta.id, 'rifiuta')}
-                          >
-                            Rifiuta
-                          </ActionButton>
-                        </>
-                      )}
-                    </RequestActions>
-                  </RequestItem>
-                ))}
+                    </RequestCard>
+                  );
+                })}
+                
+                {/* Pulsante "MOSTRA ALTRO" se ci sono più di 3 richieste */}
+                {richieste.length > 3 && (
+                  <div style={{ textAlign: 'center', marginTop: '1rem' }}>
+                    <ShowMoreButton onClick={() => setShowAllRequestsModal(true)}>
+                      MOSTRA ALTRO ({richieste.length - 3} rimanenti)
+                    </ShowMoreButton>
+                  </div>
+                )}
               </div>
             )}
           </Section>
@@ -827,6 +922,140 @@ const AreaAdmin = () => {
           </Section>
         </MainGrid>
       </ContentWrapper>
+
+      {/* Popup per mostrare tutte le richieste */}
+      {showAllRequestsModal && (
+        <Modal onClick={() => setShowAllRequestsModal(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>Tutte le Richieste Admin</ModalTitle>
+              <ModalCloseButton onClick={() => setShowAllRequestsModal(false)}>✕</ModalCloseButton>
+            </ModalHeader>
+            
+            <div>
+              {getPaginatedRequests().map(richiesta => {
+                const status = getRequestStatus(richiesta);
+                const isAnswered = richiesta.stato !== 'pending';
+                
+                return (
+                  <RequestCard 
+                    key={richiesta.id} 
+                    $answered={isAnswered}
+                    onClick={() => openResponseModal(richiesta)}
+                  >
+                    <RequestHeader>
+                      <RequestTitle $color={getRequestColor(richiesta)}>
+                        {richiesta.tipo_richiesta === 'admin' ? 'Richiesta Admin' : 'Richiesta Ingresso'}
+                      </RequestTitle>
+                      <RequestStatus $color={status.color}>
+                        {status.text}
+                      </RequestStatus>
+                    </RequestHeader>
+                    
+                    <RequestDetails>
+                      <div><strong>Lega:</strong> {richiesta.lega_nome}</div>
+                      <div><strong>Squadra:</strong> {richiesta.squadra_nome}</div>
+                      <div><strong>Data:</strong> {formatDate(richiesta.data_creazione)}</div>
+                    </RequestDetails>
+                    
+                    {richiesta.messaggio && (
+                      <RequestMessage>
+                        {richiesta.messaggio}
+                      </RequestMessage>
+                    )}
+                  </RequestCard>
+                );
+              })}
+              
+              {/* Paginazione */}
+              {richieste.length > requestsPerPage && (
+                <PaginationContainer>
+                  <PaginationButton
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    ← Precedente
+                  </PaginationButton>
+                  
+                  <span style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                    Pagina {currentPage} di {Math.ceil(richieste.length / requestsPerPage)}
+                  </span>
+                  
+                  <PaginationButton
+                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(richieste.length / requestsPerPage), prev + 1))}
+                    disabled={currentPage === Math.ceil(richieste.length / requestsPerPage)}
+                  >
+                    Successiva →
+                  </PaginationButton>
+                </PaginationContainer>
+              )}
+            </div>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {/* Popup per gestire la risposta alla richiesta */}
+      {showRequestResponseModal && selectedRequest && (
+        <Modal onClick={() => setShowRequestResponseModal(false)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <ModalTitle>Gestisci Richiesta Admin</ModalTitle>
+              <ModalCloseButton onClick={() => setShowRequestResponseModal(false)}>✕</ModalCloseButton>
+            </ModalHeader>
+            
+            <div>
+              <RequestCard $answered={false}>
+                <RequestHeader>
+                  <RequestTitle>
+                    {selectedRequest.tipo_richiesta === 'admin' ? 'Richiesta Admin' : 'Richiesta Ingresso'}
+                  </RequestTitle>
+                  <RequestStatus $color="#6b7280">In Attesa</RequestStatus>
+                </RequestHeader>
+                
+                <RequestDetails>
+                  <div><strong>Lega:</strong> {selectedRequest.lega_nome}</div>
+                  <div><strong>Squadra:</strong> {selectedRequest.squadra_nome}</div>
+                  <div><strong>Data:</strong> {formatDate(selectedRequest.data_creazione)}</div>
+                </RequestDetails>
+                
+                {selectedRequest.messaggio && (
+                  <RequestMessage>
+                    {selectedRequest.messaggio}
+                  </RequestMessage>
+                )}
+              </RequestCard>
+              
+              <ResponseForm>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500', color: '#374151' }}>
+                  Messaggio di risposta (opzionale):
+                </label>
+                <ResponseTextarea
+                  value={responseMessage}
+                  onChange={(e) => setResponseMessage(e.target.value)}
+                  placeholder="Inserisci un messaggio per l'utente..."
+                />
+              </ResponseForm>
+              
+              <ResponseButtons>
+                <ActionButton
+                  $variant="danger"
+                  onClick={() => handleAdminRequestResponse(selectedRequest, 'rifiuta')}
+                  disabled={processingResponse}
+                >
+                  {processingResponse ? 'Elaborazione...' : 'Rifiuta'}
+                </ActionButton>
+                <ActionButton
+                  $variant="success"
+                  onClick={() => handleAdminRequestResponse(selectedRequest, 'accetta')}
+                  disabled={processingResponse}
+                >
+                  {processingResponse ? 'Elaborazione...' : 'Accetta'}
+                </ActionButton>
+              </ResponseButtons>
+            </div>
+          </ModalContent>
+        </Modal>
+      )}
     </Container>
   );
 };
