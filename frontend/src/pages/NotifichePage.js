@@ -505,6 +505,8 @@ const NotifichePage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
+  const [selectedLeague, setSelectedLeague] = useState('');
+  const [userLeagues, setUserLeagues] = useState([]);
   const [notificationsPerPage] = useState(6);
   const [displayedNotifications, setDisplayedNotifications] = useState([]);
   const [selectedMarketNotification, setSelectedMarketNotification] = useState(null);
@@ -520,6 +522,7 @@ const NotifichePage = () => {
       return;
     }
     loadNotifications();
+    loadUserLeagues();
   }, [user, token]);
 
   const loadNotifications = async () => {
@@ -577,6 +580,19 @@ const NotifichePage = () => {
       setError('Errore di connessione: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUserLeagues = async () => {
+    try {
+      const response = await api.get('/leghe/user-leagues', token);
+      if (response.ok) {
+        setUserLeagues(response.data.leghe || []);
+      } else {
+        console.error('Errore nel caricamento delle leghe:', response);
+      }
+    } catch (error) {
+      console.error('Errore di connessione per leghe:', error);
     }
   };
 
@@ -800,6 +816,9 @@ const NotifichePage = () => {
       else if (filter === 'admin' && !notification.tipo.includes('admin')) return false;
       else if (filter !== 'tutte') return false;
 
+      // Filtro per lega
+      if (selectedLeague && notification.lega_id !== parseInt(selectedLeague)) return false;
+
       // Filtro per mese/anno
       if (selectedMonth || selectedYear) {
         const notificationDate = new Date(notification.data_creazione);
@@ -812,7 +831,7 @@ const NotifichePage = () => {
 
       return true;
     });
-  }, [notifications, filter, selectedMonth, selectedYear]);
+  }, [notifications, filter, selectedMonth, selectedYear, selectedLeague]);
 
   // Aggiorna le notifiche visualizzate quando cambiano i filtri
   useEffect(() => {
@@ -1081,6 +1100,15 @@ const NotifichePage = () => {
           <option value="offerte">Offerte</option>
           <option value="admin">Richieste Admin</option>
         </FilterSelect>
+
+        {userLeagues.length > 0 && (
+          <FilterSelect value={selectedLeague} onChange={(e) => setSelectedLeague(e.target.value)}>
+            <option value="">Tutte le leghe</option>
+            {userLeagues.map(league => (
+              <option key={league.id} value={league.id}>{league.nome}</option>
+            ))}
+          </FilterSelect>
+        )}
 
         {months.length > 1 && (
           <DateFilterContainer>
