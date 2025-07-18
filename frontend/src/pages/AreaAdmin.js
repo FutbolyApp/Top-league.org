@@ -677,11 +677,33 @@ const AreaAdmin = () => {
         details.push(`Motivo: ${data.motivo}`);
       }
       
+      // Gestisci i costi dimezzati per le richieste cantera
+      if (data.costi_dimezzati && typeof data.costi_dimezzati === 'object') {
+        const costiEntries = Object.entries(data.costi_dimezzati);
+        if (costiEntries.length > 0) {
+          details.push(`Giocatori Selezionati: ${data.giocatori_selezionati ? data.giocatori_selezionati.length : 0}`);
+          details.push(`Costi Dimezzati: ${costiEntries.length} giocatori`);
+          // Aggiungi dettagli per ogni giocatore se disponibili
+          if (data.giocatori_selezionati && Array.isArray(data.giocatori_selezionati)) {
+            data.giocatori_selezionati.forEach((giocatoreId, index) => {
+              const costoDimezzato = data.costi_dimezzati[giocatoreId];
+              if (costoDimezzato !== undefined) {
+                details.push(`  • Giocatore ${index + 1}: ${costoDimezzato} FM`);
+              }
+            });
+          }
+        }
+      }
+      
       // Se non abbiamo mappato nessun campo specifico, mostra tutti i campi
       if (details.length === 0) {
         Object.entries(data).forEach(([key, value]) => {
           const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          details.push(`${formattedKey}: ${value}`);
+          if (typeof value === 'object' && value !== null) {
+            details.push(`${formattedKey}: ${JSON.stringify(value)}`);
+          } else {
+            details.push(`${formattedKey}: ${value}`);
+          }
         });
       }
       

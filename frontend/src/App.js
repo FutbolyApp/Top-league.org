@@ -111,17 +111,19 @@ function AppRoutes() {
 
 function App() {
   return (
-    <NetworkErrorHandler>
-      <AuthProvider>
-        <NotificationProvider>
-          <TokenExpiredHandler>
-            <AuthRedirect />
-            <AppRoutes />
-            <ApiMonitor />
-          </TokenExpiredHandler>
-        </NotificationProvider>
-      </AuthProvider>
-    </NetworkErrorHandler>
+    <Router basename="/">
+      <NetworkErrorHandler>
+        <AuthProvider>
+          <NotificationProvider>
+            <TokenExpiredHandler>
+              <AuthRedirect />
+              <AppRoutes />
+              <ApiMonitor />
+            </TokenExpiredHandler>
+          </NotificationProvider>
+        </AuthProvider>
+      </NetworkErrorHandler>
+    </Router>
   );
 }
 
