@@ -344,23 +344,33 @@ const AreaAdmin = () => {
       
       // Carica le leghe dell'admin
       const legheData = await api.get('/leghe/admin', token);
-      setLeghe(legheData.leghe || []);
+      setLeghe(legheData.data?.leghe || []);
       
       // Carica le richieste
       const richiesteData = await api.get('/leghe/richieste/admin', token);
-      console.log('Richieste ricevute:', richiesteData.richieste);
-      // Debug: controlla se le richieste admin hanno lega_id
-      richiesteData.richieste.forEach((richiesta, index) => {
-        if (richiesta.tipo_richiesta === 'admin') {
-          console.log(`Richiesta admin ${index}:`, {
-            id: richiesta.id,
-            lega_id: richiesta.lega_id,
-            lega_nome: richiesta.lega_nome,
-            squadra_nome: richiesta.squadra_nome
-          });
-        }
-      });
-      setRichieste(richiesteData.richieste || []);
+      console.log('Richieste ricevute:', richiesteData);
+      console.log('Richieste data type:', typeof richiesteData);
+      console.log('Richieste keys:', Object.keys(richiesteData || {}));
+      console.log('Richieste data:', richiesteData.data);
+      
+      // Verifica che richiesteData.data.richieste esista prima di usare forEach
+      if (richiesteData && richiesteData.data && richiesteData.data.richieste && Array.isArray(richiesteData.data.richieste)) {
+        // Debug: controlla se le richieste admin hanno lega_id
+        richiesteData.data.richieste.forEach((richiesta, index) => {
+          if (richiesta.tipo_richiesta === 'admin') {
+            console.log(`Richiesta admin ${index}:`, {
+              id: richiesta.id,
+              lega_id: richiesta.lega_id,
+              lega_nome: richiesta.lega_nome,
+              squadra_nome: richiesta.squadra_nome
+            });
+          }
+        });
+        setRichieste(richiesteData.data.richieste);
+      } else {
+        console.warn('Richieste non trovate o formato non valido:', richiesteData);
+        setRichieste([]);
+      }
       
       // Carica pending per ogni lega
       const pendingCountsObj = {};
