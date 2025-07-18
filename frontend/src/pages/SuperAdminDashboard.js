@@ -362,8 +362,8 @@ const SuperAdminDashboard = () => {
           getAllLegheAdmin(token),
           getAllSubadmins(token)
         ]);
-        setLeghe(legheRes.leghe);
-        setSubadmins(subadminsRes.subadmins || []);
+        setLeghe(legheRes.data.leghe);
+        setSubadmins(subadminsRes.data.subadmins || []);
         
         // Carica utenti separatamente con gestione errori migliorata
         try {
@@ -458,7 +458,7 @@ const SuperAdminDashboard = () => {
       
       // Ricarica i dati
       const subadminsRes = await getAllSubadmins(token);
-      setSubadmins(subadminsRes.subadmins || []);
+      setSubadmins(subadminsRes.data.subadmins || []);
     } catch (err) {
       alert(`Errore nell'aggiunta del subadmin: ${err.message}`);
     }
@@ -472,7 +472,7 @@ const SuperAdminDashboard = () => {
         
         // Ricarica i dati
         const subadminsRes = await getAllSubadmins(token);
-        setSubadmins(subadminsRes.subadmins || []);
+        setSubadmins(subadminsRes.data.subadmins || []);
       } catch (err) {
         alert(`Errore nella rimozione del subadmin: ${err.message}`);
       }
