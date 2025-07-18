@@ -983,6 +983,52 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
     `, [adminId]);
     console.log('Richieste admin found:', richiesteAdminResult.rows.length);
 
+    // Per le richieste Cantera, aggiungi i dettagli del giocatore se non sono già presenti
+    for (let richiesta of richiesteAdminResult.rows) {
+      if (richiesta.tipo_richiesta === 'cantera' && richiesta.dati_richiesta) {
+        try {
+          const datiRichiesta = typeof richiesta.dati_richiesta === 'string' 
+            ? JSON.parse(richiesta.dati_richiesta) 
+            : richiesta.dati_richiesta;
+          
+          // Se non ci sono dettagli_giocatori, li recuperiamo dal database
+          if (!datiRichiesta.dettagli_giocatori && datiRichiesta.giocatori_selezionati) {
+            const giocatoriIds = Array.isArray(datiRichiesta.giocatori_selezionati) 
+              ? datiRichiesta.giocatori_selezionati 
+              : [datiRichiesta.giocatori_selezionati];
+            
+            if (giocatoriIds.length > 0) {
+              const giocatoriResult = await db.query(`
+                SELECT id, nome, cognome, ruolo, squadra_reale, qi, qa, quotazione_attuale, costo_attuale
+                FROM giocatori 
+                WHERE id = ANY($1)
+              `, [giocatoriIds]);
+              
+              const dettagliGiocatori = {};
+              giocatoriResult.rows.forEach(giocatore => {
+                dettagliGiocatori[giocatore.id] = {
+                  nome: giocatore.nome,
+                  cognome: giocatore.cognome,
+                  ruolo: giocatore.ruolo,
+                  squadra_reale: giocatore.squadra_reale,
+                  qi: giocatore.qi,
+                  qa: giocatore.qa || giocatore.quotazione_attuale,
+                  costo_attuale: giocatore.costo_attuale,
+                  costo_dimezzato: Math.floor(giocatore.costo_attuale / 2)
+                };
+              });
+              
+              // Aggiorna i dati della richiesta con i dettagli del giocatore
+              datiRichiesta.dettagli_giocatori = dettagliGiocatori;
+              richiesta.dati_richiesta = JSON.stringify(datiRichiesta);
+            }
+          }
+        } catch (error) {
+          console.error('Errore nel recupero dettagli giocatori per richiesta:', richiesta.id, error);
+        }
+      }
+    }
+
     console.log('Richieste admin trovate:', richiesteAdminResult.rows.length);
 
     // Combina le due liste
