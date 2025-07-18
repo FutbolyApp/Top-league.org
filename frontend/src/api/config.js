@@ -69,7 +69,8 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
       }
       throw new Error(errorMessage);
     }
-    return response.json();
+    const data = await response.json();
+    return { ok: true, data };
   } catch (error) {
     console.error('Request failed:', error);
     
