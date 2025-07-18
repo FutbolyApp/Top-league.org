@@ -639,11 +639,11 @@ const SuperAdminDashboard = () => {
     </Container>
   );
 
-  const totalLeghe = leghe.length;
-  const totalSquadre = leghe.reduce((sum, lega) => sum + (lega.numero_squadre || 0), 0);
-  const totalSquadreAssegnate = leghe.reduce((sum, lega) => sum + (lega.squadre_con_proprietario || 0), 0);
-  const totalGiocatori = leghe.reduce((sum, lega) => sum + (lega.numero_giocatori || 0), 0);
-  const leghePubbliche = leghe.filter(lega => lega.is_pubblica).length;
+  const totalLeghe = leghe?.length || 0;
+  const totalSquadre = leghe?.reduce((sum, lega) => sum + (lega.numero_squadre || 0), 0) || 0;
+  const totalSquadreAssegnate = leghe?.reduce((sum, lega) => sum + (lega.squadre_con_proprietario || 0), 0) || 0;
+  const totalGiocatori = leghe?.reduce((sum, lega) => sum + (lega.numero_giocatori || 0), 0) || 0;
+  const leghePubbliche = leghe?.filter(lega => lega.is_pubblica).length || 0;
 
   return (
     <Container>
@@ -674,7 +674,7 @@ const SuperAdminDashboard = () => {
       <LeaguesSection>
         <SectionTitle>🏆 Gestione Leghe</SectionTitle>
         
-        {leghe.length === 0 ? (
+        {!leghe || leghe.length === 0 ? (
           <EmptyContainer>
             <h3>Nessuna lega trovata</h3>
             <p>Non ci sono ancora leghe nel sistema.</p>
@@ -696,7 +696,7 @@ const SuperAdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {leghe.map(lega => (
+                {leghe?.map(lega => (
                   <Tr key={lega.id}>
                     <Td>
                       <strong>{lega.nome}</strong>
@@ -797,7 +797,7 @@ const SuperAdminDashboard = () => {
         
         {usersLoading ? (
           <LoadingContainer>Caricamento utenti...</LoadingContainer>
-        ) : users.length === 0 ? (
+        ) : !users || users.length === 0 ? (
           <EmptyContainer>
             <h3>Nessun utente trovato</h3>
             <p>Non ci sono ancora utenti nel sistema.</p>
@@ -815,7 +815,7 @@ const SuperAdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {users.map(user => (
+                {users?.map(user => (
                   <Tr key={user.id}>
                     <Td>
                       <strong>{user.username}</strong>
