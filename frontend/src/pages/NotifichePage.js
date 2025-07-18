@@ -737,6 +737,43 @@ const NotifichePage = () => {
         return details.join(' • ');
       }
       
+      // Per le richieste admin Cantera, mostra dettagli completi del giocatore
+      if (notification.tipo === 'richiesta_admin' && dati.tipo_richiesta === 'cantera') {
+        let details = [];
+        
+        if (dati.costi_dimezzati && typeof dati.costi_dimezzati === 'object') {
+          const costiEntries = Object.entries(dati.costi_dimezzati);
+          if (costiEntries.length > 0) {
+            details.push(`Giocatori Selezionati: ${dati.giocatori_selezionati ? dati.giocatori_selezionati.length : 0}`);
+            details.push(`Costi Dimezzati: ${costiEntries.length} giocatori`);
+            
+            // Aggiungi dettagli completi per ogni giocatore se disponibili
+            if (dati.dettagli_giocatori && typeof dati.dettagli_giocatori === 'object') {
+              Object.entries(dati.dettagli_giocatori).forEach(([giocatoreId, dettagli]) => {
+                details.push(`  • ${dettagli.nome} ${dettagli.cognome} (${dettagli.ruolo})`);
+                details.push(`    Squadra Reale: ${dettagli.squadra_reale}`);
+                details.push(`    QA: ${dettagli.qa}`);
+                details.push(`    QI: ${dettagli.qi}`);
+                details.push(`    Ingaggio Attuale: ${dettagli.costo_attuale} FM`);
+                details.push(`    Ingaggio Cantera: ${dettagli.costo_dimezzato} FM`);
+              });
+            } else {
+              // Fallback per richieste esistenti senza dettagli
+              if (dati.giocatori_selezionati && Array.isArray(dati.giocatori_selezionati)) {
+                dati.giocatori_selezionati.forEach((giocatoreId, index) => {
+                  const costoDimezzato = dati.costi_dimezzati[giocatoreId];
+                  if (costoDimezzato !== undefined) {
+                    details.push(`  • Giocatore ${index + 1}: ${costoDimezzato} FM`);
+                  }
+                });
+              }
+            }
+          }
+        }
+        
+        return details.join('\n');
+      }
+      
       // Per altre notifiche, usa la logica esistente
       let details = [];
       
@@ -1159,30 +1196,45 @@ const NotifichePage = () => {
               <NotificationMessage>{notification.messaggio}</NotificationMessage>
               
               {getNotificationDetails(notification) && (
-                <NotificationActions>
-                  <ActionBtn 
-                    $variant={isPendingOffer(notification) ? 'warning' : 'success'}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (isPendingOffer(notification)) {
-                        handleMarketAction(isPendingOffer(notification) ? 'rifiuta' : 'accetta');
-                      }
-                    }}
-                    disabled={processingMarketAction}
-                  >
-                    {isPendingOffer(notification) ? 'Rispondi' : 'Segna come letta'}
-                  </ActionBtn>
-                  {notification.letta && !isPendingOffer(notification) && (
-                    <ActionBtn $variant="success">
-                      ✅ Letta
+                <div style={{ marginTop: '0.75rem' }}>
+                  <div style={{
+                    background: '#f8f9fa',
+                    border: '1px solid #e9ecef',
+                    borderRadius: '6px',
+                    padding: '0.75rem',
+                    fontSize: '0.85rem',
+                    color: '#495057',
+                    whiteSpace: 'pre-line',
+                    fontFamily: 'monospace'
+                  }}>
+                    {getNotificationDetails(notification)}
+                  </div>
+                  
+                  <NotificationActions>
+                    <ActionBtn 
+                      $variant={isPendingOffer(notification) ? 'warning' : 'success'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isPendingOffer(notification)) {
+                          handleMarketAction(isPendingOffer(notification) ? 'rifiuta' : 'accetta');
+                        }
+                      }}
+                      disabled={processingMarketAction}
+                    >
+                      {isPendingOffer(notification) ? 'Rispondi' : 'Segna come letta'}
                     </ActionBtn>
-                  )}
-                  {isPendingOffer(notification) && (
-                    <ActionBtn $variant="warning">
-                      ⏳ In attesa di risposta
-                    </ActionBtn>
-                  )}
-                </NotificationActions>
+                    {notification.letta && !isPendingOffer(notification) && (
+                      <ActionBtn $variant="success">
+                        ✅ Letta
+                      </ActionBtn>
+                    )}
+                    {isPendingOffer(notification) && (
+                      <ActionBtn $variant="warning">
+                        ⏳ In attesa di risposta
+                      </ActionBtn>
+                    )}
+                  </NotificationActions>
+                </div>
               )}
             </NotificationCard>
           ))}
