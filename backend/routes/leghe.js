@@ -995,9 +995,14 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
           
           // Se non ci sono dettagli_giocatori, li recuperiamo dal database
           if (!datiRichiesta.dettagli_giocatori && datiRichiesta.giocatori_selezionati) {
+            console.log('Recupero dettagli giocatori per richiesta:', richiesta.id);
+            console.log('Dati richiesta:', JSON.stringify(datiRichiesta, null, 2));
+            
             const giocatoriIds = Array.isArray(datiRichiesta.giocatori_selezionati) 
               ? datiRichiesta.giocatori_selezionati 
               : [datiRichiesta.giocatori_selezionati];
+            
+            console.log('Giocatori IDs da recuperare:', giocatoriIds);
             
             if (giocatoriIds.length > 0) {
               const giocatoriResult = await db.query(`
@@ -1005,6 +1010,9 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
                 FROM giocatori 
                 WHERE id = ANY($1)
               `, [giocatoriIds]);
+              
+              console.log('Giocatori trovati nel DB:', giocatoriResult.rows.length);
+              console.log('Giocatori trovati:', giocatoriResult.rows);
               
               const dettagliGiocatori = {};
               giocatoriResult.rows.forEach(giocatore => {
@@ -1020,10 +1028,17 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
                 };
               });
               
+              console.log('Dettagli giocatori creati:', dettagliGiocatori);
+              
               // Aggiorna i dati della richiesta con i dettagli del giocatore
               datiRichiesta.dettagli_giocatori = dettagliGiocatori;
               richiesta.dati_richiesta = JSON.stringify(datiRichiesta);
+              
+              console.log('Dati richiesta aggiornati:', richiesta.dati_richiesta);
             }
+          } else {
+            console.log('Richiesta già ha dettagli giocatori o non ha giocatori selezionati');
+            console.log('Dati richiesta attuali:', JSON.stringify(datiRichiesta, null, 2));
           }
         } catch (error) {
           console.error('Errore nel recupero dettagli giocatori per richiesta:', richiesta.id, error);
