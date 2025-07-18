@@ -173,7 +173,15 @@ function Login() {
         password: formData.password
       });
       loginUser(response.user, response.token);
-      navigate('/');
+      
+      // Controlla se c'è un URL di redirect salvato
+      const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectUrl) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(redirectUrl);
+      } else {
+        navigate('/');
+      }
     } catch (err) {
       setError(err.message || 'Errore durante il login');
     } finally {

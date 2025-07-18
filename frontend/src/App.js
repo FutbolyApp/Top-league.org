@@ -50,6 +50,7 @@ import GestioneRosterAdmin from './pages/GestioneRosterAdmin';
 import NotFound from './pages/NotFound';
 import NetworkErrorHandler from './components/NetworkErrorHandler';
 import TokenExpiredHandler from './components/TokenExpiredHandler';
+import AuthRedirect from './components/AuthRedirect';
 import './index.css';
 
 function AppRoutes() {
@@ -57,6 +58,8 @@ function AppRoutes() {
     <>
       <Navigation />
       <Routes>
+        {/* Catch-all route for SPA - must be at the end */}
+        <Route path="*" element={<NotFound />} />
         <Route path="/" element={<Home />} />
         <Route path="/leghe" element={<ProtectedRoute><Leghe /></ProtectedRoute>} />
         <Route path="/area-admin" element={<ProtectedRoute><AreaAdmin /></ProtectedRoute>} />
@@ -112,6 +115,7 @@ function App() {
       <AuthProvider>
         <NotificationProvider>
           <TokenExpiredHandler>
+            <AuthRedirect />
             <AppRoutes />
             <ApiMonitor />
           </TokenExpiredHandler>
