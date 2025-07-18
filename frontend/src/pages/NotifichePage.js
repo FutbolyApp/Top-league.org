@@ -525,11 +525,18 @@ const NotifichePage = () => {
   const loadNotifications = async () => {
     try {
       setLoading(true);
+      setError(null); // Clear any previous errors
+      
+      console.log('🔄 Loading notifications...');
       const response = await api.get('/notifiche', token);
+      
+      console.log('📊 Notification response:', response);
       
       if (response.ok) {
         const data = response.data;
         const notifiche = data.notifiche || [];
+        
+        console.log('📋 Found notifications:', notifiche.length);
         
         // Normalizza le notifiche per gestire entrambi i campi (letta e letto)
         const notificheNormalizzate = notifiche.map(n => {
@@ -560,12 +567,14 @@ const NotifichePage = () => {
         setNotifications(notificheNormalizzate);
         setDisplayedNotifications(notificheNormalizzate.slice(0, notificationsPerPage));
         setCurrentPage(1);
+        console.log('✅ Notifications loaded successfully');
       } else {
-        setError('Errore nel caricamento delle notifiche');
+        console.error('❌ Notification API error:', response);
+        setError('Errore nel caricamento delle notifiche: ' + (response.error || 'Errore sconosciuto'));
       }
     } catch (error) {
-      console.error('Errore caricamento notifiche:', error);
-      setError('Errore di connessione');
+      console.error('❌ Notification loading error:', error);
+      setError('Errore di connessione: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -979,8 +988,67 @@ const NotifichePage = () => {
   if (error) {
     return (
       <Container>
-        <div style={{ color: 'red', textAlign: 'center', padding: '40px 20px' }}>
-          {error}
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '40px 20px',
+          maxWidth: '600px',
+          margin: '0 auto'
+        }}>
+          <div style={{
+            background: '#fff3cd',
+            border: '1px solid #ffeaa7',
+            borderRadius: '8px',
+            padding: '20px',
+            marginBottom: '20px'
+          }}>
+            <div style={{
+              fontSize: '2rem',
+              marginBottom: '10px'
+            }}>
+              ⚠️
+            </div>
+            <h3 style={{
+              color: '#856404',
+              marginBottom: '10px'
+            }}>
+              Errore nel caricamento delle notifiche
+            </h3>
+            <p style={{
+              color: '#856404',
+              marginBottom: '20px'
+            }}>
+              {error}
+            </p>
+            <button
+              onClick={loadNotifications}
+              style={{
+                background: '#007bff',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.9rem',
+                fontWeight: '500'
+              }}
+            >
+              🔄 Riprova
+            </button>
+          </div>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              background: 'none',
+              border: '1px solid #6c757d',
+              color: '#6c757d',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            ⬅️ Torna indietro
+          </button>
         </div>
       </Container>
     );

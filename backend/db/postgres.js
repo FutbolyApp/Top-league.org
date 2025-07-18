@@ -27,6 +27,12 @@ export async function initializeDatabase() {
       connectionString: databaseUrl,
       ssl: {
         rejectUnauthorized: false
+      },
+      // Aggiungi configurazione per log utili
+      application_name: 'TopLeague Backend',
+      // Log delle connessioni
+      log: (msg) => {
+        console.log(`📊 DB: ${msg}`);
       }
     });
 
@@ -374,7 +380,7 @@ async function migrateDataIfNeeded() {
     
     // Crea un utente admin di default
     const bcrypt = await import('bcryptjs');
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.default.hash('admin123', 10);
     
     try {
       await pool.query(`

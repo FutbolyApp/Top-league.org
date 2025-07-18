@@ -19,7 +19,7 @@ export const useNotification = () => {
 
 const NotificationContainer = styled.div`
     position: fixed;
-    top: 20px;
+    top: 120px; /* Increased from 80px to 120px to ensure it's below the top menu */
     right: 20px;
     z-index: 1000;
     max-width: 250px;
