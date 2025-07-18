@@ -36,7 +36,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configurazione CORS ottimizzata
+// Configurazione CORS ottimizzata per risolvere problemi di accesso
 app.use(cors({
   origin: [
     'https://topleague-frontend-new.onrender.com',
