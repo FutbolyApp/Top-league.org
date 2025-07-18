@@ -735,7 +735,7 @@ const Leghe = () => {
   );
 
   // Applica filtri e ordinamento
-  const filteredLeghe = filterLeghe(leghe);
+  const filteredLeghe = filterLeghe(leghe || []);
   const sortedLeghe = sortLeghe(filteredLeghe);
 
   return (

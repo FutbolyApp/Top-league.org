@@ -31,7 +31,9 @@ router.use((req, res, next) => {
     'http://localhost:3000',
     'https://topleaguem-frontend.onrender.com',
     'https://topleague-frontend-new.onrender.com',
-    'https://topleaguem.onrender.com'
+    'https://topleaguem.onrender.com',
+    'https://topleague-frontend.onrender.com',
+    'https://topleague-frontend-new.onrender.com'
   ];
   
   if (origin && allowedOrigins.includes(origin)) {

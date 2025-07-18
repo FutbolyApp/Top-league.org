@@ -484,17 +484,17 @@ const AreaAdmin = () => {
       
       // Verifica che richiesteData.data.richieste esista prima di usare forEach
       if (richiesteData && richiesteData.data && richiesteData.data.richieste && Array.isArray(richiesteData.data.richieste)) {
-        // Debug: controlla se le richieste admin hanno lega_id
+      // Debug: controlla se le richieste admin hanno lega_id
         richiesteData.data.richieste.forEach((richiesta, index) => {
-          if (richiesta.tipo_richiesta === 'admin') {
-            console.log(`Richiesta admin ${index}:`, {
-              id: richiesta.id,
-              lega_id: richiesta.lega_id,
-              lega_nome: richiesta.lega_nome,
-              squadra_nome: richiesta.squadra_nome
-            });
-          }
-        });
+        if (richiesta.tipo_richiesta === 'admin') {
+          console.log(`Richiesta admin ${index}:`, {
+            id: richiesta.id,
+            lega_id: richiesta.lega_id,
+            lega_nome: richiesta.lega_nome,
+            squadra_nome: richiesta.squadra_nome
+          });
+        }
+      });
         setRichieste(richiesteData.data.richieste);
       } else {
         console.warn('Richieste non trovate o formato non valido:', richiesteData);
@@ -559,10 +559,10 @@ const AreaAdmin = () => {
         setShowRequestResponseModal(false);
         setSelectedRequest(null);
         setResponseMessage('');
-      } else {
+            } else {
         showNotification('Errore durante la gestione della richiesta', 'error');
-      }
-    } catch (error) {
+            }
+          } catch (error) {
       console.error('Errore gestione richiesta admin:', error);
       showNotification('Errore durante la gestione della richiesta', 'error');
     } finally {
@@ -955,16 +955,16 @@ const AreaAdmin = () => {
                       $answered={isAnswered}
                       onClick={() => openResponseModal(richiesta)}
                     >
-                      <RequestHeader>
+                    <RequestHeader>
                         <RequestTitle $color={getRequestColor(richiesta)}>
                           {richiesta.tipo_richiesta === 'admin' ? 'Richiesta Admin' : 'Richiesta Ingresso'}
                         </RequestTitle>
                         <RequestStatus $color={status.color}>
                           {status.text}
                         </RequestStatus>
-                      </RequestHeader>
-                      
-                      <RequestDetails>
+                    </RequestHeader>
+                    
+                    <RequestDetails>
                         <div><strong>Lega:</strong> {richiesta.lega_nome}</div>
                         <div><strong>Squadra:</strong> {richiesta.squadra_nome}</div>
                         <div><strong>Utente:</strong> {richiesta.utente_nome || 'N/A'}</div>
@@ -972,9 +972,9 @@ const AreaAdmin = () => {
                         <div><strong>Data:</strong> {formatDate(richiesta.data_creazione || richiesta.data_richiesta)}</div>
                         {richiesta.tipo_richiesta_richiesta && (
                           <div><strong>Tipo Richiesta:</strong> {formatRequestType(richiesta.tipo_richiesta_richiesta)}</div>
-                        )}
-                      </RequestDetails>
-                      
+                      )}
+                    </RequestDetails>
+                    
                       {richiesta.messaggio && (
                         <RequestMessage>
                           <strong>Messaggio:</strong> {richiesta.messaggio}

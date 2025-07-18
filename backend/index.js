@@ -38,9 +38,15 @@ const PORT = process.env.PORT || 3001;
 
 // Configurazione CORS ottimizzata
 app.use(cors({
-  origin: ['https://topleague-frontend-new.onrender.com', 'http://localhost:3000'], // frontend production e locale
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization','Cache-Control','Pragma','Expires'],
+  origin: [
+    'https://topleague-frontend-new.onrender.com',
+    'https://topleaguem-frontend.onrender.com',
+    'https://topleague-frontend.onrender.com',
+    'https://topleaguem.onrender.com',
+    'http://localhost:3000'
+  ],
+  methods: ['GET','POST','PUT','DELETE','OPTIONS','PATCH'],
+  allowedHeaders: ['Content-Type','Authorization','Cache-Control','Pragma','Expires','Origin','X-Requested-With','Accept'],
   credentials: true
 }));
 
