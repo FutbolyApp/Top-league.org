@@ -58,8 +58,6 @@ function AppRoutes() {
     <>
       <Navigation />
       <Routes>
-        {/* Catch-all route for SPA - must be at the end */}
-        <Route path="*" element={<NotFound />} />
         <Route path="/" element={<Home />} />
         <Route path="/leghe" element={<ProtectedRoute><Leghe /></ProtectedRoute>} />
         <Route path="/area-admin" element={<ProtectedRoute><AreaAdmin /></ProtectedRoute>} />
@@ -103,6 +101,7 @@ function AppRoutes() {
         <Route path="/gestione-roster-admin/:legaId" element={<ProtectedRoute><GestioneRosterAdmin /></ProtectedRoute>} />
         <Route path="/modifica-lega/:id" element={<ProtectedRoute><ModificaLega /></ProtectedRoute>} />
         <Route path="/log-squadra/:squadraId" element={<ProtectedRoute><LogSquadraPage /></ProtectedRoute>} />
+        {/* Catch-all route for SPA - must be at the end */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>

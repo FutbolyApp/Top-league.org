@@ -39,6 +39,81 @@
   status = 200
 
 [[redirects]]
+  from = "/notifiche"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/notifiche/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/leghe"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/leghe/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/squadra/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/mercato"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/mercato/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/formazioni"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/formazioni/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/classifica"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/classifica/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/profilo"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/profilo/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/super-admin-dashboard"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/super-admin-dashboard/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200 
