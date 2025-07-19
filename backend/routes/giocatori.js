@@ -451,7 +451,7 @@ router.get('/:id/qa-history', requireAuth, async (req, res) => {
     
     // Formatta le date per il frontend
     const history = result.rows?.map(row => ({
-      qa_value: row?.qa || 0_value,
+      qa_value: row?.qa || 0,
       data_registrazione: row.data_registrazione,
       fonte: row.fonte
     }));
