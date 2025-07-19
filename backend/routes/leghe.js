@@ -411,9 +411,20 @@ router.get('/:legaId/squadre', requireAuth, async (req, res) => {
     }
     
     // Verifica autorizzazione: solo admin della lega o superadmin
-    if (lega.admin_id !== userId && req.user.ruolo !== 'SuperAdmin') {
+    console.log('🔍 Authorization check:', {
+      lega_admin_id: lega.admin_id,
+      user_id: userId,
+      user_role: req.user.ruolo,
+      admin_id_type: typeof lega.admin_id,
+      user_id_type: typeof userId
+    });
+    
+    if (parseInt(lega.admin_id) !== parseInt(userId) && req.user.ruolo !== 'SuperAdmin') {
+      console.log('❌ Authorization failed');
       return res.status(403).json({ error: 'Non autorizzato a vedere le squadre di questa lega' });
     }
+    
+    console.log('✅ Authorization passed');
     
     const squadre = await getSquadreByLega(legaId);
     
