@@ -527,7 +527,7 @@ const AreaAdmin = () => {
     if (token) {
       loadAdminData();
     }
-  }, [token, loadAdminData]);
+  }, [token]);
 
   // Aggiorna le richieste mostrate quando cambiano le richieste
   useEffect(() => {

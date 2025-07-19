@@ -1,17 +1,32 @@
-# Redirect all routes to index.html for SPA
+# SPA Fallback - Redirect all routes to index.html
 /*    /index.html   200
 
 # Specific routes for better performance
 /area-admin    /index.html   200
+/area-admin/*    /index.html   200
 /crea-lega    /index.html   200
+/crea-lega/*    /index.html   200
 /login    /index.html   200
 /register    /index.html   200
 /dashboard    /index.html   200
+/dashboard/*    /index.html   200
 /notifiche    /index.html   200
+/notifiche/*    /index.html   200
 /leghe    /index.html   200
+/leghe/*    /index.html   200
 /squadra/*    /index.html   200
 /mercato    /index.html   200
+/mercato/*    /index.html   200
 /formazioni    /index.html   200
+/formazioni/*    /index.html   200
 /classifica    /index.html   200
+/classifica/*    /index.html   200
 /profilo    /index.html   200
-/super-admin-dashboard    /index.html   200 
+/profilo/*    /index.html   200
+/super-admin-dashboard    /index.html   200
+/super-admin-dashboard/*    /index.html   200
+/gestione-squadre-lega/*    /index.html   200
+/gestione-squadra/*    /index.html   200
+/lega/*    /index.html   200
+/admin/*    /index.html   200
+/subadmin/*    /index.html   200 
