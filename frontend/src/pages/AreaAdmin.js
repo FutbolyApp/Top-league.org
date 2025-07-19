@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../components/AuthContext';
 import { useNotification } from '../components/NotificationSystem';
-import { getLegheAdmin, getRichiesteAdmin, rispondiRichiesta } from '../api/leghe';
+import { getAllLegheAdmin, getRichiesteAdmin, rispondiRichiesta } from '../api/leghe';
 import { getPendingChangesByLega } from '../api/subadmin';
 import { getRichiestePendingByLega } from '../api/richiesteAdmin';
 import { api } from '../api/config';
@@ -472,8 +472,8 @@ const AreaAdmin = () => {
       setLoading(true);
       
       // Carica le leghe dell'admin
-      const legheData = await api.get('/leghe/admin', token);
-      setLeghe(legheData.data?.leghe || []);
+      const legheData = await getAllLegheAdmin(token);
+      setLeghe(legheData.leghe || []);
       
       // Carica le richieste
       const richiesteData = await api.get('/leghe/richieste/admin', token);
