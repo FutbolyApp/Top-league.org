@@ -1002,7 +1002,7 @@ const NotifichePage = () => {
       // Ottieni le notifiche filtrate attuali
       const notificaIds = filteredNotifications?.map(n => n.id);
       
-      if (notificaIds?.length || 0 === 0) {
+              if ((notificaIds?.length || 0) === 0) {
         alert('Nessuna notifica da archiviare');
         return;
       }
@@ -1174,7 +1174,7 @@ const NotifichePage = () => {
         </ActionButton>
       </FilterContainer>
 
-      {filteredNotifications?.length || 0 === 0 ? (
+              {(filteredNotifications?.length || 0) === 0 ? (
         <EmptyState>
           <EmptyIcon>📭</EmptyIcon>
           <EmptyTitle>Nessuna notifica trovata</EmptyTitle>

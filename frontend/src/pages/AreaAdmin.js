@@ -936,7 +936,7 @@ const AreaAdmin = () => {
               </SectionTitle>
             </SectionHeader>
             
-            {richieste?.length || 0 === 0 ? (
+            {(richieste?.length || 0) === 0 ? (
               <EmptyState>
                 <EmptyIcon>📭</EmptyIcon>
                 <EmptyTitle>Nessuna richiesta</EmptyTitle>

@@ -564,7 +564,7 @@ const PagaContratti = () => {
       <ContractsSection>
         <SectionTitle>📋 Contratti e Trigger</SectionTitle>
         
-        {giocatori?.length || 0 === 0 ? (
+        {(giocatori?.length || 0) === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
             <h3>Nessun giocatore trovato</h3>
             <p>Seleziona una squadra per visualizzare i contratti.</p>

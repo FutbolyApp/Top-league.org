@@ -728,7 +728,7 @@ const RichiestaAdmin = () => {
 
       <HistorySection>
         <HistoryTitle>Storico Richieste</HistoryTitle>
-        {richieste?.length || 0 === 0 ? (
+                    {(richieste?.length || 0) === 0 ? (
           <p>Nessuna richiesta inviata</p>
         ) : (
           richieste?.map(richiesta => (
