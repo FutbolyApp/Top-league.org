@@ -221,10 +221,10 @@ const DashboardAvanzata = () => {
 
     const stats = {
       totale_valore: giocatori?.reduce((sum, g) => sum + (g.valore_mercato || 0), 0),
-      attaccanti: giocatori?.filter(g => COALESCE(g.ruolo, 'Ruolo') === 'A').length,
-      centrocampisti: giocatori?.filter(g => COALESCE(g.ruolo, 'Ruolo') === 'C').length,
-      difensori: giocatori?.filter(g => COALESCE(g.ruolo, 'Ruolo') === 'D').length,
-      portieri: giocatori?.filter(g => COALESCE(g.ruolo, 'Ruolo') === 'P').length,
+      attaccanti: giocatori?.filter(g => (g?.ruolo || 'Ruolo') === 'A').length,
+      centrocampisti: giocatori?.filter(g => (g?.ruolo || 'Ruolo') === 'C').length,
+      difensori: giocatori?.filter(g => (g?.ruolo || 'Ruolo') === 'D').length,
+      portieri: giocatori?.filter(g => (g?.ruolo || 'Ruolo') === 'P').length,
       infortunati: giocatori?.filter(g => g.stato === 'infortunato').length,
       squalificati: giocatori?.filter(g => g.stato === 'squalificato').length
     };
