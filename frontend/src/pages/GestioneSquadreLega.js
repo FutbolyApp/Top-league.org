@@ -247,6 +247,7 @@ const GestioneSquadreLega = () => {
         
         console.log('🔍 Lega response:', legaRes);
         console.log('🔍 Squadre response:', squadreRes);
+        console.log('🔍 Lega details:', legaRes.lega);
         
         setLega(legaRes.lega);
         setSquadre(squadreRes.squadre || []);
