@@ -223,7 +223,7 @@ const StatLabel = styled.div`
 `;
 
 const GestioneSquadreLega = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { id } = useParams();
   const navigate = useNavigate();
   const [lega, setLega] = useState(null);
@@ -238,6 +238,7 @@ const GestioneSquadreLega = () => {
       try {
         console.log('🔍 Fetching data for lega:', id);
         console.log('🔍 Token:', token ? 'Present' : 'Missing');
+        console.log('🔍 User:', user);
         
         const [legaRes, squadreRes] = await Promise.all([
           getLegaById(id, token),
