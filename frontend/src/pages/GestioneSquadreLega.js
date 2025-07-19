@@ -236,14 +236,23 @@ const GestioneSquadreLega = () => {
       setLoading(true);
       setError('');
       try {
+        console.log('🔍 Fetching data for lega:', id);
+        console.log('🔍 Token:', token ? 'Present' : 'Missing');
+        
         const [legaRes, squadreRes] = await Promise.all([
           getLegaById(id, token),
           getSquadreByLega(id, token)
         ]);
         
+        console.log('🔍 Lega response:', legaRes);
+        console.log('🔍 Squadre response:', squadreRes);
+        
         setLega(legaRes.lega);
         setSquadre(squadreRes.squadre || []);
+        
+        console.log('🔍 Squadre set:', squadreRes.squadre || []);
       } catch (err) {
+        console.error('❌ Error fetching data:', err);
         setError(err.message);
       }
       setLoading(false);

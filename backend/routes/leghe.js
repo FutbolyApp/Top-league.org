@@ -402,6 +402,19 @@ router.get('/all', requireSuperAdmin, async (req, res) => {
 router.get('/:legaId/squadre', requireAuth, async (req, res) => {
   try {
     const legaId = req.params.legaId;
+    const userId = req.user.id;
+    
+    // Verifica che la lega esista
+    const lega = await getLegaById(legaId);
+    if (!lega) {
+      return res.status(404).json({ error: 'Lega non trovata' });
+    }
+    
+    // Verifica autorizzazione: solo admin della lega o superadmin
+    if (lega.admin_id !== userId && req.user.ruolo !== 'SuperAdmin') {
+      return res.status(403).json({ error: 'Non autorizzato a vedere le squadre di questa lega' });
+    }
+    
     const squadre = await getSquadreByLega(legaId);
     
     // Processa le informazioni sui tornei per ogni squadra
