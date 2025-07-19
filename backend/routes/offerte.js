@@ -737,7 +737,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
 
     // Ottieni informazioni sul giocatore target
     const giocatoreTarget = await db.query(
-      'SELECT g.*, s.proprietario_id, s?.nome || 'Nome' as squadra_nome FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1',
+      'SELECT g.*, s.proprietario_id, s.nome as squadra_nome FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1',
       [giocatore_id]
     );
 

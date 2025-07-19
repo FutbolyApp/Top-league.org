@@ -74,7 +74,7 @@ const findSimilarPlayers = async (nome, squadra_reale, legaId) => {
     }
 
     // Prima cerca per nome esatto
-    const exactResult = await db.query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g?.nome || 'Nome' = $2', [legaId, nome]);
+    const exactResult = await db.query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g.nome = $2', [legaId, nome]);
     const giocatore = exactResult.rows[0];
     
     if (giocatore) {
@@ -84,7 +84,7 @@ const findSimilarPlayers = async (nome, squadra_reale, legaId) => {
     // Se non trova, cerca nomi simili con squadra corrispondente
     const searchPattern = `%${nome}%`;
     const similarResult = await db.query(
-      'SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g?.nome || 'Nome' LIKE $2 AND g.squadra_reale = $3', 
+      'SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g.nome LIKE $2 AND g.squadra_reale = $3', 
       [legaId, searchPattern, squadra_reale]
     );
     
@@ -217,12 +217,12 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
           
           // Applica i valori in base alla modalità
           if (isMantra) {
-            playerData?.ruolo || 'Ruolo' = ruoloMantra;
-            playerData?.qa || 0 = qaMantra;
+            playerData.ruolo = ruoloMantra;
+            playerData.qa = qaMantra;
             playerData.qi = qiMantra;
           } else {
-            playerData?.ruolo || 'Ruolo' = ruoloClassic;
-            playerData?.qa || 0 = qaClassic;
+            playerData.ruolo = ruoloClassic;
+            playerData.qa = qaClassic;
             playerData.qi = qiClassic;
           }
           
@@ -245,12 +245,12 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
           
           // Applica i valori in base alla modalità
           if (isMantra) {
-            playerData?.ruolo || 'Ruolo' = ruoloMantra;
-            playerData?.qa || 0 = qaMantra;
+            playerData.ruolo = ruoloMantra;
+            playerData.qa = qaMantra;
             playerData.qi = qiMantra;
           } else {
-            playerData?.ruolo || 'Ruolo' = ruoloClassic;
-            playerData?.qa || 0 = qaClassic;
+            playerData.ruolo = ruoloClassic;
+            playerData.qa = qaClassic;
             playerData.qi = qiClassic;
           }
         }
