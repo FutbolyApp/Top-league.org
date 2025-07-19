@@ -389,7 +389,7 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
     const legaResult = await db.query('SELECT max_giocatori FROM leghe WHERE id = $1', [giocatoreSquadra.lega_id]);
     const lega = legaResult.rows[0];
     
-    const maxGiocatori = lega ? lega.max_giocatori : 30;
+    const maxGiocatori = lega ? lega?.max_giocatori || '' : 30;
     
     if (currentPlayers >= maxGiocatori) {
       return res.status(400).json({ 

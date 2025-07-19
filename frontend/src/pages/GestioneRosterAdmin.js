@@ -291,7 +291,7 @@ const GestioneRosterAdmin = () => {
               <StatLabel>Tornei</StatLabel>
             </StatItem>
             <StatItem>
-              <StatValue>{lega.max_giocatori || 30}</StatValue>
+              <StatValue>{lega?.max_giocatori || 30}</StatValue>
               <StatLabel>Max Giocatori</StatLabel>
             </StatItem>
             <StatItem>

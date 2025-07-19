@@ -329,7 +329,7 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
 
       // Ottieni limite massimo dalla lega
       const lega = await getLegaById(offertaData.lega_id);
-      const maxGiocatori = lega.max_giocatori || 30;
+      const maxGiocatori = lega?.max_giocatori || '' || 30;
       
       if (giocatoriAttualiCount >= maxGiocatori) {
         return res.status(400).json({ 
@@ -1051,7 +1051,7 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
       if (isRosterABEnabled) {
         // Ottieni il numero massimo di giocatori dalla lega
         const lega = await getLegaById(legaId);
-        const maxGiocatori = lega.max_giocatori || 30;
+        const maxGiocatori = lega?.max_giocatori || '' || 30;
         const rosterManager = createRosterManager(legaId);
         const giocatori = await rosterManager.getGiocatoriByRoster(squadraId);
         

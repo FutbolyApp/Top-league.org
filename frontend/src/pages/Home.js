@@ -781,7 +781,7 @@ const Home = () => {
                 } else if (typeof squadra.numero_giocatori === 'number') {
                   numGiocatori = squadra.numero_giocatori;
                 }
-                const maxGiocatori = squadra.max_giocatori || 30;
+                const maxGiocatori = squadra?.max_giocatori || 30;
                 const logoUrl = squadra.logo_url;
                 const torneoNome = squadra.torneo_nome || 'N/A';
                 return (

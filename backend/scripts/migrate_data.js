@@ -67,8 +67,8 @@ async function migrateData() {
           ON CONFLICT (id) DO NOTHING
         `, [
           lega.id, lega.nome, lega?.modalita || 'N/A', lega.admin_id, lega?.is_pubblica || false,
-          lega.password, lega.max_squadre, lega.min_giocatori, lega.max_giocatori,
-          lega.roster_ab, lega.cantera, lega.contratti, lega.triggers,
+          lega.password, lega?.max_squadre || '', lega?.min_giocatori || '', lega?.max_giocatori || '',
+          lega?.roster_ab || false, lega?.cantera || false, lega?.contratti || false, lega?.triggers || false,
           lega.regolamento_pdf, lega.excel_originale, lega.excel_modificato,
           lega.created_at, lega.fantacalcio_url, lega.fantacalcio_username,
           lega.fantacalcio_password, lega.scraping_automatico, lega.tipo_lega,

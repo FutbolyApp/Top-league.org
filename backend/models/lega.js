@@ -24,9 +24,9 @@ export async function createLega(data) {
   }
   
   // Validazione e conversione dei valori integer
-  const max_squadre = parseInt(data.max_squadre) || 0;
-  const min_giocatori = parseInt(data.min_giocatori) || 0;
-  const max_giocatori = parseInt(data.max_giocatori) || 0;
+  const max_squadre = parseInt(data?.max_squadre || '') || 0;
+  const min_giocatori = parseInt(data?.min_giocatori || '') || 0;
+  const max_giocatori = parseInt(data?.max_giocatori || '') || 0;
   const admin_id = parseInt(data.admin_id) || 1;
   
   // Se non esiste, procedi con la creazione
@@ -78,9 +78,9 @@ export async function updateLega(id, data) {
   }
   
   // Validazione e conversione dei valori integer
-  const max_squadre = parseInt(data.max_squadre) || 0;
-  const min_giocatori = parseInt(data.min_giocatori) || 0;
-  const max_giocatori = parseInt(data.max_giocatori) || 0;
+  const max_squadre = parseInt(data?.max_squadre || '') || 0;
+  const min_giocatori = parseInt(data?.min_giocatori || '') || 0;
+  const max_giocatori = parseInt(data?.max_giocatori || '') || 0;
   const admin_id = parseInt(data.admin_id) || 1;
   
   // Procedi con l'aggiornamento

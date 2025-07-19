@@ -100,11 +100,11 @@ export const validateRosterLimits = async (req, res, next) => {
     
     const giocatoriAttuali = parseInt(giocatoriResult.rows[0].count);
     
-    if (giocatoriAttuali >= lega.max_giocatori) {
+    if (giocatoriAttuali >= lega?.max_giocatori || '') {
       return res.status(400).json({ 
         error: 'Roster al massimo',
         giocatori_attuali: giocatoriAttuali,
-        limite_massimo: lega.max_giocatori
+        limite_massimo: lega?.max_giocatori || ''
       });
     }
     

@@ -16,7 +16,7 @@ export class RosterManager {
   async isRosterABEnabled() {
     try {
       const lega = await getLegaById(this.legaId);
-      return lega && lega.roster_ab === 1;
+      return lega && lega?.roster_ab || false === 1;
     } catch (error) {
       console.error('Errore in isRosterABEnabled:', error);
       return false;
@@ -177,7 +177,7 @@ export class RosterManager {
 
       // Ottieni il numero massimo di giocatori dalla lega
       const lega = await getLegaById(this.legaId);
-      const maxGiocatori = lega.max_giocatori || 30;
+      const maxGiocatori = lega?.max_giocatori || '' || 30;
       const giocatori = await this.getGiocatoriByRoster(squadraId);
       
       if (giocatori.total >= maxGiocatori) {

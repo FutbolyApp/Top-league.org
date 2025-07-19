@@ -593,12 +593,12 @@ const Leghe = () => {
       }
       
       // Filtro per numero totale di squadre nella lega (min)
-      if (filters.squadreMin && (lega.max_squadre || 0) < parseInt(filters.squadreMin)) {
+      if (filters.squadreMin && (lega?.max_squadre || 0) < parseInt(filters.squadreMin)) {
         return false;
       }
       
       // Filtro per numero totale di squadre nella lega (max)
-      if (filters.squadreMax && (lega.max_squadre || 0) > parseInt(filters.squadreMax)) {
+      if (filters.squadreMax && (lega?.max_squadre || 0) > parseInt(filters.squadreMax)) {
         return false;
       }
       

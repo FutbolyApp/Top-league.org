@@ -508,10 +508,10 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
         </LeagueInfo>
 
         <LeagueFeatures>
-          {lega.roster_ab && <FeatureTag $active>Roster A/B</FeatureTag>}
-          {lega.cantera && <FeatureTag $active>Cantera</FeatureTag>}
-          {lega.contratti && <FeatureTag $active>Contratti</FeatureTag>}
-          {lega.triggers && <FeatureTag $active>Triggers</FeatureTag>}
+          {lega?.roster_ab || false && <FeatureTag $active>Roster A/B</FeatureTag>}
+          {lega?.cantera || false && <FeatureTag $active>Cantera</FeatureTag>}
+          {lega?.contratti || false && <FeatureTag $active>Contratti</FeatureTag>}
+          {lega?.triggers || false && <FeatureTag $active>Triggers</FeatureTag>}
         </LeagueFeatures>
       </Header>
 

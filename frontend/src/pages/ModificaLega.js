@@ -258,13 +258,13 @@ const ModificaLega = () => {
           modalita: res.lega?.modalita || 'N/A' || 'Classic',
           is_pubblica: res.lega?.is_pubblica || true,
           password: res.lega?.password || '',
-          max_squadre: res.lega.max_squadre || 20,
-          min_giocatori: res.lega.min_giocatori || 15,
-          max_giocatori: res.lega.max_giocatori || 25,
-          roster_ab: res.lega.roster_ab || false,
-          cantera: res.lega.cantera || false,
-          contratti: res.lega.contratti || false,
-          triggers: res.lega.triggers || false
+          max_squadre: res.lega?.max_squadre || 20,
+          min_giocatori: res.lega?.min_giocatori || 15,
+          max_giocatori: res.lega?.max_giocatori || 25,
+          roster_ab: res.lega?.roster_ab || false || false,
+          cantera: res.lega?.cantera || false || false,
+          contratti: res.lega?.contratti || false || false,
+          triggers: res.lega?.triggers || false || false
         });
       } catch (err) {
         setError(err.message);
@@ -293,17 +293,17 @@ const ModificaLega = () => {
       return false;
     }
     
-    if (formData.max_squadre < 1) {
+    if (formData?.max_squadre < 1) {
       setError('Il numero massimo di squadre deve essere almeno 1');
       return false;
     }
     
-    if (formData.min_giocatori < 1) {
+    if (formData?.min_giocatori < 1) {
       setError('Il numero minimo di giocatori deve essere almeno 1');
       return false;
     }
     
-    if (formData.max_giocatori < formData.min_giocatori) {
+    if (formData?.max_giocatori < formData?.min_giocatori) {
       setError('Il numero massimo di giocatori deve essere maggiore o uguale al minimo');
       return false;
     }
@@ -448,7 +448,7 @@ const ModificaLega = () => {
             <Input
               name="max_squadre"
               type="number"
-              value={formData.max_squadre}
+              value={formData?.max_squadre || ''}
               onChange={handleChange}
               min="1"
               max="50"
@@ -460,7 +460,7 @@ const ModificaLega = () => {
             <Input
               name="min_giocatori"
               type="number"
-              value={formData.min_giocatori}
+              value={formData?.min_giocatori || ''}
               onChange={handleChange}
               min="1"
               max="50"
@@ -472,7 +472,7 @@ const ModificaLega = () => {
             <Input
               name="max_giocatori"
               type="number"
-              value={formData.max_giocatori}
+              value={formData?.max_giocatori || ''}
               onChange={handleChange}
               min="1"
               max="50"
@@ -488,7 +488,7 @@ const ModificaLega = () => {
               <Checkbox
                 name="roster_ab"
                 type="checkbox"
-                checked={formData.roster_ab}
+                checked={formData?.roster_ab || false}
                 onChange={handleChange}
               />
               Roster A/B
@@ -498,7 +498,7 @@ const ModificaLega = () => {
               <Checkbox
                 name="cantera"
                 type="checkbox"
-                checked={formData.cantera}
+                checked={formData?.cantera || false}
                 onChange={handleChange}
               />
               Cantera
@@ -508,7 +508,7 @@ const ModificaLega = () => {
               <Checkbox
                 name="contratti"
                 type="checkbox"
-                checked={formData.contratti}
+                checked={formData?.contratti || false}
                 onChange={handleChange}
               />
               Contratti
@@ -518,7 +518,7 @@ const ModificaLega = () => {
               <Checkbox
                 name="triggers"
                 type="checkbox"
-                checked={formData.triggers}
+                checked={formData?.triggers || false}
                 onChange={handleChange}
               />
               Triggers

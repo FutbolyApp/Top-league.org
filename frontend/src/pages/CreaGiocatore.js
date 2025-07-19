@@ -465,7 +465,7 @@ const CreaGiocatore = () => {
                 <input
                   type="checkbox"
                   name="cantera"
-                  checked={formData.cantera}
+                  checked={formData?.cantera || false}
                   onChange={(e) => setFormData(prev => ({ ...prev, cantera: e.target.checked }))}
                 />
                 Calciatore Cantera

@@ -411,21 +411,21 @@ const CreaLega = () => {
               name="max_squadre"
               type="number"
               placeholder="Numero massimo squadre"
-              value={form.max_squadre}
+              value={form?.max_squadre || ''}
               onChange={handleChange}
             />
             <Input
               name="min_giocatori"
               type="number"
               placeholder="Min giocatori per squadra"
-              value={form.min_giocatori}
+              value={form?.min_giocatori || ''}
               onChange={handleChange}
             />
             <Input
               name="max_giocatori"
               type="number"
               placeholder="Max giocatori per squadra"
-              value={form.max_giocatori}
+              value={form?.max_giocatori || ''}
               onChange={handleChange}
             />
           </NumberInputs>
@@ -438,7 +438,7 @@ const CreaLega = () => {
               <input
                 type="checkbox"
                 name="roster_ab"
-                checked={form.roster_ab}
+                checked={form?.roster_ab || false}
                 onChange={handleChange}
               />
               Roster A/B
@@ -447,7 +447,7 @@ const CreaLega = () => {
               <input
                 type="checkbox"
                 name="cantera"
-                checked={form.cantera}
+                checked={form?.cantera || false}
                 onChange={handleChange}
               />
               Cantera
@@ -456,7 +456,7 @@ const CreaLega = () => {
               <input
                 type="checkbox"
                 name="contratti"
-                checked={form.contratti}
+                checked={form?.contratti || false}
                 onChange={handleChange}
               />
               Contratti
@@ -465,7 +465,7 @@ const CreaLega = () => {
               <input
                 type="checkbox"
                 name="triggers"
-                checked={form.triggers}
+                checked={form?.triggers || false}
                 onChange={handleChange}
               />
               Triggers

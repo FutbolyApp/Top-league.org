@@ -638,16 +638,16 @@ router.put('/:legaId', requireSuperAdmin, (req, res) => {
       return res.status(400).json({ error: 'Il nome della lega è obbligatorio' });
     }
     
-    if (updateData.max_squadre && updateData.max_squadre < 1) {
+    if (updateData?.max_squadre || '' && updateData?.max_squadre || '' < 1) {
       return res.status(400).json({ error: 'Il numero massimo di squadre deve essere almeno 1' });
     }
     
-    if (updateData.min_giocatori && updateData.min_giocatori < 1) {
+    if (updateData?.min_giocatori || '' && updateData?.min_giocatori || '' < 1) {
       return res.status(400).json({ error: 'Il numero minimo di giocatori deve essere almeno 1' });
     }
     
-    if (updateData.max_giocatori && updateData.min_giocatori && 
-        updateData.max_giocatori < updateData.min_giocatori) {
+    if (updateData?.max_giocatori || '' && updateData?.min_giocatori || '' && 
+        updateData?.max_giocatori || '' < updateData?.min_giocatori || '') {
       return res.status(400).json({ error: 'Il numero massimo di giocatori deve essere maggiore o uguale al minimo' });
     }
     
@@ -657,9 +657,9 @@ router.put('/:legaId', requireSuperAdmin, (req, res) => {
       modalita: updateData?.modalita || '' || (lega?.modalita || 'Classic Serie A'),
       is_pubblica: updateData?.is_pubblica || false === 'true' || updateData?.is_pubblica || false === true,
       password: updateData?.is_pubblica || false? null : (updateData?.password || '' || lega?.password || ''),
-      max_squadre: updateData.max_squadre || lega.max_squadre,
-      min_giocatori: updateData.min_giocatori || lega.min_giocatori,
-      max_giocatori: updateData.max_giocatori || lega.max_giocatori,
+      max_squadre: updateData?.max_squadre || '' || lega?.max_squadre || '',
+      min_giocatori: updateData?.min_giocatori || '' || lega?.min_giocatori || '',
+      max_giocatori: updateData?.max_giocatori || '' || lega?.max_giocatori || '',
       roster_ab: updateData.roster_ab === 'true' || updateData.roster_ab === true,
       cantera: updateData.cantera === 'true' || updateData.cantera === true,
       contratti: updateData.contratti === 'true' || updateData.contratti === true,
@@ -723,16 +723,16 @@ router.put('/:legaId/admin', requireLegaAdminOrSuperAdmin, (req, res) => {
       return res.status(400).json({ error: 'Il nome della lega è obbligatorio' });
     }
     
-    if (updateData.max_squadre && updateData.max_squadre < 1) {
+    if (updateData?.max_squadre || '' && updateData?.max_squadre || '' < 1) {
       return res.status(400).json({ error: 'Il numero massimo di squadre deve essere almeno 1' });
     }
     
-    if (updateData.min_giocatori && updateData.min_giocatori < 1) {
+    if (updateData?.min_giocatori || '' && updateData?.min_giocatori || '' < 1) {
       return res.status(400).json({ error: 'Il numero minimo di giocatori deve essere almeno 1' });
     }
     
-    if (updateData.max_giocatori && updateData.min_giocatori && 
-        updateData.max_giocatori < updateData.min_giocatori) {
+    if (updateData?.max_giocatori || '' && updateData?.min_giocatori || '' && 
+        updateData?.max_giocatori || '' < updateData?.min_giocatori || '') {
       return res.status(400).json({ error: 'Il numero massimo di giocatori deve essere maggiore o uguale al minimo' });
     }
     
@@ -742,9 +742,9 @@ router.put('/:legaId/admin', requireLegaAdminOrSuperAdmin, (req, res) => {
       modalita: updateData?.modalita || '' || (lega?.modalita || 'Classic Serie A'),
       is_pubblica: updateData?.is_pubblica || false === 'true' || updateData?.is_pubblica || false === true,
       password: updateData?.is_pubblica || false? null : (updateData?.password || '' || lega?.password || ''),
-      max_squadre: updateData.max_squadre || lega.max_squadre,
-      min_giocatori: updateData.min_giocatori || lega.min_giocatori,
-      max_giocatori: updateData.max_giocatori || lega.max_giocatori,
+      max_squadre: updateData?.max_squadre || '' || lega?.max_squadre || '',
+      min_giocatori: updateData?.min_giocatori || '' || lega?.min_giocatori || '',
+      max_giocatori: updateData?.max_giocatori || '' || lega?.max_giocatori || '',
       roster_ab: updateData.roster_ab === 'true' || updateData.roster_ab === true,
       cantera: updateData.cantera === 'true' || updateData.cantera === true,
       contratti: updateData.contratti === 'true' || updateData.contratti === true,
@@ -1310,13 +1310,13 @@ router.put('/:legaId/scraping-credentials', requireAuth, (req, res) => {
       admin_id: lega.admin_id,
       is_pubblica: lega?.is_pubblica || false,
       password: lega?.password || '',
-      max_squadre: lega.max_squadre,
-      min_giocatori: lega.min_giocatori,
-      max_giocatori: lega.max_giocatori,
-      roster_ab: lega.roster_ab,
-      cantera: lega.cantera,
-      contratti: lega.contratti,
-      triggers: lega.triggers,
+      max_squadre: lega?.max_squadre || '',
+      min_giocatori: lega?.min_giocatori || '',
+      max_giocatori: lega?.max_giocatori || '',
+      roster_ab: lega?.roster_ab || false,
+      cantera: lega?.cantera || false,
+      contratti: lega?.contratti || false,
+      triggers: lega?.triggers || false,
       regolamento_pdf: lega.regolamento_pdf,
       excel_originale: lega.excel_originale,
       excel_modificato: lega.excel_modificato,
