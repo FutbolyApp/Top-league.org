@@ -408,7 +408,7 @@ const GiocatoriManager = () => {
   const roleOrderMantra = ['P', 'DC', 'DD', 'DS', 'E', 'M', 'C', 'B', 'T', 'W', 'A', 'PC'];
   const sortPlayersByRole = (players) => {
     if (!players) return [];
-    const isMantra = leghe?.find(lega => lega.id === selectedLega)??.modalita || ''?.includes('Mantra');
+    const isMantra = leghe?.find(lega => lega.id === selectedLega)?.modalita?.includes('Mantra');
     const roleOrder = isMantra ? roleOrderMantra : ['P', 'D', 'C', 'A'];
     return [...players].sort((a, b) => {
       const roleA = splitRoles(a.ruolo)[0] || '';

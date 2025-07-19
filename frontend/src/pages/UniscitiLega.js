@@ -372,7 +372,7 @@ const UniscitiLega = () => {
     }
     
     if (selectedModalita) {
-      filtered = filtered.filter(lega => (lega??.modalita || '' || '') === selectedModalita);
+      filtered = filtered.filter(lega => (lega?.modalita || '') === selectedModalita);
     }
     
     // Applica ordinamento
@@ -429,7 +429,7 @@ const UniscitiLega = () => {
     setSelectedLega(null);
   };
 
-  const modalitaOptions = [...new Set(leghe.map(lega => lega??.modalita || '' || '').filter(Boolean))];
+  const modalitaOptions = [...new Set(leghe.map(lega => lega?.modalita || '').filter(Boolean))];
 
   if (loading) return (
     <Container>
@@ -564,7 +564,7 @@ const UniscitiLega = () => {
                       </LegaLink>
                     </Td>
                     <Td>{lega.admin_nome || 'N/A'}</Td>
-                    <Td>{lega??.modalita || '' || 'N/A'}</Td>
+                    <Td>{lega?.modalita || 'N/A'}</Td>
                     <Td>
                       <StatusBadge $status={lega.is_pubblica ? 'pubblica' : 'privata'}>
                         {lega.is_pubblica ? 'Pubblica' : 'Privata'}

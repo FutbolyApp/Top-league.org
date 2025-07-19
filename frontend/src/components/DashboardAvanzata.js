@@ -414,7 +414,7 @@ const DashboardAvanzata = () => {
                   <LeagueStats>
                     <LeagueStat>
                       <h5>Modalità</h5>
-                      <p>{lega??.modalita || '' || 'N/A'}</p>
+                      <p>{lega?.modalita || 'N/A'}</p>
                     </LeagueStat>
                     <LeagueStat>
                       <h5>Admin</h5>

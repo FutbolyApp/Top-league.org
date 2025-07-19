@@ -164,8 +164,8 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
       return res.status(404).json({ error: 'Lega non trovata' });
     }
     
-    const isEuroleghe = (lega??.modalita || '' || '').includes('Euroleghe');
-    const isMantra = (lega??.modalita || '' || '').includes('Mantra');
+    const isEuroleghe = (lega?.modalita || '').includes('Euroleghe');
+    const isMantra = (lega?.modalita || '').includes('Mantra');
     
     // Crea backup
     const backup = await createBackup(legaId);
@@ -420,7 +420,7 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
       return res.status(404).json({ error: 'Lega non trovata' });
     }
     
-    const isEuroleghe = (lega??.modalita || '' || '').includes('Euroleghe');
+    const isEuroleghe = (lega?.modalita || '').includes('Euroleghe');
     
     // Crea backup
     const backup = await createBackup(legaId);
