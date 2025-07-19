@@ -326,7 +326,7 @@ const ModificaLega = () => {
       
       // Torna alla dashboard appropriata dopo 2 secondi
       setTimeout(() => {
-        if (user && user?.ruolo || 'Ruolo' === 'admin') {
+        if (user && user?.ruolo === 'admin') {
           navigate('/area-admin');
         } else {
           navigate('/super-admin-dashboard');
@@ -348,7 +348,7 @@ const ModificaLega = () => {
   };
 
   const handleCancel = () => {
-    if (user && user?.ruolo || 'Ruolo' === 'admin') {
+    if (user && user?.ruolo === 'admin') {
       navigate('/area-admin');
     } else {
       navigate('/super-admin-dashboard');
@@ -370,7 +370,7 @@ const ModificaLega = () => {
   return (
     <Container>
       <BackButton onClick={() => {
-        if (user && user?.ruolo || 'Ruolo' === 'admin') {
+        if (user && user?.ruolo === 'admin') {
           navigate('/area-admin');
         } else {
           navigate('/super-admin-dashboard');
