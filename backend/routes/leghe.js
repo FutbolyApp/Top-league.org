@@ -270,9 +270,27 @@ router.post('/create', requireAuth, (req, res, next) => {
 // Ottieni tutte le leghe (protetto)
 router.get('/', requireAuth, async (req, res) => {
   const userId = req.user.id;
+  console.log('GET /api/leghe - User ID:', userId);
   
   try {
     const db = getDb();
+    console.log('Database connection obtained for /leghe');
+    
+    // Prima controlla se la tabella leghe esiste
+    const tableCheck = await db.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'leghe'
+      );
+    `);
+    console.log('Table leghe exists:', tableCheck.rows[0].exists);
+    
+    if (!tableCheck.rows[0].exists) {
+      console.error('Table leghe does not exist!');
+      return res.status(500).json({ error: 'Database schema not initialized' });
+    }
+    
     const result = await db.query(`
       SELECT l.*, 
            CASE 
@@ -294,9 +312,12 @@ router.get('/', requireAuth, async (req, res) => {
       ORDER BY l.nome
     `, [userId]);
     
+    console.log('Query executed successfully, rows found:', result.rows.length);
     res.json({ leghe: result.rows });
   } catch (err) {
     console.error('Errore query tutte le leghe:', err);
+    console.error('Error details:', err.message);
+    console.error('Error stack:', err.stack);
     res.status(500).json({ error: 'Errore DB', details: err.message });
   }
 });
