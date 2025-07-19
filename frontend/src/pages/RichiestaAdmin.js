@@ -397,7 +397,7 @@ const RichiestaAdmin = () => {
       
       switch (richiesta.tipo_richiesta) {
         case 'cantera':
-          if (dati.giocatori_selezionati && dati.giocatori_selezionati?.length || 0 > 0) {
+          if (dati.giocatori_selezionati && (dati.giocatori_selezionati?.length || 0) > 0) {
             const nomiGiocatori = dati.giocatori_selezionati?.map(id => {
               const giocatore = giocatori.find(gioc => gioc.id === id);
               return giocatore ? `${giocatore?.nome || 'Nome'} ${giocatore?.cognome || ''}` : `ID: ${id}`;
@@ -426,13 +426,13 @@ const RichiestaAdmin = () => {
           
         case 'trigger':
           if (dati.trigger) {
-            return `Richiesta Trigger: ${dati.trigger.substring(0, 50)}${dati.trigger?.length || 0 > 50 ? '...' : ''}`;
+            return `Richiesta Trigger: ${dati.trigger.substring(0, 50)}${(dati.trigger?.length || 0) > 50 ? '...' : ''}`;
           }
           return 'Richiesta Trigger';
           
         case 'generale':
           if (dati.messaggio) {
-            return `Richiesta Generale: ${dati.messaggio.substring(0, 50)}${dati.messaggio?.length || 0 > 50 ? '...' : ''}`;
+            return `Richiesta Generale: ${dati.messaggio.substring(0, 50)}${(dati.messaggio?.length || 0) > 50 ? '...' : ''}`;
           }
           return 'Richiesta Generale';
           
@@ -549,7 +549,7 @@ const RichiestaAdmin = () => {
                   </Button>
                 </div>
                 
-                {formData.giocatori_selezionati && formData.giocatori_selezionati?.length || 0 > 0 && (
+                {formData.giocatori_selezionati && (formData.giocatori_selezionati?.length || 0) > 0 && (
                   <div style={{marginTop: '15px'}}>
                     <label style={{fontWeight: 'bold', marginBottom: '10px', display: 'block'}}>
                       Giocatori selezionati:

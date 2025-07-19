@@ -709,7 +709,7 @@ const AreaAdmin = () => {
       }
       
       // Se non abbiamo mappato nessun campo specifico, mostra tutti i campi
-      if (details?.length || 0 === 0) {
+      if ((details?.length || 0) === 0) {
         Object.entries(data).forEach(([key, value]) => {
           const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
           if (typeof value === 'object' && value !== null) {
@@ -794,7 +794,7 @@ const AreaAdmin = () => {
               </SectionTitle>
             </SectionHeader>
             
-            {leghe?.length || 0 === 0 ? (
+            {(leghe?.length || 0) === 0 ? (
               <EmptyState>
                 <EmptyIcon>🏆</EmptyIcon>
                 <EmptyTitle>Nessuna lega amministrata</EmptyTitle>

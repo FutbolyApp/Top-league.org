@@ -674,7 +674,7 @@ const SuperAdminDashboard = () => {
       <LeaguesSection>
         <SectionTitle>🏆 Gestione Leghe</SectionTitle>
         
-        {!leghe || leghe?.length || 0 === 0 ? (
+        {!leghe || (leghe?.length || 0) === 0 ? (
           <EmptyContainer>
             <h3>Nessuna lega trovata</h3>
             <p>Non ci sono ancora leghe nel sistema.</p>
@@ -797,7 +797,7 @@ const SuperAdminDashboard = () => {
         
         {usersLoading ? (
           <LoadingContainer>Caricamento utenti...</LoadingContainer>
-        ) : !users || users?.length || 0 === 0 ? (
+        ) : !users || (users?.length || 0) === 0 ? (
           <EmptyContainer>
             <h3>Nessun utente trovato</h3>
             <p>Non ci sono ancora utenti nel sistema.</p>
@@ -822,7 +822,7 @@ const SuperAdminDashboard = () => {
                     </Td>
                     <Td>{user.email}</Td>
                     <Td>
-                      <StatusBadge className={user?.ruolo || 'Ruolo' === 'SuperAdmin' ? 'public' : 'private'}>
+                      <StatusBadge className={(user?.ruolo || 'Ruolo') === 'SuperAdmin' ? 'public' : 'private'}>
                         {user?.ruolo || 'Ruolo'}
                       </StatusBadge>
                     </Td>
