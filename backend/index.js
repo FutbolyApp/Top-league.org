@@ -52,6 +52,19 @@ app.use(cors({
 
 app.options('*', cors()); // abilita le richieste preflight
 
+// Middleware specifico per gestire richieste OPTIONS
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', 'https://topleague-frontend-new.onrender.com');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+    return res.status(200).end();
+  }
+  next();
+});
+
 // Middleware per gestire errori globali
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err);
