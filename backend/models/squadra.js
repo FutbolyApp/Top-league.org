@@ -59,33 +59,58 @@ export async function getSquadraById(id) {
 
 export async function getSquadreByLega(lega_id) {
   const db = getDb();
-  const result = await db.query(`
-    SELECT s.*, 
-           u.username as proprietario_username,
-           CASE 
-             WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN 'Futboly'
-             ELSE COALESCE(u.nome, 'Nome') 
-           END as proprietario_nome,
-           CASE 
-             WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN ''
-             ELSE u?.cognome || '' 
-           END as proprietario_cognome,
-           STRING_AGG(t?.nome || 'Nome', ', ') as tornei_nomi,
-           STRING_AGG(t.id::text, ', ') as tornei_ids,
-           COALESCE((
-             SELECT SUM(COALESCE(g.quotazione_attuale, 0))
-             FROM giocatori g
-             WHERE g.squadra_id = s.id
-           ), 0) as valore_attuale_qa
-    FROM squadre s
-    LEFT JOIN users u ON s.proprietario_id = u.id
-    LEFT JOIN tornei_squadre ts ON s.id = ts.squadra_id
-    LEFT JOIN tornei t ON ts.torneo_id = t.id
-    WHERE s.lega_id = $1
-    GROUP BY s.id, u.username, COALESCE(u.nome, 'Nome'), u?.cognome || '', COALESCE(u.ruolo, 'Ruolo')
-  `, [lega_id]);
   
-  return result.rows;
+  try {
+    // Query semplificata senza STRING_AGG per evitare problemi
+    const result = await db.query(`
+      SELECT s.*, 
+             u.username as proprietario_username,
+             CASE 
+               WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN 'Futboly'
+               ELSE COALESCE(u.nome, 'Nome') 
+             END as proprietario_nome,
+             CASE 
+               WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN ''
+               ELSE COALESCE(u.cognome, '') 
+             END as proprietario_cognome,
+             COALESCE((
+               SELECT SUM(COALESCE(g.quotazione_attuale, 0))
+               FROM giocatori g
+               WHERE g.squadra_id = s.id
+             ), 0) as valore_attuale_qa
+      FROM squadre s
+      LEFT JOIN users u ON s.proprietario_id = u.id
+      WHERE s.lega_id = $1
+      ORDER BY s.nome
+    `, [lega_id]);
+    
+    // Aggiungi i tornei separatamente per evitare problemi con STRING_AGG
+    for (const squadra of result.rows) {
+      try {
+        const torneiResult = await db.query(`
+          SELECT t.id, t.nome
+          FROM tornei_squadre ts
+          JOIN tornei t ON ts.torneo_id = t.id
+          WHERE ts.squadra_id = $1
+          ORDER BY t.nome
+        `, [squadra.id]);
+        
+        squadra.tornei = torneiResult.rows;
+        squadra.tornei_nomi = torneiResult.rows.map(t => t.nome).join(', ');
+        squadra.tornei_ids = torneiResult.rows.map(t => t.id.toString()).join(', ');
+      } catch (error) {
+        console.log(`⚠️ Error getting tournaments for team ${squadra.id}:`, error.message);
+        squadra.tornei = [];
+        squadra.tornei_nomi = '';
+        squadra.tornei_ids = '';
+      }
+    }
+    
+    return result.rows;
+  } catch (error) {
+    console.error(`❌ Error in getSquadreByLega for lega ${lega_id}:`, error.message);
+    throw error;
+  }
 }
 
 export async function getAllSquadre() {
