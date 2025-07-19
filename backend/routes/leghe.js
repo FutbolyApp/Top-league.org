@@ -1421,7 +1421,7 @@ router.put('/:id/config', requireAuth, async (req, res) => {
     }
 
     // Validazione limiti di ruolo per leghe Classic
-    if (lega.modalita === 'Classic Serie A' || lega.modalita === 'Classic Euroleghe') {
+    if ((lega?.modalita || '') === 'Classic Serie A' || (lega?.modalita || '') === 'Classic Euroleghe') {
       const errori = [];
       
       if (max_portieri < min_portieri) {
@@ -1475,15 +1475,15 @@ router.put('/:id/config', requireAuth, async (req, res) => {
         cantera: cantera === 1,
         contratti: contratti === 1,
         triggers: triggers === 1,
-        is_classic: config.modalita === 'Classic Serie A' || config.modalita === 'Classic Euroleghe',
-        max_portieri: config.max_portieri || 3,
-        min_portieri: config.min_portieri || 2,
-        max_difensori: config.max_difensori || 8,
-        min_difensori: config.min_difensori || 5,
-        max_centrocampisti: config.max_centrocampisti || 8,
-        min_centrocampisti: config.min_centrocampisti || 5,
-        max_attaccanti: config.max_attaccanti || 6,
-        min_attaccanti: config.min_attaccanti || 3
+        is_classic: (lega?.modalita || '') === 'Classic Serie A' || (lega?.modalita || '') === 'Classic Euroleghe',
+        max_portieri: max_portieri || 3,
+        min_portieri: min_portieri || 2,
+        max_difensori: max_difensori || 8,
+        min_difensori: min_difensori || 5,
+        max_centrocampisti: max_centrocampisti || 8,
+        min_centrocampisti: min_centrocampisti || 5,
+        max_attaccanti: max_attaccanti || 6,
+        min_attaccanti: min_attaccanti || 3
       }
     });
 
@@ -1510,7 +1510,7 @@ router.get('/:id/config', requireAuth, async (req, res) => {
         cantera: config.cantera === 1,
         contratti: config.contratti === 1,
         triggers: config.triggers === 1,
-        is_classic: config.modalita === 'Classic Serie A' || config.modalita === 'Classic Euroleghe',
+        is_classic: (config?.modalita || '') === 'Classic Serie A' || (config?.modalita || '') === 'Classic Euroleghe',
         max_portieri: config.max_portieri || 3,
         min_portieri: config.min_portieri || 2,
         max_difensori: config.max_difensori || 8,

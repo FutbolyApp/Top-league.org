@@ -332,7 +332,7 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
         cantera: config.cantera === 1,
         contratti: config.contratti === 1,
         triggers: config.triggers === 1,
-        is_classic: config.modalita === 'Classic Serie A' || config.modalita === 'Classic Euroleghe'
+        is_classic: (config?.modalita || '') === 'Classic Serie A' || (config?.modalita || '') === 'Classic Euroleghe'
       }
     });
   } catch (error) {
