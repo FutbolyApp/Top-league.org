@@ -11,7 +11,7 @@ export async function checkLegaExists(nome) {
   const db = getDb();
   // Cerco tra tutte le leghe già normalizzate
   const result = await db.query('SELECT id, nome FROM leghe');
-  const found = result.rows.find(l => normalizeLegaName(l?.nome || 'Nome') === normalized);
+  const found = result.rows.find(l => normalizeLegaName(COALESCE(l.nome, 'Nome')) === normalized);
   return found;
 }
 

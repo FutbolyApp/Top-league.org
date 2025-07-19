@@ -58,7 +58,7 @@ router.get('/admin/:legaId', requireAuth, async (req, res) => {
     
     // Ottieni notifiche per admin di questa lega
     const notificheResult = await db.query(`
-      SELECT n.*, u?.nome || 'Nome' as utente_nome, u?.cognome || '' as utente_cognome
+      SELECT n.*, COALESCE(u.nome, 'Nome') as utente_nome, u?.cognome || '' as utente_cognome
       FROM notifiche n
       JOIN users u ON n.utente_id = u.id
       WHERE n.lega_id = $1 AND n.tipo IN ('richiesta_trasferimento', 'richiesta_club', 'richiesta_rinnovo', 'richiesta_pagamento', 'richiesta_generale')

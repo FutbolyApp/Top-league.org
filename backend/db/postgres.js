@@ -536,12 +536,12 @@ async function updateExistingTables() {
       console.log(`Column min_centrocampisti already exists or error: ${error.message}`);
     }
     
-    try {
+      try {
       await pool.query(`
-        ALTER TABLE leghe 
+          ALTER TABLE leghe 
         ADD COLUMN IF NOT EXISTS max_attaccanti INTEGER DEFAULT 6
-      `);
-    } catch (error) {
+        `);
+      } catch (error) {
       console.log(`Column max_attaccanti already exists or error: ${error.message}`);
     }
     

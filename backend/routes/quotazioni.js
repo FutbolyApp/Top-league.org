@@ -179,7 +179,7 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
     });
     
     console.log(`[QUOTAZIONI] Giocatori nel database per lega ${legaId}: ${giocatoriDatabase?.length || 0}`);
-    console.log(`[QUOTAZIONI] Primi 5 giocatori nel DB:`, giocatoriDatabase.slice(0, 5).map(g => ({ id: g.id, nome: g?.nome || 'Nome', squadra: g.squadra_reale })));
+    console.log(`[QUOTAZIONI] Primi 5 giocatori nel DB:`, giocatoriDatabase.slice(0, 5).map(g => ({ id: g.id, nome: COALESCE(g.nome, 'Nome'), squadra: g.squadra_reale })));
     console.log(`[QUOTAZIONI] Righe Excel da processare: ${rows?.length || 0}`);
     console.log(`[QUOTAZIONI] Primi 3 nomi dall'Excel:`, rows.slice(0, 3).map(row => isEuroleghe ? row[5] : row[4]));
     
@@ -434,7 +434,7 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
     });
     
     console.log(`[STATISTICHE] Giocatori nel database per lega ${legaId}: ${giocatoriDatabase?.length || 0}`);
-    console.log(`[STATISTICHE] Primi 5 giocatori nel DB:`, giocatoriDatabase.slice(0, 5).map(g => ({ id: g.id, nome: g?.nome || 'Nome', squadra: g.squadra_reale })));
+    console.log(`[STATISTICHE] Primi 5 giocatori nel DB:`, giocatoriDatabase.slice(0, 5).map(g => ({ id: g.id, nome: COALESCE(g.nome, 'Nome'), squadra: g.squadra_reale })));
     console.log(`[STATISTICHE] Righe Excel da processare: ${rows?.length || 0}`);
     console.log(`[STATISTICHE] Primi 3 nomi dall'Excel:`, rows.slice(0, 3).map(row => ({ 
       nome: isEuroleghe ? row[3] : row[4], 

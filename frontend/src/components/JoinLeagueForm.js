@@ -315,7 +315,7 @@ const JoinLeagueForm = ({ lega, onClose, onSuccess }) => {
         <LeagueInfo>
           <LeagueName>{lega?.nome}</LeagueName>
           <LeagueDetails>
-            <span>Modalità: {lega?.modalita}</span>
+            <span>Modalità: {lega?.modalita || ''}</span>
             <span>Tipo: {lega?.is_pubblica ? 'Pubblica' : 'Privata'}</span>
             <span>Squadre: {lega?.squadre_assegnate || 0}/{lega?.numero_squadre_totali || 0}</span>
           </LeagueDetails>

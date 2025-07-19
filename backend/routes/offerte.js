@@ -65,8 +65,8 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
 
     const query = `
       SELECT o.id, o.tipo, o.valore, o.created_at as data,
-             g?.nome || 'Nome' as giocatore_nome, g?.cognome || '' as giocatore_cognome,
-             sm?.nome || 'Nome' as squadra_mittente, sd?.nome || 'Nome' as squadra_destinataria,
+             COALESCE(g.nome, 'Nome') as giocatore_nome, COALESCE(g.cognome, '') as giocatore_cognome,
+             COALESCE(sm.nome, 'Nome') as squadra_mittente, COALESCE(sd.nome, 'Nome') as squadra_destinataria,
              o.lega_id
       FROM offerte o
       JOIN giocatori g ON o.giocatore_id = g.id
@@ -235,7 +235,7 @@ router.post('/termina-prestito/:giocatoreId', authenticateToken, async (req, res
 
     // Verifica che il giocatore sia in prestito e appartenga a una squadra dell'utente
     const result = await db.query(
-      `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id, s?.nome || 'Nome' as squadra_nome
+      `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id, COALESCE(s.nome, 'Nome') as squadra_nome
        FROM giocatori g 
        JOIN squadre s ON g.squadra_id = s.id 
        WHERE g.id = $1 AND s.proprietario_id = $2 AND g.prestito = 1`,
@@ -267,7 +267,7 @@ router.get('/log/:squadraId', requireAuth, async (req, res) => {
     const db = getDb();
     
     const sql = `
-      SELECT lc.*, g?.nome || 'Nome' as giocatore_nome
+      SELECT lc.*, COALESCE(g.nome, 'Nome') as giocatore_nome
       FROM log_contratti lc
       JOIN giocatori g ON lc.giocatore_id = g.id
       WHERE lc.squadra_id = $1
@@ -293,9 +293,9 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
   try {
     // Ottieni l'offerta
     const offerta = await db.query(
-      `SELECT o.*, g?.nome || 'Nome' as giocatore_nome, g?.cognome || '' as giocatore_cognome,
-                gs?.nome || 'Nome' as giocatore_scambio_nome, gs?.cognome || '' as giocatore_scambio_cognome,
-                sm?.nome || 'Nome' as squadra_mittente_nome, sd?.nome || 'Nome' as squadra_destinatario_nome
+      `SELECT o.*, COALESCE(g.nome, 'Nome') as giocatore_nome, COALESCE(g.cognome, '') as giocatore_cognome,
+                gCOALESCE(s.nome, 'Nome') as giocatore_scambio_nome, COALESCE(gs.cognome, '') as giocatore_scambio_cognome,
+                COALESCE(sm.nome, 'Nome') as squadra_mittente_nome, COALESCE(sd.nome, 'Nome') as squadra_destinatario_nome
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
          LEFT JOIN giocatori gs ON o.giocatore_scambio_id = gs.id
@@ -503,7 +503,7 @@ router.post('/rifiuta/:offerta_id', authenticateToken, async (req, res) => {
 
   try {
     const offerta = await db.query(
-      `SELECT o.*, g?.nome || 'Nome' as giocatore_nome, g?.cognome || '' as giocatore_cognome
+      `SELECT o.*, COALESCE(g.nome, 'Nome') as giocatore_nome, COALESCE(g.cognome, '') as giocatore_cognome
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
          JOIN squadre sd ON o.squadra_destinatario_id = sd.id
@@ -570,7 +570,7 @@ router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
   try {
     // Prima ottieni i dettagli dell'offerta
     const offerta = await db.query(
-      `SELECT o.*, g?.nome || 'Nome' as giocatore_nome, g?.cognome || '' as giocatore_cognome, g.quotazione_attuale
+      `SELECT o.*, COALESCE(g.nome, 'Nome') as giocatore_nome, COALESCE(g.cognome, '') as giocatore_cognome, g.quotazione_attuale
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
          WHERE o.id = $1`,
@@ -956,10 +956,10 @@ router.get('/ricevute', authenticateToken, async (req, res) => {
   try {
     const offerte = await db.query(
       `SELECT o.*, 
-                g?.nome || 'Nome' as giocatore_nome, g?.cognome || '' as giocatore_cognome, g?.ruolo || 'Ruolo' as giocatore_ruolo,
-                gs?.nome || 'Nome' as giocatore_scambio_nome, gs?.cognome || '' as giocatore_scambio_cognome, gs?.ruolo || 'Ruolo' as giocatore_scambio_ruolo,
-                sm?.nome || 'Nome' as squadra_mittente_nome,
-                sd?.nome || 'Nome' as squadra_destinatario_nome
+                COALESCE(g.nome, 'Nome') as giocatore_nome, COALESCE(g.cognome, '') as giocatore_cognome, COALESCE(g.ruolo, 'Ruolo') as giocatore_ruolo,
+                gCOALESCE(s.nome, 'Nome') as giocatore_scambio_nome, COALESCE(gs.cognome, '') as giocatore_scambio_cognome, COALESCE(gs.ruolo, 'Ruolo') as giocatore_scambio_ruolo,
+                COALESCE(sm.nome, 'Nome') as squadra_mittente_nome,
+                COALESCE(sd.nome, 'Nome') as squadra_destinatario_nome
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
          LEFT JOIN giocatori gs ON o.giocatore_scambio_id = gs.id
@@ -985,9 +985,9 @@ router.get('/log-giocatore/:giocatore_id', authenticateToken, async (req, res) =
   try {
     const log = await db.query(
       `SELECT l.*, 
-                sm?.nome || 'Nome' as squadra_mittente_nome,
-                sd?.nome || 'Nome' as squadra_destinatario_nome,
-                u?.nome || 'Nome' as utente_nome, u?.cognome || '' as utente_cognome
+                COALESCE(sm.nome, 'Nome') as squadra_mittente_nome,
+                COALESCE(sd.nome, 'Nome') as squadra_destinatario_nome,
+                COALESCE(u.nome, 'Nome') as utente_nome, u?.cognome || '' as utente_cognome
          FROM log_operazioni_giocatori l
          LEFT JOIN squadre sm ON l.squadra_mittente_id = sm.id
          LEFT JOIN squadre sd ON l.squadra_destinatario_id = sd.id

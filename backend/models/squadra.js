@@ -42,11 +42,11 @@ export async function getSquadraById(id) {
     SELECT s.*, 
            u.username as proprietario_username,
            CASE 
-             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN 'Futboly'
-             ELSE u?.nome || 'Nome' 
+             WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN 'Futboly'
+             ELSE COALESCE(u.nome, 'Nome') 
            END as proprietario_nome,
            CASE 
-             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN ''
+             WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN ''
              ELSE u?.cognome || '' 
            END as proprietario_cognome
     FROM squadre s
@@ -63,11 +63,11 @@ export async function getSquadreByLega(lega_id) {
     SELECT s.*, 
            u.username as proprietario_username,
            CASE 
-             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN 'Futboly'
-             ELSE u?.nome || 'Nome' 
+             WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN 'Futboly'
+             ELSE COALESCE(u.nome, 'Nome') 
            END as proprietario_nome,
            CASE 
-             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN ''
+             WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN ''
              ELSE u?.cognome || '' 
            END as proprietario_cognome,
            STRING_AGG(t?.nome || 'Nome', ', ') as tornei_nomi,
@@ -82,7 +82,7 @@ export async function getSquadreByLega(lega_id) {
     LEFT JOIN tornei_squadre ts ON s.id = ts.squadra_id
     LEFT JOIN tornei t ON ts.torneo_id = t.id
     WHERE s.lega_id = $1
-    GROUP BY s.id, u.username, u?.nome || 'Nome', u?.cognome || '', u?.ruolo || 'Ruolo'
+    GROUP BY s.id, u.username, COALESCE(u.nome, 'Nome'), u?.cognome || '', COALESCE(u.ruolo, 'Ruolo')
   `, [lega_id]);
   
   return result.rows;
@@ -94,11 +94,11 @@ export async function getAllSquadre() {
     SELECT s.*, 
            u.username as proprietario_username,
            CASE 
-             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN 'Futboly'
-             ELSE u?.nome || 'Nome' 
+             WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN 'Futboly'
+             ELSE COALESCE(u.nome, 'Nome') 
            END as proprietario_nome,
            CASE 
-             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN ''
+             WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN ''
              ELSE u?.cognome || '' 
            END as proprietario_cognome
     FROM squadre s

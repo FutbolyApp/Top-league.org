@@ -99,7 +99,7 @@ router.post('/paga-multipli', requireAuth, async (req, res) => {
 
     // 1. Ottieni tutte le squadre dell'utente
     const squadreResult = await db.query(
-      `SELECT s.id as squadra_id, s.casse_societarie, s.proprietario_id, s?.nome || 'Nome'
+      `SELECT s.id as squadra_id, s.casse_societarie, s.proprietario_id, COALESCE(s.nome, 'Nome')
        FROM squadre s 
        WHERE s.proprietario_id = $1`,
       [userId]
@@ -117,7 +117,7 @@ router.post('/paga-multipli', requireAuth, async (req, res) => {
     const squadraPlaceholders = squadraIds?.map((_, index) => `$${giocatoriIds?.length || 0 + index + 1}`).join(',');
     
     const giocatoriResult = await db.query(
-      `SELECT g.*, s.casse_societarie, s?.nome || 'Nome' as squadra_nome 
+      `SELECT g.*, s.casse_societarie, COALESCE(s.nome, 'Nome') as squadra_nome 
        FROM giocatori g 
        JOIN squadre s ON g.squadra_id = s.id
        WHERE g.id IN (${placeholders}) AND g.squadra_id IN (${squadraPlaceholders})`,
@@ -132,7 +132,7 @@ router.post('/paga-multipli', requireAuth, async (req, res) => {
     // 3. Verifica che nessun giocatore sia in Roster B
     const giocatoriInRosterB = giocatori?.filter(g => g.roster === 'B');
     if (giocatoriInRosterB?.length || 0 > 0) {
-      const nomiGiocatori = giocatoriInRosterB?.map(g => `${g?.nome || 'Nome'} ${g?.cognome || '' || ''}`).join(', ');
+      const nomiGiocatori = giocatoriInRosterB?.map(g => `${COALESCE(g.nome, 'Nome')} ${COALESCE(g.cognome, '') || ''}`).join(', ');
       return res.status(400).json({ 
         error: `Non puoi pagare contratti per giocatori in Roster B: ${nomiGiocatori}` 
       });

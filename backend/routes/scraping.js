@@ -767,11 +767,11 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
     let giocatoriScraping;
     try {
       const giocatoriResult = await db.query(`
-        SELECT gs.*, ss?.nome || 'Nome' as nome_squadra_scraping
+        SELECT gs.*, sCOALESCE(s.nome, 'Nome') as nome_squadra_scraping
         FROM giocatori_scraping gs
         JOIN squadre_scraping ss ON gs.squadra_scraping_id = ss.id
         WHERE gs.lega_id = $1
-        ORDER BY ss?.nome || 'Nome', gs?.nome || 'Nome'
+        ORDER BY sCOALESCE(s.nome, 'Nome'), gCOALESCE(s.nome, 'Nome')
       `, [legaId]);
       giocatoriScraping = giocatoriResult.rows;
     } catch (err) {
@@ -938,11 +938,11 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     let giocatoriUfficiali;
     try {
       const giocatoriResult = await db.query(`
-        SELECT g.*, s?.nome || 'Nome' as nome_squadra
+        SELECT g.*, COALESCE(s.nome, 'Nome') as nome_squadra
         FROM giocatori g
         JOIN squadre s ON g.squadra_id = s.id
         WHERE s.lega_id = $1
-        ORDER BY s?.nome || 'Nome', g?.nome || 'Nome'
+        ORDER BY COALESCE(s.nome, 'Nome'), COALESCE(g.nome, 'Nome')
       `, [legaId]);
       giocatoriUfficiali = giocatoriResult.rows;
     } catch (err) {
@@ -969,11 +969,11 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     let giocatoriScraping;
     try {
       const giocatoriScrapingResult = await db.query(`
-        SELECT gs.*, ss?.nome || 'Nome' as nome_squadra_scraping
+        SELECT gs.*, sCOALESCE(s.nome, 'Nome') as nome_squadra_scraping
         FROM giocatori_scraping gs
         JOIN squadre_scraping ss ON gs.squadra_scraping_id = ss.id
         WHERE gs.lega_id = $1
-        ORDER BY ss?.nome || 'Nome', gs?.nome || 'Nome'
+        ORDER BY sCOALESCE(s.nome, 'Nome'), gCOALESCE(s.nome, 'Nome')
       `, [legaId]);
       giocatoriScraping = giocatoriScrapingResult.rows;
     } catch (err) {
@@ -993,16 +993,16 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     };
     
     // Trova squadre comuni
-    const nomiSquadreUfficiali = squadreUfficiali?.map(s => s?.nome || 'Nome'.toLowerCase());
-    const nomiSquadreScraping = squadreScraping?.map(s => s?.nome || 'Nome'.toLowerCase());
+    const nomiSquadreUfficiali = squadreUfficiali?.map(s => COALESCE(s.nome, 'Nome').toLowerCase());
+    const nomiSquadreScraping = squadreScraping?.map(s => COALESCE(s.nome, 'Nome').toLowerCase());
     
     confronto.squadre_comuni = nomiSquadreUfficiali?.filter(nome => 
       nomiSquadreScraping.includes(nome)
     ).length;
     
     // Trova giocatori comuni
-    const nomiGiocatoriUfficiali = giocatoriUfficiali?.map(g => g?.nome || 'Nome'.toLowerCase());
-    const nomiGiocatoriScraping = giocatoriScraping?.map(g => g?.nome || 'Nome'.toLowerCase());
+    const nomiGiocatoriUfficiali = giocatoriUfficiali?.map(g => COALESCE(g.nome, 'Nome').toLowerCase());
+    const nomiGiocatoriScraping = giocatoriScraping?.map(g => COALESCE(g.nome, 'Nome').toLowerCase());
     
     confronto.giocatori_comuni = nomiGiocatoriUfficiali?.filter(nome => 
       nomiGiocatoriScraping.includes(nome)

@@ -18,11 +18,11 @@ router.get('/:giocatoreId', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT g.*, 
              g.quotazione_attuale,
-             s?.nome || 'Nome' as squadra_nome,
-             l?.nome || 'Nome' as lega_nome,
+             COALESCE(s.nome, 'Nome') as squadra_nome,
+             COALESCE(l.nome, 'Nome') as lega_nome,
              CASE 
-               WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN 'Futboly'
-               ELSE u?.nome || 'Nome' 
+               WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN 'Futboly'
+               ELSE COALESCE(u.nome, 'Nome') 
              END as proprietario_nome
       FROM giocatori g 
       LEFT JOIN squadre s ON g.squadra_id = s.id
@@ -51,7 +51,7 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT g.*, 
              g.quotazione_attuale,
-             sp?.nome || 'Nome' as squadra_prestito_nome
+             COALESCE(sp.nome, 'Nome') as squadra_prestito_nome
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
       WHERE g.squadra_id = $1
@@ -127,7 +127,7 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT g.*, 
              g.quotazione_attuale,
-             sp?.nome || 'Nome' as squadra_prestito_nome
+             COALESCE(sp.nome, 'Nome') as squadra_prestito_nome
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
       JOIN squadre s ON g.squadra_id = s.id

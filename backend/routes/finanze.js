@@ -61,7 +61,7 @@ router.get('/squadra/:squadraId/transazioni', requireAuth, async (req, res) => {
     }
 
     let query = `
-      SELECT t.*, g?.nome || 'Nome' as giocatore_nome, s?.nome || 'Nome' as squadra_nome
+      SELECT t.*, COALESCE(g.nome, 'Nome') as giocatore_nome, COALESCE(s.nome, 'Nome') as squadra_nome
       FROM transazioni t
       LEFT JOIN giocatori g ON t.giocatore_id = g.id
       LEFT JOIN squadre s ON t.squadra_id = s.id
@@ -246,7 +246,7 @@ router.get('/squadra/:squadraId/report', requireAuth, async (req, res) => {
 
     // Top spese
     const topSpeseResult = await db.query(`
-      SELECT t.*, g?.nome || 'Nome' as giocatore_nome
+      SELECT t.*, COALESCE(g.nome, 'Nome') as giocatore_nome
       FROM transazioni t
       LEFT JOIN giocatori g ON t.giocatore_id = g.id
       WHERE t.squadra_id = $1 AND t.tipo = 'uscita' ${dateFilter}
@@ -329,7 +329,7 @@ router.get('/squadra/:squadraId/export', requireAuth, async (req, res) => {
         t.categoria,
         t.importo,
         t.descrizione,
-        g?.nome || 'Nome' as giocatore_nome
+        COALESCE(g.nome, 'Nome') as giocatore_nome
       FROM transazioni t
       LEFT JOIN giocatori g ON t.giocatore_id = g.id
       WHERE t.squadra_id = $1

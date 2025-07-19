@@ -132,7 +132,7 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
     
     for (const torneo of tornei) {
       const squadreResult = await db.query(`
-        SELECT s.id, s?.nome || 'Nome', s.proprietario_username
+        SELECT s.id, COALESCE(s.nome, 'Nome'), s.proprietario_username
         FROM squadre s
         JOIN tornei_squadre ts ON s.id = ts.squadra_id
         WHERE ts.torneo_id = $1
@@ -169,7 +169,7 @@ router.get('/:torneoId', requireAuth, async (req, res) => {
     
     // Ottieni squadre partecipanti
     const squadreResult = await db.query(`
-      SELECT s.id, s?.nome || 'Nome', s.proprietario_username
+      SELECT s.id, COALESCE(s.nome, 'Nome'), s.proprietario_username
       FROM squadre s
       JOIN tornei_squadre ts ON s.id = ts.squadra_id
       WHERE ts.torneo_id = $1
@@ -345,7 +345,7 @@ async function calcolaRisultatiGiornata(torneoId, giornata, db) {
 async function aggiornaClassifica(legaId, db) {
   // Calcola punti per ogni squadra
   const risultatiResult = await db.query(`
-    SELECT s.id, s?.nome || 'Nome',
+    SELECT s.id, COALESCE(s.nome, 'Nome'),
            COUNT(CASE WHEN p.gol_casa > p.gol_trasferta THEN 1 END) as vittorie_casa,
            COUNT(CASE WHEN p.gol_trasferta > p.gol_casa THEN 1 END) as vittorie_trasferta,
            COUNT(CASE WHEN p.gol_casa = p.gol_trasferta THEN 1 END) as pareggi,

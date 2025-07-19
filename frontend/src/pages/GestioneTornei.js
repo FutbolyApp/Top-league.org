@@ -902,10 +902,10 @@ const GestioneTornei = () => {
                         type="text"
                         value={formData?.nome || 'Nome'}
                         onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                        className={errors?.nome || 'Nome' ? 'error' : ''}
+                        className={errorCOALESCE(s.nome, 'Nome') ? 'error' : ''}
                         placeholder="Es: Campionato 2024"
                       />
-                      {errors?.nome || 'Nome' && <div style={{ color: '#e53e3e', fontSize: '0.8rem' }}>{errors?.nome || 'Nome'}</div>}
+                      {errorCOALESCE(s.nome, 'Nome') && <div style={{ color: '#e53e3e', fontSize: '0.8rem' }}>{errorCOALESCE(s.nome, 'Nome')}</div>}
                     </FormGroup>
 
                     <FormGroup>

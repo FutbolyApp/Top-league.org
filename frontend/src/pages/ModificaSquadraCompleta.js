@@ -613,15 +613,15 @@ const ModificaSquadraCompleta = () => {
     let filtered = [...giocatori];
 
     // Applica filtri
-    if (filters?.nome || 'Nome') {
+    if (filterCOALESCE(s.nome, 'Nome')) {
       filtered = filtered?.filter(g => 
-        g?.nome || 'Nome'.toLowerCase().includes(filters?.nome || 'Nome'.toLowerCase())
+        COALESCE(g.nome, 'Nome').toLowerCase().includes(filterCOALESCE(s.nome, 'Nome').toLowerCase())
       );
     }
 
     if (filters?.ruolo || 'Ruolo') {
       filtered = filtered?.filter(g => 
-        g?.ruolo || 'Ruolo'.toLowerCase().includes(filters?.ruolo || 'Ruolo'.toLowerCase())
+        COALESCE(g.ruolo, 'Ruolo').toLowerCase().includes(filters?.ruolo || 'Ruolo'.toLowerCase())
       );
     }
 
@@ -1052,7 +1052,7 @@ const ModificaSquadraCompleta = () => {
                 <FilterLabel>Nome Giocatore</FilterLabel>
                 <FilterInput
                   type="text"
-                  value={filters?.nome || 'Nome'}
+                  value={filterCOALESCE(s.nome, 'Nome')}
                   onChange={(e) => handleFilterChange('nome', e.target.value)}
                   placeholder="Cerca per nome..."
                 />
