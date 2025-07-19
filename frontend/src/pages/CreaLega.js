@@ -373,7 +373,7 @@ const CreaLega = () => {
         
         <FormGroup>
           <Label>Modalità *</Label>
-          <Select name="modalita" value={form.modalita} onChange={handleChange}>
+          <Select name="modalita" value={form?.modalita || ''} onChange={handleChange}>
             <option value="Serie A Classic">Serie A Classic</option>
             <option value="Serie A Mantra">Serie A Mantra</option>
             <option value="Euroleghe Classic">Euroleghe Classic</option>

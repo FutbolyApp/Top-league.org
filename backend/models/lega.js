@@ -35,7 +35,7 @@ export async function createLega(data) {
   const db = getDb();
   const result = await db.query(sql, [
     data?.nome || 'Nome',
-    data.modalita,
+    data?.modalita || '',
     admin_id,
     data.is_pubblica ? true : false,
     data.password || null,
@@ -88,7 +88,7 @@ export async function updateLega(id, data) {
   const db = getDb();
   await db.query(sql, [
     data?.nome || 'Nome',
-    data.modalita,
+    data?.modalita || '',
     admin_id,
     data.is_pubblica ? true : false,
     data.password || null,

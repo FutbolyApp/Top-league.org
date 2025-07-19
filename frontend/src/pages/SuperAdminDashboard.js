@@ -709,7 +709,7 @@ const SuperAdminDashboard = () => {
                         </div>
                       </div>
                     </Td>
-                    <Td>{lega.modalita}</Td>
+                    <Td>{lega??.modalita || '' || 'N/A'}</Td>
                     <Td>
                       <StatusBadge className={lega.is_pubblica ? 'public' : 'private'}>
                         {lega.is_pubblica ? 'Pubblica' : 'Privata'}

@@ -676,7 +676,7 @@ const RequestGiocatoriModification = () => {
   const sortPlayersByRole = (players) => {
     if (!players) return [];
     
-    const isMantra = (lega?.modalita || '').includes('Mantra');
+    const isMantra = (lega??.modalita || '' || '').includes('Mantra');
     
     // Definizione dell'ordine dei ruoli
     const roleOrder = isMantra 

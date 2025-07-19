@@ -471,7 +471,7 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
   const sortPlayersByRole = (players) => {
     if (!players) return [];
     
-    const isMantra = (lega?.modalita || '').includes('Mantra');
+    const isMantra = (lega??.modalita || '' || '').includes('Mantra');
     
     // Definizione dell'ordine dei ruoli
     const roleOrder = isMantra 
@@ -559,7 +559,7 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
           break;
         case 'ruolo':
           // Per l'ordinamento per ruolo, usa la logica speciale
-          const isMantra = (lega?.modalita || '').includes('Mantra');
+          const isMantra = (lega??.modalita || '' || '').includes('Mantra');
           const roleOrder = isMantra 
             ? ['P', 'Por', 'D', 'Dc', 'B', 'Dd', 'Ds', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc']
             : ['P', 'Por', 'D', 'Dc', 'B', 'Dd', 'Ds', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc'];

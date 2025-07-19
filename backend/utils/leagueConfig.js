@@ -60,7 +60,7 @@ export async function isClassicLeague(legaId) {
       'Euroleghe Classic',
       'Classic'
     ];
-    return classicPatterns.some(pattern => config.modalita && config.modalita.includes(pattern));
+    return classicPatterns.some(pattern => config??.modalita || '' || '' && config??.modalita || '' || ''.includes(pattern));
   } catch (error) {
     console.error('Errore in isClassicLeague:', error);
     return false;

@@ -491,7 +491,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
         <LeagueInfo>
           <InfoCard>
             <InfoLabel>Modalità</InfoLabel>
-            <InfoValue>{lega.modalita}</InfoValue>
+            <InfoValue>{lega??.modalita || '' || 'N/A'}</InfoValue>
           </InfoCard>
           <InfoCard>
             <InfoLabel>Tipo</InfoLabel>

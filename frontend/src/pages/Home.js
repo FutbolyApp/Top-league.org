@@ -921,7 +921,7 @@ const Home = () => {
                       {lega?.nome || 'Nome'}
                     </StyledLink>
                   </Td>
-                  <Td>{lega.modalita}</Td>
+                  <Td>{lega??.modalita || '' || 'N/A'}</Td>
                   <Td>
                     <StatusBadge $status={lega.is_pubblica ? 'pubblica' : 'privata'}>
                       {lega.is_pubblica ? 'Pubblica' : 'Privata'}

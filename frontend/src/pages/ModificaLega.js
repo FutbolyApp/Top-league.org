@@ -255,7 +255,7 @@ const ModificaLega = () => {
         // Inizializza i dati del form
         setFormData({
           nome: res.lega?.nome || 'Nome' || '',
-          modalita: res.lega.modalita || 'Classic',
+          modalita: res.lega??.modalita || '' || 'N/A' || 'Classic',
           is_pubblica: res.lega.is_pubblica || true,
           password: res.lega.password || '',
           max_squadre: res.lega.max_squadre || 20,
@@ -403,7 +403,7 @@ const ModificaLega = () => {
             <Label>Modalità</Label>
             <Select
               name="modalita"
-              value={formData.modalita}
+              value={formData?.modalita || ''}
               onChange={handleChange}
             >
               <option value="Serie A Classic">Serie A Classic</option>

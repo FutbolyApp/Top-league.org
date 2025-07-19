@@ -911,7 +911,7 @@ const Leghe = () => {
                         </LegaLink>
                       </Td>
                       <Td>{lega.admin_nome || 'N/A'}</Td>
-                      <Td>{lega.modalita}</Td>
+                      <Td>{lega??.modalita || '' || 'N/A'}</Td>
                       <Td>
                         <StatusBadge $status={lega.is_pubblica ? 'pubblica' : 'privata'}>
                           {lega.is_pubblica ? 'Pubblica' : 'Privata'}
@@ -968,7 +968,7 @@ const Leghe = () => {
                               </StatItem>
                               <StatItem>
                                 <StatLabel>Modalità</StatLabel>
-                                <StatValue>{lega.modalita}</StatValue>
+                                <StatValue>{lega??.modalita || '' || 'N/A'}</StatValue>
                               </StatItem>
                             </TeamStats>
                             <ExpandedActionButtons>
