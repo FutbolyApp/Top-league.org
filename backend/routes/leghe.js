@@ -344,9 +344,20 @@ router.get('/user-leagues', requireAuth, async (req, res) => {
 router.get('/admin', requireAuth, async (req, res) => {
   const adminId = req.user.id;
   console.log('GET /api/leghe/admin - User ID:', adminId);
+  console.log('GET /api/leghe/admin - User role:', req.user.ruolo);
   
   try {
     const db = getDb();
+    console.log('Database connection obtained for admin query');
+    
+    // Prima controlla se ci sono leghe nel database
+    const allLegheResult = await db.query('SELECT COUNT(*) as total FROM leghe');
+    console.log('Total leghe in database:', allLegheResult.rows[0].total);
+    
+    // Controlla se ci sono leghe con questo admin_id
+    const adminLegheResult = await db.query('SELECT COUNT(*) as total FROM leghe WHERE admin_id = $1', [adminId]);
+    console.log('Leghe with admin_id', adminId, ':', adminLegheResult.rows[0].total);
+    
     const result = await db.query(`
       SELECT l.*, 
            (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id) as numero_squadre_totali,
@@ -361,10 +372,13 @@ router.get('/admin', requireAuth, async (req, res) => {
     `, [adminId]);
     
     console.log('Leghe admin trovate:', result.rows.length);
+    console.log('Leghe details:', result.rows.map(l => ({ id: l.id, nome: l.nome, admin_id: l.admin_id })));
     res.json({ leghe: result.rows });
   } catch (err) {
     console.error('Errore query admin leghe:', err);
-    res.status(500).json({ error: 'Errore DB' });
+    console.error('Error details:', err.message);
+    console.error('Error stack:', err.stack);
+    res.status(500).json({ error: 'Errore DB', details: err.message });
   }
 });
 
