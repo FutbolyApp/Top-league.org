@@ -654,7 +654,7 @@ router.put('/:legaId', requireSuperAdmin, (req, res) => {
     // Prepara i dati per l'aggiornamento
     const updatedLega = {
       nome: updateData.nome.trim(),
-      modalita: updateData.modalita || lega.modalita,
+      modalita: updateData.modalita || (lega?.modalita || 'Classic Serie A'),
       is_pubblica: updateData.is_pubblica === 'true' || updateData.is_pubblica === true,
       password: updateData.is_pubblica ? null : (updateData.password || lega.password),
       max_squadre: updateData.max_squadre || lega.max_squadre,
@@ -739,7 +739,7 @@ router.put('/:legaId/admin', requireLegaAdminOrSuperAdmin, (req, res) => {
     // Prepara i dati per l'aggiornamento
     const updatedLega = {
       nome: updateData.nome.trim(),
-      modalita: updateData.modalita || lega.modalita,
+      modalita: updateData.modalita || (lega?.modalita || 'Classic Serie A'),
       is_pubblica: updateData.is_pubblica === 'true' || updateData.is_pubblica === true,
       password: updateData.is_pubblica ? null : (updateData.password || lega.password),
       max_squadre: updateData.max_squadre || lega.max_squadre,
@@ -1306,7 +1306,7 @@ router.put('/:legaId/scraping-credentials', requireAuth, (req, res) => {
     // Prepara i dati per l'aggiornamento (solo credenziali scraping)
     const updatedLega = {
       nome: lega.nome, // Mantieni il nome esistente
-      modalita: lega.modalita,
+      modalita: lega?.modalita || 'Classic Serie A',
       admin_id: lega.admin_id,
       is_pubblica: lega.is_pubblica,
       password: lega.password,
