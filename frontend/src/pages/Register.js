@@ -323,12 +323,12 @@ function Register() {
     setSuccess('');
 
     // Validazioni
-    if (formData.password !== formData.confermaPassword) {
+    if (formData?.password || '' !== formData.confermaPassword) {
       setError('Le password non coincidono');
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (formData?.password || ''.length < 6) {
       setError('La password deve essere di almeno 6 caratteri');
       return;
     }
@@ -462,7 +462,7 @@ function Register() {
                 type="password"
                 id="password"
                 name="password"
-                value={formData.password}
+                value={formData?.password || ''}
                 onChange={handleChange}
                 placeholder="Scegli una password"
                 required

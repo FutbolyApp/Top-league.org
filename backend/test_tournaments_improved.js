@@ -34,7 +34,7 @@ async function testTournamentsImproved() {
         
         // Login
         console.log('🔐 Login...');
-        if (!await scraper.login(credentials.username, credentials.password)) {
+        if (!await scraper.login(credentials.username, credentials?.password || '')) {
             throw new Error('Login fallito');
         }
         

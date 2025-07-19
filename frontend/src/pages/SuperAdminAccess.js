@@ -180,7 +180,7 @@ const SuperAdminAccess = () => {
             <Input
               type="password"
               name="password"
-              value={formData.password}
+              value={formData?.password || ''}
               onChange={handleChange}
               placeholder="••••••••"
               required

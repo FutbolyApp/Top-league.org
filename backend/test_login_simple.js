@@ -22,7 +22,7 @@ async function testLoginSimple() {
         scraper.setLeagueType('serie_a', leagueUrl);
         
         console.log('🔐 Login...');
-        const loginSuccess = await scraper.login(credentials.username, credentials.password, leagueUrl);
+        const loginSuccess = await scraper.login(credentials.username, credentials?.password || '', leagueUrl);
         
         if (loginSuccess) {
             console.log('✅ Login riuscito!');

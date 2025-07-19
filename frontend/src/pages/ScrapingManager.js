@@ -275,7 +275,7 @@ const ScrapingManager = () => {
         setCredentials(prev => ({
           ...prev,
           username: parsed.username || '',
-          password: parsed.password || ''
+          password: parsed?.password || '' || ''
         }));
       } catch (error) {
         console.error('Errore nel caricamento delle credenziali salvate:', error);
@@ -329,13 +329,13 @@ const ScrapingManager = () => {
 
   // Salva le credenziali nel localStorage quando cambiano
   useEffect(() => {
-    if (credentials.username || credentials.password) {
+    if (credentials.username || credentials?.password || '') {
       localStorage.setItem('scraping_credentials', JSON.stringify({
         username: credentials.username,
-        password: credentials.password
+        password: credentials?.password || ''
       }));
     }
-  }, [credentials.username, credentials.password]);
+  }, [credentials.username, credentials?.password || '']);
 
   // Carica le leghe dell'admin
   useEffect(() => {
@@ -418,7 +418,7 @@ const ScrapingManager = () => {
   };
 
   const handleScrapingPlaywright = async () => {
-    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials?.password || '') {
       showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
       return;
     }
@@ -460,7 +460,7 @@ const ScrapingManager = () => {
             leagueUrl,
             scrapingUrls,
             credentials.username,
-            credentials.password,
+            credentials?.password || '',
             selectedTournaments,
             token
           );
@@ -502,7 +502,7 @@ const ScrapingManager = () => {
             leagueUrl,
             scrapingUrls,
             credentials.username,
-            credentials.password,
+            credentials?.password || '',
             token,
             tournamentId
           );
@@ -542,7 +542,7 @@ const ScrapingManager = () => {
           leagueUrl,
           scrapingUrls,
           credentials.username,
-          credentials.password,
+          credentials?.password || '',
           token,
           null
         );
@@ -579,7 +579,7 @@ const ScrapingManager = () => {
   };
 
   const handleScrapingClassifica = async () => {
-    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials?.password || '') {
       showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
       return;
     }
@@ -614,7 +614,7 @@ const ScrapingManager = () => {
         selectedLega,
         leagueUrl,
         credentials.username,
-        credentials.password,
+        credentials?.password || '',
         tournamentId,
         token
       );
@@ -649,7 +649,7 @@ const ScrapingManager = () => {
   };
 
   const handleScrapingFormazioni = async () => {
-    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials?.password || '') {
       showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
       return;
     }
@@ -692,7 +692,7 @@ const ScrapingManager = () => {
         selectedLega,
         leagueUrl,
         credentials.username,
-        credentials.password,
+        credentials?.password || '',
         tournamentId,
         parseInt(giornata),
         token
@@ -729,7 +729,7 @@ const ScrapingManager = () => {
 
   // Nuovo metodo per scraping completo (rose + classifica + formazioni)
   const handleScrapingCompletoPlaywright = async () => {
-    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials?.password || '') {
       showErrorModal('Dati Mancanti', 'Seleziona una lega, inserisci l\'URL e le credenziali.');
       return;
     }
@@ -769,7 +769,7 @@ const ScrapingManager = () => {
         selectedLega,
         leagueUrl,
         credentials.username,
-        credentials.password,
+        credentials?.password || '',
         tournamentId,
         giornataNum,
         token
@@ -814,7 +814,7 @@ const ScrapingManager = () => {
 
   // Nuovo metodo per recuperare i tornei disponibili
   const handleGetTournaments = async () => {
-    if (!selectedLega || !leagueUrl || !credentials.username || !credentials.password) {
+    if (!selectedLega || !leagueUrl || !credentials.username || !credentials?.password || '') {
       showErrorModal('Dati Mancanti', 'Inserisci tutti i dati richiesti per recuperare i tornei.');
       return;
     }
@@ -841,7 +841,7 @@ const ScrapingManager = () => {
         selectedLega, 
         leagueUrl,
         credentials.username,
-        credentials.password,
+        credentials?.password || '',
         token
       );
       
@@ -956,14 +956,14 @@ const ScrapingManager = () => {
   }, [selectedLega]);
 
   const handleUpdateCredentials = async () => {
-    if (!selectedLega || !credentials.username || !credentials.password) {
+    if (!selectedLega || !credentials.username || !credentials?.password || '') {
       showErrorModal('Dati Mancanti', 'Seleziona una lega e inserisci username e password.');
       return;
     }
 
     setLoading(true);
     try {
-      const result = await updateCredentials(selectedLega, credentials.username, credentials.password, token);
+      const result = await updateCredentials(selectedLega, credentials.username, credentials?.password || '', token);
       if (result.success) {
         showSuccessModal('✅ Credenziali Aggiornate', 'Le credenziali sono state salvate nel database!');
         // Ricarica i dati della lega
@@ -2047,14 +2047,14 @@ const ScrapingManager = () => {
               <label>Password Fantacalcio:</label>
               <input
                 type="password"
-                value={credentials.password}
+                value={credentials?.password || ''}
                 onChange={(e) => handleCredentialsChange('password', e.target.value)}
                 placeholder="Inserisci password"
               />
             </div>
 
             {/* Pulsante per pulire le credenziali salvate */}
-            {(credentials.username || credentials.password) && (
+            {(credentials.username || credentials?.password || '') && (
               <div className="form-group">
                 <button
                   type="button"

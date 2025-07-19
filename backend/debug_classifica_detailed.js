@@ -20,7 +20,7 @@ async function debugClassificaDetailed() {
         await scraper.init();
         
         console.log('🔐 Login...');
-        const loginSuccess = await scraper.login(credentials.username, credentials.password);
+        const loginSuccess = await scraper.login(credentials.username, credentials?.password || '');
         if (!loginSuccess) {
             throw new Error('Login fallito');
         }

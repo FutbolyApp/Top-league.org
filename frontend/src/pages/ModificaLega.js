@@ -257,7 +257,7 @@ const ModificaLega = () => {
           nome: res.lega?.nome || 'Nome' || '',
           modalita: res.lega?.modalita || 'N/A' || 'Classic',
           is_pubblica: res.lega?.is_pubblica || true,
-          password: res.lega.password || '',
+          password: res.lega?.password || '',
           max_squadre: res.lega.max_squadre || 20,
           min_giocatori: res.lega.min_giocatori || 15,
           max_giocatori: res.lega.max_giocatori || 25,
@@ -283,12 +283,12 @@ const ModificaLega = () => {
   };
 
   const validateForm = () => {
-    if (!formData?.nome || 'Nome'.trim()) {
+    if (!formData?.nome?.trim()) {
       setError('Il nome della lega è obbligatorio');
       return false;
     }
     
-    if (formData?.is_pubblica || false === false && !formData.password.trim()) {
+    if (!formData?.is_pubblica && !formData?.password?.trim()) {
       setError('La password è obbligatoria per le leghe private');
       return false;
     }
@@ -425,16 +425,16 @@ const ModificaLega = () => {
             </Select>
           </FormGroup>
           
-          {formData?.is_pubblica || false === false && (
+          {!formData?.is_pubblica && (
             <FormGroup>
               <Label>Password (obbligatoria per leghe private) *</Label>
               <Input
                 name="password"
                 type="password"
-                value={formData.password}
+                value={formData?.password || ''}
                 onChange={handleChange}
                 placeholder="Inserisci password per accedere"
-                required={formData?.is_pubblica || false === false}
+                required={!formData?.is_pubblica}
               />
             </FormGroup>
           )}

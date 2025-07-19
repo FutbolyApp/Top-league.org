@@ -170,7 +170,7 @@ function Login() {
     try {
       const response = await apiLogin({
         email: formData.emailOrUsername,
-        password: formData.password
+        password: formData?.password || ''
       });
       loginUser(response.user, response.token);
       
@@ -227,7 +227,7 @@ function Login() {
               type="password"
               id="password"
               name="password"
-              value={formData.password}
+              value={formData?.password || ''}
               onChange={handleChange}
               placeholder="Inserisci la tua password"
               required

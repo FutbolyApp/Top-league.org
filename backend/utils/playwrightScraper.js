@@ -1696,7 +1696,7 @@ class PlaywrightScraper {
 
             // STEP 1: LOGIN DIRETTO SULLA LEGA
             console.log('STEP 1: Login diretto sulla lega');
-            const loginSuccess = await this.login(credentials.username, credentials.password, leagueUrl);
+            const loginSuccess = await this.login(credentials.username, credentials?.password || '', leagueUrl);
                     if (!loginSuccess) {
                 throw new Error('Login fallito');
             }

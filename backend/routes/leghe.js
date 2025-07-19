@@ -656,7 +656,7 @@ router.put('/:legaId', requireSuperAdmin, (req, res) => {
       nome: updateData.nome.trim(),
       modalita: updateData?.modalita || '' || (lega?.modalita || 'Classic Serie A'),
       is_pubblica: updateData?.is_pubblica || false === 'true' || updateData?.is_pubblica || false === true,
-      password: updateData?.is_pubblica || false? null : (updateData.password || lega.password),
+      password: updateData?.is_pubblica || false? null : (updateData?.password || '' || lega?.password || ''),
       max_squadre: updateData.max_squadre || lega.max_squadre,
       min_giocatori: updateData.min_giocatori || lega.min_giocatori,
       max_giocatori: updateData.max_giocatori || lega.max_giocatori,
@@ -741,7 +741,7 @@ router.put('/:legaId/admin', requireLegaAdminOrSuperAdmin, (req, res) => {
       nome: updateData.nome.trim(),
       modalita: updateData?.modalita || '' || (lega?.modalita || 'Classic Serie A'),
       is_pubblica: updateData?.is_pubblica || false === 'true' || updateData?.is_pubblica || false === true,
-      password: updateData?.is_pubblica || false? null : (updateData.password || lega.password),
+      password: updateData?.is_pubblica || false? null : (updateData?.password || '' || lega?.password || ''),
       max_squadre: updateData.max_squadre || lega.max_squadre,
       min_giocatori: updateData.min_giocatori || lega.min_giocatori,
       max_giocatori: updateData.max_giocatori || lega.max_giocatori,
@@ -860,7 +860,7 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, async (req, res) => {
       if (!password) {
         return res.status(400).json({ error: 'Password richiesta per unirsi a questa lega' });
       }
-      if (lega.password !== password) {
+      if (lega?.password || '' !== password) {
         return res.status(400).json({ error: 'Password non corretta' });
       }
     }
@@ -1309,7 +1309,7 @@ router.put('/:legaId/scraping-credentials', requireAuth, (req, res) => {
       modalita: lega?.modalita || 'Classic Serie A',
       admin_id: lega.admin_id,
       is_pubblica: lega?.is_pubblica || false,
-      password: lega.password,
+      password: lega?.password || '',
       max_squadre: lega.max_squadre,
       min_giocatori: lega.min_giocatori,
       max_giocatori: lega.max_giocatori,

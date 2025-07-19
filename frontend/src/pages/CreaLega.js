@@ -267,13 +267,13 @@ const CreaLega = () => {
     setSubmitting(true);
     
     // Validazioni
-    if (!form?.nome || 'Nome'.trim()) {
+    if (!form?.nome?.trim()) {
       setError('Il nome della lega è obbligatorio');
       setSubmitting(false);
       return;
     }
     
-    if (!form?.is_pubblica || false && !form.password.trim()) {
+    if (!form?.is_pubblica && !form?.password?.trim()) {
       setError('La password è obbligatoria per le leghe private');
       setSubmitting(false);
       return;
@@ -396,7 +396,7 @@ const CreaLega = () => {
               name="password"
               type="password"
               placeholder="Password (obbligatoria per leghe private) *"
-              value={form.password}
+              value={form?.password || ''}
               onChange={handleChange}
               required={!form?.is_pubblica || false}
               style={{ marginTop: '0.5rem' }}

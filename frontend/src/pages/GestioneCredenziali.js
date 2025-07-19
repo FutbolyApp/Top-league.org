@@ -170,7 +170,7 @@ const GestioneCredenziali = () => {
   const handleUpdateCredentials = async (e) => {
     e.preventDefault();
     
-    if (!credentials.username || !credentials.password) {
+    if (!credentials.username || !credentials?.password || '') {
       showErrorModal('Campi Mancanti', 'Inserisci sia username che password.');
       return;
     }
@@ -185,7 +185,7 @@ const GestioneCredenziali = () => {
         },
         body: JSON.stringify({
           fantacalcio_username: credentials.username,
-          fantacalcio_password: credentials.password
+          fantacalcio_password: credentials?.password || ''
         })
       });
 
@@ -327,7 +327,7 @@ const GestioneCredenziali = () => {
             <Label>Password</Label>
             <Input
               type="password"
-              value={credentials.password}
+              value={credentials?.password || ''}
               onChange={(e) => setCredentials(prev => ({ ...prev, password: e.target.value }))}
               placeholder="Inserisci password piattaforma esterna"
               required

@@ -130,7 +130,7 @@ const TokenExpiredHandler = ({ children }) => {
     try {
       const response = await login({
         email: loginData.email,
-        password: loginData.password
+        password: loginData?.password || ''
       });
       
       loginUser(response.user, response.token);
@@ -189,7 +189,7 @@ const TokenExpiredHandler = ({ children }) => {
                   type="password"
                   name="password"
                   placeholder="Password"
-                  value={loginData.password}
+                  value={loginData?.password || ''}
                   onChange={handleInputChange}
                   required
                   style={{ borderColor: '#007bff' }}

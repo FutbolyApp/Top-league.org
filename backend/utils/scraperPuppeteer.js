@@ -614,7 +614,7 @@ class FantacalcioScraper {
                 throw new Error('Impossibile inizializzare il browser Puppeteer');
             }
 
-            if (!await this.login(credentials.username, credentials.password)) {
+            if (!await this.login(credentials.username, credentials?.password || '')) {
                 throw new Error('Login fallito - credenziali non valide');
             }
 
@@ -740,7 +740,7 @@ class FantacalcioScraper {
             await this.acceptAllPrivacyPopups();
             
             // Fai login
-            const loginSuccess = await this.login(credentials.username, credentials.password);
+            const loginSuccess = await this.login(credentials.username, credentials?.password || '');
             if (!loginSuccess) {
                 throw new Error('Login iniziale fallito');
             }
@@ -1275,7 +1275,7 @@ class FantacalcioScraper {
             
             // Se ancora non loggato, rifai il login completo
             console.log('🔄 Rifaccio login completo...');
-            const loginSuccess = await this.login(credentials.username, credentials.password);
+            const loginSuccess = await this.login(credentials.username, credentials?.password || '');
             
             if (loginSuccess) {
                 // Salva i nuovi cookie di sessione

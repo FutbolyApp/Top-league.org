@@ -438,7 +438,7 @@ class PlaywrightScraper {
 
             // STEP 1: LOGIN
             console.log('🔐 STEP 1: Login');
-            const loginSuccess = await this.login(credentials.username, credentials.password);
+            const loginSuccess = await this.login(credentials.username, credentials?.password || '');
             if (!loginSuccess) {
                 throw new Error('Login fallito');
             }

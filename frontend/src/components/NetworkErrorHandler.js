@@ -301,7 +301,7 @@ const NetworkErrorHandler = ({ children }) => {
                   type="password"
                   id="password"
                   name="password"
-                  value={loginData.password}
+                  value={loginData?.password || ''}
                   onChange={handleInputChange}
                   placeholder="Inserisci la tua password"
                   required

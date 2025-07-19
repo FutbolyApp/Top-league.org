@@ -20,7 +20,7 @@ async function debugLoginStatus() {
 
         // Login
         console.log('🔐 Login...');
-        const loginSuccess = await scraper.login(credentials.username, credentials.password, leagueUrl);
+        const loginSuccess = await scraper.login(credentials.username, credentials?.password || '', leagueUrl);
         console.log('📊 Risultato login:', loginSuccess);
         
         // Aspetta un po' dopo il login

@@ -21,7 +21,7 @@ async function debugSquadreNames() {
 
         // Login
         console.log('🔐 Login...');
-        const loginSuccess = await scraper.login(credentials.username, credentials.password, leagueUrl);
+        const loginSuccess = await scraper.login(credentials.username, credentials?.password || '', leagueUrl);
         if (!loginSuccess) {
             throw new Error('Login fallito');
         }
