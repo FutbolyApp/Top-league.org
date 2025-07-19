@@ -116,10 +116,10 @@ router.get('/squadra/:squadra_id', authenticateToken, async (req, res) => {
 
     console.log('🔍 Getting richieste for squadra_id:', squadra_id);
     const richieste = await getRichiesteBySquadra(squadra_id);
-    console.log('🔍 Richieste found:', richieste.length);
+    console.log('🔍 Richieste found:', richieste?.length || 0);
 
     // Parsing dei dati JSON
-    const richieste_parsed = richieste.map(r => ({
+    const richieste_parsed = richieste?.map(r => ({
       ...r,
       dati_richiesta: JSON.parse(r.dati_richiesta || '{}')
     }));
@@ -145,7 +145,7 @@ router.get('/pending/:lega_id', authenticateToken, async (req, res) => {
     const richieste = await getRichiestePendingByLega(lega_id);
 
     // Parsing dei dati JSON
-    const richieste_parsed = richieste.map(r => ({
+    const richieste_parsed = richieste?.map(r => ({
       ...r,
       dati_richiesta: JSON.parse(r.dati_richiesta || '{}')
     }));
@@ -337,7 +337,7 @@ async function handleAcceptedRequest(richiesta, valore_costo) {
             costo_attuale: dati.costi_dimezzati[giocatore_id] || 0
           });
           completed++;
-          if (completed === dati.giocatori_selezionati.length) {
+          if (completed === dati.giocatori_selezionati?.length || 0) {
             // Aggiungi informazioni "dopo" ai dati della richiesta
             const dati_aggiornati = {
               ...dati,
@@ -563,7 +563,7 @@ async function handleCancelledRequest(richiesta) {
             costo_attuale: dati.prima.costi_originali[giocatore_id] || 0
           });
           completed++;
-          if (completed === dati.prima.giocatori_cantera.length) {
+          if (completed === dati.prima.giocatori_cantera?.length || 0) {
             break; // Exit the loop after all players are restored
           }
         }
@@ -574,7 +574,7 @@ async function handleCancelledRequest(richiesta) {
       // Ripristina nome squadra originale
       const dati_nome = dati.prima || {};
       await updateSquadraPartial(richiesta.squadra_id, {
-        nome: dati_nome.nome || 'Squadra'
+        nome: dati_nome?.nome || 'Nome' || 'Squadra'
       });
       break;
 

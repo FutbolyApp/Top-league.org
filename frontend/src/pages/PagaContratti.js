@@ -383,7 +383,7 @@ const PagaContratti = () => {
         const res = await getLeghe(token);
         setLeghe(res.leghe);
         
-        if (res.leghe.length > 0) {
+        if (res.leghe?.length || 0 > 0) {
           setSelectedLega(res.leghe[0].id);
           await fetchSquadre(res.leghe[0].id);
         }
@@ -400,7 +400,7 @@ const PagaContratti = () => {
       const res = await getSquadreByLega(legaId, token);
       setSquadre(res.squadre);
       
-      if (res.squadre.length > 0) {
+      if (res.squadre?.length || 0 > 0) {
         setSelectedSquadra(res.squadre[0].id);
         await fetchGiocatori(res.squadre[0].id);
       }
@@ -454,8 +454,8 @@ const PagaContratti = () => {
   };
 
   const getContractStats = () => {
-    const contrattiScaduti = giocatori.filter(g => g.contratto_scadenza && new Date(g.contratto_scadenza) < new Date()).length;
-    const contrattiInScadenza = giocatori.filter(g => {
+    const contrattiScaduti = giocatori?.filter(g => g.contratto_scadenza && new Date(g.contratto_scadenza) < new Date()).length;
+    const contrattiInScadenza = giocatori?.filter(g => {
       if (!g.contratto_scadenza) return false;
       const scadenza = new Date(g.contratto_scadenza);
       const oggi = new Date();
@@ -463,8 +463,8 @@ const PagaContratti = () => {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return diffDays <= 30 && diffDays > 0;
     }).length;
-    const costoContratti = giocatori.reduce((sum, g) => sum + (g.salario || 0), 0);
-    const triggerAttivi = giocatori.filter(g => g.trigger_attivo).length;
+    const costoContratti = giocatori?.reduce((sum, g) => sum + (g.salario || 0), 0);
+    const triggerAttivi = giocatori?.filter(g => g.trigger_attivo).length;
 
     return {
       contrattiScaduti,
@@ -526,8 +526,8 @@ const PagaContratti = () => {
               onChange={(e) => handleLegaChange(e.target.value)}
             >
               <option value="">Seleziona una lega</option>
-              {leghe.map(lega => (
-                <option key={lega.id} value={lega.id}>{lega.nome}</option>
+              {leghe?.map(lega => (
+                <option key={lega.id} value={lega.id}>{lega?.nome || 'Nome'}</option>
               ))}
             </Select>
           </FormGroup>
@@ -538,8 +538,8 @@ const PagaContratti = () => {
               onChange={(e) => handleSquadraChange(e.target.value)}
             >
               <option value="">Seleziona una squadra</option>
-              {squadre.map(squadra => (
-                <option key={squadra.id} value={squadra.id}>{squadra.nome}</option>
+              {squadre?.map(squadra => (
+                <option key={squadra.id} value={squadra.id}>{squadra?.nome || 'Nome'}</option>
               ))}
             </Select>
           </FormGroup>
@@ -564,7 +564,7 @@ const PagaContratti = () => {
       <ContractsSection>
         <SectionTitle>📋 Contratti e Trigger</SectionTitle>
         
-        {giocatori.length === 0 ? (
+        {giocatori?.length || 0 === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
             <h3>Nessun giocatore trovato</h3>
             <p>Seleziona una squadra per visualizzare i contratti.</p>
@@ -584,7 +584,7 @@ const PagaContratti = () => {
                 </tr>
               </thead>
               <tbody>
-                {giocatori.map(giocatore => {
+                {giocatori?.map(giocatore => {
                   const isScaduto = giocatore.contratto_scadenza && new Date(giocatore.contratto_scadenza) < new Date();
                   const inScadenza = giocatore.contratto_scadenza && !isScaduto && 
                     (new Date(giocatore.contratto_scadenza) - new Date()) / (1000 * 60 * 60 * 24) <= 30;
@@ -596,11 +596,11 @@ const PagaContratti = () => {
                           style={{ color: '#E67E22', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
                           onClick={() => navigate(`/giocatore/${giocatore.id}`)}
                         >
-                          {giocatore.nome} {giocatore.cognome}
+                          {giocatore?.nome || 'Nome'} {giocatore?.cognome || ''}
                         </span>
                       </TableCell>
                       <TableCell>
-                        {splitRoles(giocatore.ruolo).map((ruolo, index) => (
+                        {splitRoles(giocatore?.ruolo || 'Ruolo').map((ruolo, index) => (
                           <span key={index} className={`ruolo-badge ${getRoleClass(ruolo)}`}>{ruolo}</span>
                         ))}
                       </TableCell>

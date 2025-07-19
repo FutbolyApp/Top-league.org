@@ -547,7 +547,7 @@ const ModificaSquadraCompleta = () => {
         
         // Popola il form con i dati della squadra
         setFormData({
-          nome: squadraRes.squadra.nome || '',
+          nome: squadraRes.squadra?.nome || 'Nome' || '',
           casse_societarie: squadraRes.squadra.casse_societarie || 0,
           club_level: squadraRes.squadra.club_level || 1,
           is_orfana: squadraRes.squadra.is_orfana || false,
@@ -584,7 +584,7 @@ const ModificaSquadraCompleta = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        return data.giocatori ? data.giocatori.length : 0;
+        return data.giocatori ? data.giocatori?.length || 0 : 0;
       }
     } catch (err) {
       console.error('Errore nel conteggio giocatori:', err);
@@ -613,44 +613,44 @@ const ModificaSquadraCompleta = () => {
     let filtered = [...giocatori];
 
     // Applica filtri
-    if (filters.nome) {
-      filtered = filtered.filter(g => 
-        g.nome.toLowerCase().includes(filters.nome.toLowerCase())
+    if (filters?.nome || 'Nome') {
+      filtered = filtered?.filter(g => 
+        g?.nome || 'Nome'.toLowerCase().includes(filters?.nome || 'Nome'.toLowerCase())
       );
     }
 
-    if (filters.ruolo) {
-      filtered = filtered.filter(g => 
-        g.ruolo.toLowerCase().includes(filters.ruolo.toLowerCase())
+    if (filters?.ruolo || 'Ruolo') {
+      filtered = filtered?.filter(g => 
+        g?.ruolo || 'Ruolo'.toLowerCase().includes(filters?.ruolo || 'Ruolo'.toLowerCase())
       );
     }
 
     if (filters.squadra_reale) {
-      filtered = filtered.filter(g => 
+      filtered = filtered?.filter(g => 
         g.squadra_reale && g.squadra_reale.toLowerCase().includes(filters.squadra_reale.toLowerCase())
       );
     }
 
     if (filters.ingaggio_min) {
-      filtered = filtered.filter(g => 
+      filtered = filtered?.filter(g => 
         g.salario >= parseFloat(filters.ingaggio_min)
       );
     }
 
     if (filters.ingaggio_max) {
-      filtered = filtered.filter(g => 
+      filtered = filtered?.filter(g => 
         g.salario <= parseFloat(filters.ingaggio_max)
       );
     }
 
     if (filters.costo_min) {
-      filtered = filtered.filter(g => 
+      filtered = filtered?.filter(g => 
         g.costo_attuale >= parseFloat(filters.costo_min)
       );
     }
 
     if (filters.costo_max) {
-      filtered = filtered.filter(g => 
+      filtered = filtered?.filter(g => 
         g.costo_attuale <= parseFloat(filters.costo_max)
       );
     }
@@ -705,7 +705,7 @@ const ModificaSquadraCompleta = () => {
 
     try {
       // Validazioni
-      if (!formData.nome.trim()) {
+      if (!formData?.nome || 'Nome'.trim()) {
         setError('Il nome della squadra è obbligatorio');
         setSubmitting(false);
         return;
@@ -839,7 +839,7 @@ const ModificaSquadraCompleta = () => {
       await transferGiocatore(selectedPlayer.id, transferData, token);
       
       // Mostra popup di successo
-      setSuccessMessage(`Giocatore "${selectedPlayer.nome}" trasferito con successo!`);
+      setSuccessMessage(`Giocatore "${selectedPlayer?.nome || 'Nome'}" trasferito con successo!`);
       setShowSuccessPopup(true);
       
       // Chiudi il modal
@@ -882,7 +882,7 @@ const ModificaSquadraCompleta = () => {
 
   // Calcola il numero massimo di giocatori e se si può aggiungere
   const maxPlayers = squadra?.lega?.max_giocatori || 30;
-  const canAddPlayer = giocatori.length < maxPlayers;
+  const canAddPlayer = giocatori?.length || 0 < maxPlayers;
 
   return (
     <Container>
@@ -919,7 +919,7 @@ const ModificaSquadraCompleta = () => {
             <Label>Nome Squadra *</Label>
             <Input
               name="nome"
-              value={formData.nome}
+              value={formData?.nome || 'Nome'}
               onChange={handleChange}
               placeholder="Inserisci il nome della squadra"
               required
@@ -987,7 +987,7 @@ const ModificaSquadraCompleta = () => {
               )}
               {user && (
                 <small style={{ color: '#666', marginTop: '0.25rem', display: 'block' }}>
-                  Ruolo utente: {user.ruolo} - Token: {token ? 'Presente' : 'Mancante'}
+                  Ruolo utente: {user?.ruolo || 'Ruolo'} - Token: {token ? 'Presente' : 'Mancante'}
                 </small>
               )}
               <small style={{ color: '#666', marginTop: '0.25rem', display: 'block' }}>
@@ -1025,7 +1025,7 @@ const ModificaSquadraCompleta = () => {
 
       <PlayersSection>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <SectionTitle>Giocatori ({giocatori.length}/{maxPlayers})</SectionTitle>
+          <SectionTitle>Giocatori ({giocatori?.length || 0}/{maxPlayers})</SectionTitle>
           <Button 
             type="button" 
             className="success"
@@ -1043,7 +1043,7 @@ const ModificaSquadraCompleta = () => {
         )}
 
         {/* Sezione Filtri */}
-        {giocatori.length > 0 && (
+        {giocatori?.length || 0 > 0 && (
           <FiltersSection>
             <SectionTitle>Filtri e Ordinamento</SectionTitle>
             
@@ -1052,7 +1052,7 @@ const ModificaSquadraCompleta = () => {
                 <FilterLabel>Nome Giocatore</FilterLabel>
                 <FilterInput
                   type="text"
-                  value={filters.nome}
+                  value={filters?.nome || 'Nome'}
                   onChange={(e) => handleFilterChange('nome', e.target.value)}
                   placeholder="Cerca per nome..."
                 />
@@ -1062,7 +1062,7 @@ const ModificaSquadraCompleta = () => {
                 <FilterLabel>Ruolo</FilterLabel>
                 <FilterInput
                   type="text"
-                  value={filters.ruolo}
+                  value={filters?.ruolo || 'Ruolo'}
                   onChange={(e) => handleFilterChange('ruolo', e.target.value)}
                   placeholder="Cerca per ruolo..."
                 />
@@ -1170,12 +1170,12 @@ const ModificaSquadraCompleta = () => {
             </FiltersRow>
             
             <div style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
-              Giocatori trovati: {getFilteredAndSortedGiocatori().length} di {giocatori.length}
+              Giocatori trovati: {getFilteredAndSortedGiocatori().length} di {giocatori?.length || 0}
             </div>
           </FiltersSection>
         )}
         
-        {giocatori.length === 0 ? (
+        {giocatori?.length || 0 === 0 ? (
           <p style={{ color: '#666', textAlign: 'center', padding: '2rem' }}>
             Nessun giocatore trovato in questa squadra.
           </p>
@@ -1183,8 +1183,8 @@ const ModificaSquadraCompleta = () => {
           getFilteredAndSortedGiocatori().map(giocatore => (
             <PlayerRow key={giocatore.id}>
               <PlayerInfo>
-                <PlayerName>{giocatore.nome}</PlayerName>
-                <PlayerRole>{giocatore.ruolo}</PlayerRole>
+                <PlayerName>{giocatore?.nome || 'Nome'}</PlayerName>
+                <PlayerRole>{giocatore?.ruolo || 'Ruolo'}</PlayerRole>
                 <PlayerTeam>{giocatore.squadra_reale}</PlayerTeam>
                 <PlayerValue>{giocatore.costo_attuale?.toLocaleString() || 0} FM</PlayerValue>
               </PlayerInfo>
@@ -1214,7 +1214,7 @@ const ModificaSquadraCompleta = () => {
                 <Button 
                   type="button" 
                   className="danger"
-                  onClick={() => handleDeletePlayer(giocatore.id, giocatore.nome)}
+                  onClick={() => handleDeletePlayer(giocatore.id, giocatore?.nome || 'Nome')}
                 >
                   Elimina
                 </Button>
@@ -1228,7 +1228,7 @@ const ModificaSquadraCompleta = () => {
       {showTransferModal && selectedPlayer && (
         <Modal>
           <ModalContent>
-            <ModalTitle>Trasferisci {selectedPlayer.nome}</ModalTitle>
+            <ModalTitle>Trasferisci {selectedPlayer?.nome || 'Nome'}</ModalTitle>
             <ModalForm onSubmit={handleTransferSubmit}>
               <FormGroup>
                 <Label>Spostare in quale squadra?</Label>
@@ -1249,7 +1249,7 @@ const ModificaSquadraCompleta = () => {
                           value={squadra.id}
                           disabled={isFull}
                         >
-                          {squadra.nome} (Giocatori: {squadra.num_giocatori || 0}/{maxPlayersModal}, Casse: {squadra.casse_societarie?.toLocaleString() || 0} FM)
+                          {squadra?.nome || 'Nome'} (Giocatori: {squadra.num_giocatori || 0}/{maxPlayersModal}, Casse: {squadra.casse_societarie?.toLocaleString() || 0} FM)
                           {isFull ? ' - COMPLETA' : ''}
                         </option>
                       );

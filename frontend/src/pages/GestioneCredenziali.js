@@ -300,7 +300,7 @@ const GestioneCredenziali = () => {
     <Container>
       <Header>
         <Title>🔐 Gestione Credenziali Scraping</Title>
-        <Subtitle>Configura le credenziali per {legaData.nome}</Subtitle>
+        <Subtitle>Configura le credenziali per {legaData?.nome || 'Nome'}</Subtitle>
         <Button 
           onClick={() => navigate('/scraping-manager')}
           style={{ marginTop: '1rem', background: '#6c757d' }}

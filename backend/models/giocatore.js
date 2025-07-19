@@ -10,7 +10,7 @@ export async function createGiocatore(data) {
     let lega_id = null;
     if (data.squadra_id) {
       const squadraResult = await db.query('SELECT lega_id FROM squadre WHERE id = $1', [data.squadra_id]);
-      if (squadraResult.rows.length > 0) {
+      if (squadraResult.rows?.length || 0 > 0) {
         lega_id = squadraResult.rows[0].lega_id;
       } else {
         throw new Error(`Squadra con ID ${data.squadra_id} non trovata`);
@@ -27,9 +27,9 @@ export async function createGiocatore(data) {
     const params = [
       data.squadra_id,
       lega_id,
-      data.nome,
-      data.cognome || null,
-      data.ruolo,
+      data?.nome || 'Nome',
+      data?.cognome || '' || null,
+      data?.ruolo || 'Ruolo',
       data.squadra_reale || null,
       data.quotazione_attuale || null,
       data.salario || null,
@@ -53,7 +53,7 @@ export async function createGiocatore(data) {
     console.log(`✅ Giocatore creato con successo. ID: ${giocatoreId}`);
     return giocatoreId;
   } catch (error) {
-    console.error(`❌ Errore creazione giocatore ${data.nome}:`, error.message);
+    console.error(`❌ Errore creazione giocatore ${data?.nome || 'Nome'}:`, error.message);
     console.error(`❌ Stack trace:`, error.stack);
     console.error(`❌ Dati giocatore:`, JSON.stringify(data, null, 2));
     throw error;
@@ -125,7 +125,7 @@ export async function updateGiocatore(id, data) {
   let lega_id = data.lega_id;
   if (!lega_id && data.squadra_id) {
     const squadraResult = await db.query('SELECT lega_id FROM squadre WHERE id = $1', [data.squadra_id]);
-    if (squadraResult.rows.length > 0) {
+    if (squadraResult.rows?.length || 0 > 0) {
       lega_id = squadraResult.rows[0].lega_id;
     }
   }
@@ -135,9 +135,9 @@ export async function updateGiocatore(id, data) {
   await db.query(sql, [
     data.squadra_id,
     lega_id,
-    data.nome,
-    data.cognome || null,
-    data.ruolo,
+    data?.nome || 'Nome',
+    data?.cognome || '' || null,
+    data?.ruolo || 'Ruolo',
     data.squadra_reale || null,
     data.quotazione_attuale || null,
     data.salario || null,
@@ -207,7 +207,7 @@ export async function updateGiocatorePartial(id, data) {
   let lega_id = updateData.lega_id;
   if (!lega_id && updateData.squadra_id) {
     const squadraResult = await db.query('SELECT lega_id FROM squadre WHERE id = $1', [updateData.squadra_id]);
-    if (squadraResult.rows.length > 0) {
+    if (squadraResult.rows?.length || 0 > 0) {
       lega_id = squadraResult.rows[0].lega_id;
     }
   }
@@ -218,9 +218,9 @@ export async function updateGiocatorePartial(id, data) {
   const params = [
     updateData.squadra_id,
     lega_id,
-    updateData.nome,
-    updateData.cognome || null,
-    updateData.ruolo,
+    updateData?.nome || 'Nome',
+    updateData?.cognome || '' || null,
+    updateData?.ruolo || 'Ruolo',
     updateData.squadra_reale || null,
     updateData.quotazione_attuale || null,
     updateData.salario || null,

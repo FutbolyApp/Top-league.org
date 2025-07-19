@@ -51,10 +51,10 @@ router.post('/login', async (req, res) => {
       token,
       user: {
         id: user.id,
-        nome: user.nome,
-        cognome: user.cognome,
+        nome: user?.nome || 'Nome',
+        cognome: user?.cognome || '',
         email: user.email,
-        ruolo: user.ruolo
+        ruolo: user?.ruolo || 'Ruolo'
       }
     });
   } catch (error) {

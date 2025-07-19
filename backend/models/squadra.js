@@ -10,7 +10,7 @@ export async function createSquadra(data) {
     
     const params = [
       data.lega_id,
-      data.nome,
+      data?.nome || 'Nome',
       data.proprietario_id || null,
       data.club_level || 1,
       data.casse_societarie || 0,
@@ -29,7 +29,7 @@ export async function createSquadra(data) {
     console.log(`✅ Squadra creata con successo. ID: ${squadraId}`);
     return squadraId;
   } catch (error) {
-    console.error(`❌ Errore creazione squadra ${data.nome}:`, error.message);
+    console.error(`❌ Errore creazione squadra ${data?.nome || 'Nome'}:`, error.message);
     console.error(`❌ Stack trace:`, error.stack);
     console.error(`❌ Dati squadra:`, JSON.stringify(data, null, 2));
     throw error;
@@ -42,12 +42,12 @@ export async function getSquadraById(id) {
     SELECT s.*, 
            u.username as proprietario_username,
            CASE 
-             WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-             ELSE u.nome 
+             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN 'Futboly'
+             ELSE u?.nome || 'Nome' 
            END as proprietario_nome,
            CASE 
-             WHEN u.ruolo = 'SuperAdmin' THEN ''
-             ELSE u.cognome 
+             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN ''
+             ELSE u?.cognome || '' 
            END as proprietario_cognome
     FROM squadre s
     LEFT JOIN users u ON s.proprietario_id = u.id
@@ -63,14 +63,14 @@ export async function getSquadreByLega(lega_id) {
     SELECT s.*, 
            u.username as proprietario_username,
            CASE 
-             WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-             ELSE u.nome 
+             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN 'Futboly'
+             ELSE u?.nome || 'Nome' 
            END as proprietario_nome,
            CASE 
-             WHEN u.ruolo = 'SuperAdmin' THEN ''
-             ELSE u.cognome 
+             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN ''
+             ELSE u?.cognome || '' 
            END as proprietario_cognome,
-           STRING_AGG(t.nome, ', ') as tornei_nomi,
+           STRING_AGG(t?.nome || 'Nome', ', ') as tornei_nomi,
            STRING_AGG(t.id::text, ', ') as tornei_ids,
            COALESCE((
              SELECT SUM(COALESCE(g.quotazione_attuale, 0))
@@ -82,7 +82,7 @@ export async function getSquadreByLega(lega_id) {
     LEFT JOIN tornei_squadre ts ON s.id = ts.squadra_id
     LEFT JOIN tornei t ON ts.torneo_id = t.id
     WHERE s.lega_id = $1
-    GROUP BY s.id, u.username, u.nome, u.cognome, u.ruolo
+    GROUP BY s.id, u.username, u?.nome || 'Nome', u?.cognome || '', u?.ruolo || 'Ruolo'
   `, [lega_id]);
   
   return result.rows;
@@ -94,12 +94,12 @@ export async function getAllSquadre() {
     SELECT s.*, 
            u.username as proprietario_username,
            CASE 
-             WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-             ELSE u.nome 
+             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN 'Futboly'
+             ELSE u?.nome || 'Nome' 
            END as proprietario_nome,
            CASE 
-             WHEN u.ruolo = 'SuperAdmin' THEN ''
-             ELSE u.cognome 
+             WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN ''
+             ELSE u?.cognome || '' 
            END as proprietario_cognome
     FROM squadre s
     LEFT JOIN users u ON s.proprietario_id = u.id
@@ -113,7 +113,7 @@ export async function updateSquadra(id, data) {
   const sql = `UPDATE squadre SET lega_id=$1, nome=$2, proprietario_id=$3, club_level=$4, casse_societarie=$5, costo_salariale_totale=$6, costo_salariale_annuale=$7, valore_squadra=$8, is_orfana=$9 WHERE id=$10`;
   await db.query(sql, [
     data.lega_id,
-    data.nome,
+    data?.nome || 'Nome',
     data.proprietario_id || null,
     data.club_level || 1,
     data.casse_societarie || 0,
@@ -135,7 +135,7 @@ export async function updateSquadraPartial(id, updates) {
   // Merge current data with updates
   const updatedData = {
     lega_id: squadra.lega_id,
-    nome: squadra.nome,
+    nome: squadra?.nome || 'Nome',
     proprietario_id: squadra.proprietario_id,
     club_level: squadra.club_level,
     casse_societarie: squadra.casse_societarie,

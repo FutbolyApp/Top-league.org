@@ -65,8 +65,8 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
 
     const query = `
       SELECT o.id, o.tipo, o.valore, o.created_at as data,
-             g.nome as giocatore_nome, g.cognome as giocatore_cognome,
-             sm.nome as squadra_mittente, sd.nome as squadra_destinataria,
+             g?.nome || 'Nome' as giocatore_nome, g?.cognome || '' as giocatore_cognome,
+             sm?.nome || 'Nome' as squadra_mittente, sd?.nome || 'Nome' as squadra_destinataria,
              o.lega_id
       FROM offerte o
       JOIN giocatori g ON o.giocatore_id = g.id
@@ -81,12 +81,12 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
     const rows = result.rows;
     
     // Se non ci sono offerte, restituisci array vuoto
-    if (!rows || rows.length === 0) {
+    if (!rows || rows?.length || 0 === 0) {
       return res.json({ movimenti: [] });
     }
     
     // Formatta i dati per il frontend
-    const movimenti = rows.map(row => ({
+    const movimenti = rows?.map(row => ({
       id: row.id,
       tipo: row.tipo,
       valore: row.valore,
@@ -235,7 +235,7 @@ router.post('/termina-prestito/:giocatoreId', authenticateToken, async (req, res
 
     // Verifica che il giocatore sia in prestito e appartenga a una squadra dell'utente
     const result = await db.query(
-      `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id, s.nome as squadra_nome
+      `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id, s?.nome || 'Nome' as squadra_nome
        FROM giocatori g 
        JOIN squadre s ON g.squadra_id = s.id 
        WHERE g.id = $1 AND s.proprietario_id = $2 AND g.prestito = 1`,
@@ -252,7 +252,7 @@ router.post('/termina-prestito/:giocatoreId', authenticateToken, async (req, res
     
     res.json({ 
       success: true, 
-      message: `Prestito terminato per ${giocatore.nome} ${giocatore.cognome}` 
+      message: `Prestito terminato per ${giocatore?.nome || 'Nome'} ${giocatore?.cognome || ''}` 
     });
   } catch (error) {
     console.error('Errore terminazione prestito:', error);
@@ -267,7 +267,7 @@ router.get('/log/:squadraId', requireAuth, async (req, res) => {
     const db = getDb();
     
     const sql = `
-      SELECT lc.*, g.nome as giocatore_nome
+      SELECT lc.*, g?.nome || 'Nome' as giocatore_nome
       FROM log_contratti lc
       JOIN giocatori g ON lc.giocatore_id = g.id
       WHERE lc.squadra_id = $1
@@ -293,9 +293,9 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
   try {
     // Ottieni l'offerta
     const offerta = await db.query(
-      `SELECT o.*, g.nome as giocatore_nome, g.cognome as giocatore_cognome,
-                gs.nome as giocatore_scambio_nome, gs.cognome as giocatore_scambio_cognome,
-                sm.nome as squadra_mittente_nome, sd.nome as squadra_destinatario_nome
+      `SELECT o.*, g?.nome || 'Nome' as giocatore_nome, g?.cognome || '' as giocatore_cognome,
+                gs?.nome || 'Nome' as giocatore_scambio_nome, gs?.cognome || '' as giocatore_scambio_cognome,
+                sm?.nome || 'Nome' as squadra_mittente_nome, sd?.nome || 'Nome' as squadra_destinatario_nome
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
          LEFT JOIN giocatori gs ON o.giocatore_scambio_id = gs.id
@@ -305,7 +305,7 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
       [offerta_id, giocatore_id]
     );
 
-    if (offerta.rows.length === 0) {
+    if (offerta.rows?.length || 0 === 0) {
       return res.status(404).json({ error: 'Offerta non trovata' });
     }
 
@@ -503,7 +503,7 @@ router.post('/rifiuta/:offerta_id', authenticateToken, async (req, res) => {
 
   try {
     const offerta = await db.query(
-      `SELECT o.*, g.nome as giocatore_nome, g.cognome as giocatore_cognome
+      `SELECT o.*, g?.nome || 'Nome' as giocatore_nome, g?.cognome || '' as giocatore_cognome
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
          JOIN squadre sd ON o.squadra_destinatario_id = sd.id
@@ -511,7 +511,7 @@ router.post('/rifiuta/:offerta_id', authenticateToken, async (req, res) => {
       [offerta_id, giocatore_id]
     );
 
-    if (offerta.rows.length === 0) {
+    if (offerta.rows?.length || 0 === 0) {
       return res.status(404).json({ error: 'Offerta non trovata' });
     }
 
@@ -570,14 +570,14 @@ router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
   try {
     // Prima ottieni i dettagli dell'offerta
     const offerta = await db.query(
-      `SELECT o.*, g.nome as giocatore_nome, g.cognome as giocatore_cognome, g.quotazione_attuale
+      `SELECT o.*, g?.nome || 'Nome' as giocatore_nome, g?.cognome || '' as giocatore_cognome, g.quotazione_attuale
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
          WHERE o.id = $1`,
       [offertaId]
     );
 
-    if (offerta.rows.length === 0) {
+    if (offerta.rows?.length || 0 === 0) {
       return res.status(404).json({ error: 'Offerta non trovata' });
     }
     const offertaData = offerta.rows[0];
@@ -730,18 +730,18 @@ router.post('/crea', authenticateToken, async (req, res) => {
       [giocatore_id, utente_id]
     );
 
-    if (squadraUtente.rows.length === 0) {
+    if (squadraUtente.rows?.length || 0 === 0) {
       return res.status(400).json({ error: 'Squadra non trovata o giocatore non nella tua lega' });
     }
     const squadraUtenteData = squadraUtente.rows[0];
 
     // Ottieni informazioni sul giocatore target
     const giocatoreTarget = await db.query(
-      'SELECT g.*, s.proprietario_id, s.nome as squadra_nome FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1',
+      'SELECT g.*, s.proprietario_id, s?.nome || 'Nome' as squadra_nome FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1',
       [giocatore_id]
     );
 
-    if (giocatoreTarget.rows.length === 0) {
+    if (giocatoreTarget.rows?.length || 0 === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato' });
     }
     const giocatoreTargetData = giocatoreTarget.rows[0];
@@ -772,7 +772,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
         [giocatore_scambio_id, squadraUtenteData.id]
       );
 
-      if (giocatoreScambio.rows.length === 0) {
+      if (giocatoreScambio.rows?.length || 0 === 0) {
         return res.status(400).json({ error: 'Giocatore scambio non trovato nella tua squadra' });
       }
     }
@@ -814,13 +814,13 @@ router.post('/crea', authenticateToken, async (req, res) => {
 
     // Crea messaggio dettagliato
     const messaggioNotifica = tipo === 'scambio'
-      ? `Offerta di scambio ricevuta per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData.cognome}` : ''} da ${casseMittenteData?.nome || 'Squadra'} (${proprietarioMittenteData?.nome || 'Utente'} ${proprietarioMittenteData?.cognome || ''}). In scambio: ${giocatoreScambio?.nome || 'Giocatore'}${giocatoreScambio?.cognome ? ` ${giocatoreScambio.cognome}` : ''}`
-      : `Offerta di ${tipo} ricevuta per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData.cognome}` : ''} da ${casseMittenteData?.nome || 'Squadra'} (${proprietarioMittenteData?.nome || 'Utente'} ${proprietarioMittenteData?.cognome || ''}) - Valore: ${valoreOfferta} FM`;
+      ? `Offerta di scambio ricevuta per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData?.cognome || ''}` : ''} da ${casseMittenteData?.nome || 'Squadra'} (${proprietarioMittenteData?.nome || 'Utente'} ${proprietarioMittenteData?.cognome || ''}). In scambio: ${giocatoreScambio?.nome || 'Giocatore'}${giocatoreScambio?.cognome ? ` ${giocatoreScambio?.cognome || ''}` : ''}`
+      : `Offerta di ${tipo} ricevuta per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData?.cognome || ''}` : ''} da ${casseMittenteData?.nome || 'Squadra'} (${proprietarioMittenteData?.nome || 'Utente'} ${proprietarioMittenteData?.cognome || ''}) - Valore: ${valoreOfferta} FM`;
 
     // Crea messaggio di conferma per il mittente
     const messaggioConfermaMittente = tipo === 'scambio'
-      ? `Hai inviato un'offerta di scambio per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData.cognome}` : ''} a ${casseDestinatarioData?.nome || 'Squadra'}. In scambio: ${giocatoreScambio?.nome || 'Giocatore'}${giocatoreScambio?.cognome ? ` ${giocatoreScambio.cognome}` : ''}`
-      : `Hai inviato un'offerta di ${tipo} per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData.cognome}` : ''} a ${casseDestinatarioData?.nome || 'Squadra'} - Valore: ${valoreOfferta} FM${richiestaFM > 0 ? ` - Richiesta: ${richiestaFM} FM` : ''}`;
+      ? `Hai inviato un'offerta di scambio per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData?.cognome || ''}` : ''} a ${casseDestinatarioData?.nome || 'Squadra'}. In scambio: ${giocatoreScambio?.nome || 'Giocatore'}${giocatoreScambio?.cognome ? ` ${giocatoreScambio?.cognome || ''}` : ''}`
+      : `Hai inviato un'offerta di ${tipo} per ${giocatoreTargetData?.nome || 'Giocatore'}${giocatoreTargetData?.cognome ? ` ${giocatoreTargetData?.cognome || ''}` : ''} a ${casseDestinatarioData?.nome || 'Squadra'} - Valore: ${valoreOfferta} FM${richiestaFM > 0 ? ` - Richiesta: ${richiestaFM} FM` : ''}`;
 
     console.log('Creazione notifica offerta:');
     console.log('- Lega ID:', giocatoreTargetData.lega_id);
@@ -835,7 +835,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
       'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5)',
       [
         casseDestinatarioData.proprietario_id,
-        `Offerta ricevuta per ${giocatoreTargetData.nome}${giocatoreTargetData.cognome ? ` ${giocatoreTargetData.cognome}` : ''}`,
+        `Offerta ricevuta per ${giocatoreTargetData?.nome || 'Nome'}${giocatoreTargetData?.cognome || '' ? ` ${giocatoreTargetData?.cognome || ''}` : ''}`,
         messaggioNotifica,
         'offerta_ricevuta',
         JSON.stringify({
@@ -956,10 +956,10 @@ router.get('/ricevute', authenticateToken, async (req, res) => {
   try {
     const offerte = await db.query(
       `SELECT o.*, 
-                g.nome as giocatore_nome, g.cognome as giocatore_cognome, g.ruolo as giocatore_ruolo,
-                gs.nome as giocatore_scambio_nome, gs.cognome as giocatore_scambio_cognome, gs.ruolo as giocatore_scambio_ruolo,
-                sm.nome as squadra_mittente_nome,
-                sd.nome as squadra_destinatario_nome
+                g?.nome || 'Nome' as giocatore_nome, g?.cognome || '' as giocatore_cognome, g?.ruolo || 'Ruolo' as giocatore_ruolo,
+                gs?.nome || 'Nome' as giocatore_scambio_nome, gs?.cognome || '' as giocatore_scambio_cognome, gs?.ruolo || 'Ruolo' as giocatore_scambio_ruolo,
+                sm?.nome || 'Nome' as squadra_mittente_nome,
+                sd?.nome || 'Nome' as squadra_destinatario_nome
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
          LEFT JOIN giocatori gs ON o.giocatore_scambio_id = gs.id
@@ -985,9 +985,9 @@ router.get('/log-giocatore/:giocatore_id', authenticateToken, async (req, res) =
   try {
     const log = await db.query(
       `SELECT l.*, 
-                sm.nome as squadra_mittente_nome,
-                sd.nome as squadra_destinatario_nome,
-                u.nome as utente_nome, u.cognome as utente_cognome
+                sm?.nome || 'Nome' as squadra_mittente_nome,
+                sd?.nome || 'Nome' as squadra_destinatario_nome,
+                u?.nome || 'Nome' as utente_nome, u?.cognome || '' as utente_cognome
          FROM log_operazioni_giocatori l
          LEFT JOIN squadre sm ON l.squadra_mittente_id = sm.id
          LEFT JOIN squadre sd ON l.squadra_destinatario_id = sd.id
@@ -1026,7 +1026,7 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
       [giocatoreId, squadraId]
     );
 
-    if (giocatore.rows.length === 0) {
+    if (giocatore.rows?.length || 0 === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato nella squadra specificata' });
     }
 
@@ -1055,7 +1055,7 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
         const rosterManager = createRosterManager(legaId);
         const giocatori = await rosterManager.getGiocatoriByRoster(squadraId);
         
-        if (giocatori.rosterA && giocatori.rosterA.length >= maxGiocatori) {
+        if (giocatori.rosterA && giocatori.rosterA?.length || 0 >= maxGiocatori) {
           return res.status(400).json({ 
             error: `Impossibile spostare in Roster A. La squadra ha già raggiunto il limite massimo di ${maxGiocatori} giocatori.` 
           });

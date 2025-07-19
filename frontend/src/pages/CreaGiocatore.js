@@ -293,7 +293,7 @@ const CreaGiocatore = () => {
     setFormData(prev => {
       const currentRoles = prev.ruoli || [];
       const newRoles = currentRoles.includes(ruolo)
-        ? currentRoles.filter(r => r !== ruolo)
+        ? currentRoles?.filter(r => r !== ruolo)
         : [...currentRoles, ruolo];
       return { ...prev, ruoli: newRoles };
     });
@@ -306,12 +306,12 @@ const CreaGiocatore = () => {
     setSubmitting(true);
 
     try {
-      if (!formData.nome.trim()) {
+      if (!formData?.nome || 'Nome'.trim()) {
         setError('Il nome del giocatore è obbligatorio');
         setSubmitting(false);
         return;
       }
-      if (!formData.ruoli || formData.ruoli.length === 0) {
+      if (!formData.ruoli || formData.ruoli?.length || 0 === 0) {
         setError('Seleziona almeno un ruolo');
         setSubmitting(false);
         return;
@@ -379,7 +379,7 @@ const CreaGiocatore = () => {
             <Label>Nome Completo *</Label>
             <Input
               name="nome"
-              value={formData.nome}
+              value={formData?.nome || 'Nome'}
               onChange={handleChange}
               placeholder="Inserisci il nome completo"
               required
@@ -389,7 +389,7 @@ const CreaGiocatore = () => {
             <FormGroup>
               <Label>Ruoli *</Label>
               <RoleGrid>
-                {RUOLI_MANTRA.map(ruolo => (
+                {RUOLI_MANTRA?.map(ruolo => (
                   <RoleCheckbox
                     key={ruolo}
                     className={formData.ruoli?.includes(ruolo) ? 'selected' : ''}

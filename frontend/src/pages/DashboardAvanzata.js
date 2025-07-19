@@ -217,16 +217,16 @@ const DashboardAvanzata = () => {
   };
 
   const calculateTeamStats = () => {
-    if (!giocatori.length) return {};
+    if (!giocatori?.length || 0) return {};
 
     const stats = {
-      totale_valore: giocatori.reduce((sum, g) => sum + (g.valore_mercato || 0), 0),
-      attaccanti: giocatori.filter(g => g.ruolo === 'A').length,
-      centrocampisti: giocatori.filter(g => g.ruolo === 'C').length,
-      difensori: giocatori.filter(g => g.ruolo === 'D').length,
-      portieri: giocatori.filter(g => g.ruolo === 'P').length,
-      infortunati: giocatori.filter(g => g.stato === 'infortunato').length,
-      squalificati: giocatori.filter(g => g.stato === 'squalificato').length
+      totale_valore: giocatori?.reduce((sum, g) => sum + (g.valore_mercato || 0), 0),
+      attaccanti: giocatori?.filter(g => g?.ruolo || 'Ruolo' === 'A').length,
+      centrocampisti: giocatori?.filter(g => g?.ruolo || 'Ruolo' === 'C').length,
+      difensori: giocatori?.filter(g => g?.ruolo || 'Ruolo' === 'D').length,
+      portieri: giocatori?.filter(g => g?.ruolo || 'Ruolo' === 'P').length,
+      infortunati: giocatori?.filter(g => g.stato === 'infortunato').length,
+      squalificati: giocatori?.filter(g => g.stato === 'squalificato').length
     };
 
     return stats;
@@ -289,7 +289,7 @@ const DashboardAvanzata = () => {
           <CardTitle>⚽ Statistiche Squadra</CardTitle>
           <Metric>
             <MetricLabel>Giocatori Totali</MetricLabel>
-            <MetricValue>{giocatori.length}</MetricValue>
+            <MetricValue>{giocatori?.length || 0}</MetricValue>
           </Metric>
           <Metric>
             <MetricLabel>Valore Mercato</MetricLabel>
@@ -372,10 +372,10 @@ const DashboardAvanzata = () => {
             </tr>
           </thead>
           <tbody>
-            {giocatori.map(giocatore => (
+            {giocatori?.map(giocatore => (
               <tr key={giocatore.id}>
-                <Td>{giocatore.nome}</Td>
-                <Td>{giocatore.ruolo}</Td>
+                <Td>{giocatore?.nome || 'Nome'}</Td>
+                <Td>{giocatore?.ruolo || 'Ruolo'}</Td>
                 <Td>{formatCurrency(giocatore.valore_mercato)}</Td>
                 <Td>
                   <Badge $status={giocatore.stato}>{giocatore.stato}</Badge>

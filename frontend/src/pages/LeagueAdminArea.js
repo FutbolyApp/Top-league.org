@@ -430,7 +430,7 @@ const LeagueAdminArea = () => {
       const changeToMove = pendingChanges.find(change => change.id === changeId);
       if (changeToMove) {
         // Rimuovi dalla lista pending e aggiungi alla history
-        setPendingChanges(prev => prev.filter(change => change.id !== changeId));
+        setPendingChanges(prev => prev?.filter(change => change.id !== changeId));
         
         // Aggiungi alla history con status "approved"
         const updatedChange = {
@@ -462,7 +462,7 @@ const LeagueAdminArea = () => {
       const changeToMove = pendingChanges.find(change => change.id === changeId);
       if (changeToMove) {
         // Rimuovi dalla lista pending e aggiungi alla history
-        setPendingChanges(prev => prev.filter(change => change.id !== changeId));
+        setPendingChanges(prev => prev?.filter(change => change.id !== changeId));
         
         // Aggiungi alla history con status "rejected"
         const updatedChange = {
@@ -538,8 +538,8 @@ const LeagueAdminArea = () => {
           
           let description = [];
           
-          if (squadreMod.length > 0) {
-            description.push(`📝 Modifiche a ${squadreMod.length} squadra${squadreMod.length > 1 ? 'e' : ''}`);
+          if (squadreMod?.length || 0 > 0) {
+            description.push(`📝 Modifiche a ${squadreMod?.length || 0} squadra${squadreMod?.length || 0 > 1 ? 'e' : ''}`);
             
             // Aggiungi dettagli delle modifiche per ogni squadra con confronto DA/A
             squadreMod.forEach(([squadraId, modifiche]) => {
@@ -562,7 +562,7 @@ const LeagueAdminArea = () => {
                     return `${labels[campo] || campo}: ${nuovoValore}`;
                   }
                 });
-                if (modificheList.length > 0) {
+                if (modificheList?.length || 0 > 0) {
                   description.push(`  • Squadra ${squadraId}: ${modificheList.join(', ')}`);
                 }
               }
@@ -605,16 +605,16 @@ const LeagueAdminArea = () => {
           });
           
           // Ottieni il nome del giocatore e il ruolo dai dettagli se disponibili
-          const giocatoreNome = cleanValue(actionData.modifiche.giocatore) || cleanValue(actionData.modifiche.nome_giocatore) || `ID ${actionData.modifiche.giocatoreId}` || 'Giocatore sconosciuto';
+          const giocatoreNome = cleanValue(actionData.modifiche.giocatore) || cleanValue(actionData.modifiche?.nome || 'Nome'_giocatore) || `ID ${actionData.modifiche.giocatoreId}` || 'Giocatore sconosciuto';
           
           // Cerca il ruolo in vari punti possibili
           let ruolo = 'N/A';
           if (actionData.modifiche.valoriOriginali?.ruolo) {
-            ruolo = cleanValue(actionData.modifiche.valoriOriginali.ruolo);
+            ruolo = cleanValue(actionData.modifiche.valoriOriginali?.ruolo || 'Ruolo');
           } else if (actionData.modifiche.modifiche?.ruolo) {
-            ruolo = cleanValue(actionData.modifiche.modifiche.ruolo);
-          } else if (actionData.modifiche.ruolo) {
-            ruolo = cleanValue(actionData.modifiche.ruolo);
+            ruolo = cleanValue(actionData.modifiche.modifiche?.ruolo || 'Ruolo');
+          } else if (actionData.modifiche?.ruolo || 'Ruolo') {
+            ruolo = cleanValue(actionData.modifiche?.ruolo || 'Ruolo');
           }
           
           // Debug log per capire cosa sta succedendo
@@ -652,7 +652,7 @@ const LeagueAdminArea = () => {
           });
           
           // Ottieni il nome del giocatore e il ruolo dai dettagli se disponibili
-          const giocatoreNome = cleanValue(actionData.giocatore) || cleanValue(actionData.nome_giocatore) || `ID ${actionData.giocatoreId}` || 'Giocatore sconosciuto';
+          const giocatoreNome = cleanValue(actionData.giocatore) || cleanValue(actionData?.nome || 'Nome'_giocatore) || `ID ${actionData.giocatoreId}` || 'Giocatore sconosciuto';
           const ruolo = cleanValue(actionData.valoriOriginali?.ruolo) || 'N/A';
           
           return `👤 ${giocatoreNome} (${ruolo}):\n  • ${modificheList.join('\n  • ')}`;
@@ -690,7 +690,7 @@ const LeagueAdminArea = () => {
     <Container>
       
       <Header>
-        <Title>Area Admin - {lega.nome}</Title>
+        <Title>Area Admin - {lega?.nome || 'Nome'}</Title>
         <Subtitle>Gestione subadmin e approvazione modifiche</Subtitle>
       </Header>
 
@@ -701,8 +701,8 @@ const LeagueAdminArea = () => {
           <Button onClick={handleAddSubadmin}>Aggiungi Subadmin</Button>
         </SectionTitle>
         
-        {subadmins.length > 0 ? (
-          subadmins.map(sub => (
+        {subadmins?.length || 0 > 0 ? (
+          subadmins?.map(sub => (
             <SubadminCard key={sub.id}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
@@ -752,10 +752,10 @@ const LeagueAdminArea = () => {
 
       {/* Sezione Modifiche in Attesa */}
       <Section>
-        <SectionTitle>⏳ Modifiche in Attesa ({pendingChanges.length})</SectionTitle>
+        <SectionTitle>⏳ Modifiche in Attesa ({pendingChanges?.length || 0})</SectionTitle>
         
-        {pendingChanges.length > 0 ? (
-          pendingChanges.map(change => (
+        {pendingChanges?.length || 0 > 0 ? (
+          pendingChanges?.map(change => (
             <ChangeCard key={change.id}>
               <ChangeHeader>
                 <ChangeType>
@@ -804,8 +804,8 @@ const LeagueAdminArea = () => {
       <Section>
         <SectionTitle>📋 Storico Modifiche</SectionTitle>
         
-        {changeHistory.length > 0 ? (
-          changeHistory.map(change => (
+        {changeHistory?.length || 0 > 0 ? (
+          changeHistory?.map(change => (
             <ChangeCard key={change.id} style={{ 
               background: change.status === 'approved' ? '#d4edda' : '#f8d7da',
               borderColor: change.status === 'approved' ? '#c3e6cb' : '#f5c6cb'
@@ -851,7 +851,7 @@ const LeagueAdminArea = () => {
       {showAddSubadminModal && (
         <Modal onClick={() => setShowAddSubadminModal(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>Aggiungi Subadmin - {lega.nome}</ModalTitle>
+            <ModalTitle>Aggiungi Subadmin - {lega?.nome || 'Nome'}</ModalTitle>
             
             <FormGroup>
               <Label>Seleziona Utente</Label>

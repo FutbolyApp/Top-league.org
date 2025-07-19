@@ -267,7 +267,7 @@ const CreaLega = () => {
     setSubmitting(true);
     
     // Validazioni
-    if (!form.nome.trim()) {
+    if (!form?.nome || 'Nome'.trim()) {
       setError('Il nome della lega è obbligatorio');
       setSubmitting(false);
       return;
@@ -309,7 +309,7 @@ const CreaLega = () => {
       setSuccess(true);
       
       // Gestisci i warning dal backend
-      if (result.warnings && result.warnings.length > 0) {
+      if (result.warnings && result.warnings?.length || 0 > 0) {
         setWarnings(result.warnings);
       }
       setSuccess(true);
@@ -365,7 +365,7 @@ const CreaLega = () => {
           <Input
             name="nome"
             placeholder="Inserisci il nome della lega"
-            value={form.nome}
+            value={form?.nome || 'Nome'}
             onChange={handleChange}
             required
           />
@@ -560,7 +560,7 @@ const CreaLega = () => {
                     <div style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
                       <strong>Dati trovati:</strong>
                       {scrapingTestResult.data.rose && (
-                        <div>📊 {scrapingTestResult.data.rose.length} squadre trovate</div>
+                        <div>📊 {scrapingTestResult.data.rose?.length || 0} squadre trovate</div>
                       )}
                     </div>
                   )}
@@ -599,10 +599,10 @@ const CreaLega = () => {
         </FormGroup>
         
         {error && <Message className="error">{error}</Message>}
-        {warnings.length > 0 && (
+        {warnings?.length || 0 > 0 && (
           <Message style={{ backgroundColor: "#fff3cd", color: "#856404", border: "1px solid #ffeaa7" }}>
             <strong>⚠️ Attenzione:</strong>
-            {warnings.map((warning, index) => (
+            {warnings?.map((warning, index) => (
               <div key={index}>{warning}</div>
             ))}
           </Message>

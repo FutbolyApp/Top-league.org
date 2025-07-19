@@ -17,7 +17,7 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
 
     // Verifica che l'utente sia proprietario della squadra
     const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
-    if (squadraResult.rows.length === 0) {
+    if (squadraResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -56,12 +56,12 @@ router.get('/squadra/:squadraId/transazioni', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
-    if (squadraResult.rows.length === 0) {
+    if (squadraResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
     let query = `
-      SELECT t.*, g.nome as giocatore_nome, s.nome as squadra_nome
+      SELECT t.*, g?.nome || 'Nome' as giocatore_nome, s?.nome || 'Nome' as squadra_nome
       FROM transazioni t
       LEFT JOIN giocatori g ON t.giocatore_id = g.id
       LEFT JOIN squadre s ON t.squadra_id = s.id
@@ -138,7 +138,7 @@ router.post('/squadra/:squadraId/transazione', requireAuth, async (req, res) => 
 
     // Verifica autorizzazione
     const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
-    if (squadraResult.rows.length === 0) {
+    if (squadraResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -193,7 +193,7 @@ router.get('/squadra/:squadraId/report', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
-    if (squadraResult.rows.length === 0) {
+    if (squadraResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -246,7 +246,7 @@ router.get('/squadra/:squadraId/report', requireAuth, async (req, res) => {
 
     // Top spese
     const topSpeseResult = await db.query(`
-      SELECT t.*, g.nome as giocatore_nome
+      SELECT t.*, g?.nome || 'Nome' as giocatore_nome
       FROM transazioni t
       LEFT JOIN giocatori g ON t.giocatore_id = g.id
       WHERE t.squadra_id = $1 AND t.tipo = 'uscita' ${dateFilter}
@@ -287,7 +287,7 @@ router.put('/squadra/:squadraId/budget', requireAuth, async (req, res) => {
       WHERE s.id = $1 AND l.admin_id = $2
     `, [squadraId, userId]);
     
-    if (squadraResult.rows.length === 0) {
+    if (squadraResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -318,7 +318,7 @@ router.get('/squadra/:squadraId/export', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
-    if (squadraResult.rows.length === 0) {
+    if (squadraResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -329,7 +329,7 @@ router.get('/squadra/:squadraId/export', requireAuth, async (req, res) => {
         t.categoria,
         t.importo,
         t.descrizione,
-        g.nome as giocatore_nome
+        g?.nome || 'Nome' as giocatore_nome
       FROM transazioni t
       LEFT JOIN giocatori g ON t.giocatore_id = g.id
       WHERE t.squadra_id = $1
@@ -341,7 +341,7 @@ router.get('/squadra/:squadraId/export', requireAuth, async (req, res) => {
     if (formato === 'csv') {
       const csv = [
         'Data,Tipo,Categoria,Importo,Descrizione,Giocatore',
-        ...transazioni.map(t => 
+        ...transazioni?.map(t => 
           `${t.data_transazione},${t.tipo},${t.categoria},${t.importo},"${t.descrizione}",${t.giocatore_nome || ''}`
         )
       ].join('\n');

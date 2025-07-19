@@ -611,8 +611,8 @@ const Home = () => {
       
       switch (sortFieldSquadre) {
         case 'nome':
-          aValue = a.nome || '';
-          bValue = b.nome || '';
+          aValue = a?.nome || 'Nome' || '';
+          bValue = b?.nome || 'Nome' || '';
           break;
         case 'club_level':
           aValue = a.club_level || 1;
@@ -623,8 +623,8 @@ const Home = () => {
           bValue = b.casse_societarie || 0;
           break;
         default:
-          aValue = a.nome || '';
-          bValue = b.nome || '';
+          aValue = a?.nome || 'Nome' || '';
+          bValue = b?.nome || 'Nome' || '';
       }
       
       if (sortDirectionSquadre === 'asc') {
@@ -642,7 +642,7 @@ const Home = () => {
   };
 
   const getNotificheCount = (squadraId) => {
-    return notifiche.filter(n => n.squadra_id === squadraId).length;
+    return notifiche?.filter(n => n.squadra_id === squadraId).length;
   };
 
   const getMovimentiByLega = (legaId) => {
@@ -750,7 +750,7 @@ const Home = () => {
       </ActionsSection>
 
       {/* Area Manager con scheda espandibile */}
-      {squadre.length > 0 && (
+      {squadre?.length || 0 > 0 && (
         <Section>
           <SectionTitle>Area Manager</SectionTitle>
           <Table>
@@ -767,17 +767,17 @@ const Home = () => {
               </tr>
             </thead>
             <tbody>
-              {sortedSquadre.map(squadra => {
+              {sortedSquadre?.map(squadra => {
                 const movimentiLega = getMovimentiByLega(squadra.lega_id);
                 const notificheCount = getNotificheCount(squadra.id);
                 const isExpanded = expandedSquadra === squadra.id;
                 let valoreAttuale = 0;
                 let ingaggi = 0;
                 let numGiocatori = 0;
-                if (Array.isArray(squadra.giocatori) && squadra.giocatori.length > 0) {
-                  valoreAttuale = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g.quotazione_attuale) || 0), 0);
-                  ingaggi = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g.costo_attuale) || 0), 0);
-                  numGiocatori = squadra.giocatori.length;
+                if (Array.isArray(squadra.giocatori) && squadra.giocatori?.length || 0 > 0) {
+                  valoreAttuale = squadra.giocatori?.reduce((sum, g) => sum + (parseInt(g.quotazione_attuale) || 0), 0);
+                  ingaggi = squadra.giocatori?.reduce((sum, g) => sum + (parseInt(g.costo_attuale) || 0), 0);
+                  numGiocatori = squadra.giocatori?.length || 0;
                 } else if (typeof squadra.numero_giocatori === 'number') {
                   numGiocatori = squadra.numero_giocatori;
                 }
@@ -793,7 +793,7 @@ const Home = () => {
                         ) : (
                           <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iMTYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iI0U1RTVFNyIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxwYXRoIGQ9Ik0xNiA4QzE4LjIwOTEgOCAyMCA5Ljc5MDg2IDIwIDEyQzIwIDE0LjIwOTEgMTguMjA5MSAxNiAxNiAxNkMxMy43OTA5IDE2IDEyIDE0LjIwOTEgMTIgMTJDMTIgOS43OTA4NiAxMy43OTA5IDggMTYgOFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTggMjRDMTAuMjA5MSAyNCAxMiAyMi4yMDkxIDEyIDIwQzEyIDE3Ljc5MDkgMTAuMjA5MSAxNiA4IDE2QzUuNzkwODYgMTYgNCAxNy43OTA5IDQgMjBDNCAyMi4yMDkxIDUuNzkwODYgMjQgOCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTI0IDI0QzI2LjIwOTEgMjQgMjggMjIuMjA5MSAyOCAyMEMyOCAxNy43OTA5IDI2LjIwOTEgMTYgMjQgMTZDMjEuNzkwOSAxNiAyMCAxNy43OTA5IDIwIDIwQzIwIDIyLjIwOTEgMjEuNzkwOSAyNCAyNCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+" alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
                         )}
-                        <span style={{ fontWeight: 600, cursor: 'pointer', color: '#FF8C42' }} onClick={() => navigate(`/gestione-squadra/${squadra.lega_id}`)}>{squadra.nome}</span>
+                        <span style={{ fontWeight: 600, cursor: 'pointer', color: '#FF8C42' }} onClick={() => navigate(`/gestione-squadra/${squadra.lega_id}`)}>{squadra?.nome || 'Nome'}</span>
                       </Td>
                       <Td>{squadra.club_level || 1}</Td>
                       <Td>{torneoNome}</Td>
@@ -841,10 +841,10 @@ const Home = () => {
 
                             <MarketMovements>
                               <MarketTitle>📢 Ultime 5 Notifiche</MarketTitle>
-                              {notifiche.filter(n => n.squadra_id === squadra.id).slice(0, 5).length === 0 ? (
+                              {notifiche?.filter(n => n.squadra_id === squadra.id).slice(0, 5).length === 0 ? (
                                 <MovementItem>Nessuna notifica recente</MovementItem>
                               ) : (
-                                notifiche.filter(n => n.squadra_id === squadra.id).slice(0, 5).map((notifica, index) => (
+                                notifiche?.filter(n => n.squadra_id === squadra.id).slice(0, 5).map((notifica, index) => (
                                   <MovementItem key={index}>
                                     {notifica.titolo}: {notifica.messaggio} - {new Date(notifica.created_at).toLocaleDateString()}
                                   </MovementItem>
@@ -854,10 +854,10 @@ const Home = () => {
 
                             <MarketMovements>
                               <MarketTitle>📈 Ultimi 5 Movimenti di Mercato</MarketTitle>
-                              {movimentiLega.length === 0 ? (
+                              {movimentiLega?.length || 0 === 0 ? (
                                 <MovementItem>Nessun movimento recente</MovementItem>
                               ) : (
-                                movimentiLega.map((movimento, index) => (
+                                movimentiLega?.map((movimento, index) => (
                                   <MovementItem key={index}>
                                     {movimento.giocatore_nome} si è {movimento.tipo === 'trasferimento' ? 'trasferito' : 'prestato'} da {movimento.squadra_mittente} a {movimento.squadra_destinataria} il {new Date(movimento.data).toLocaleDateString()} per {formatMoney(movimento.valore)}
                                   </MovementItem>
@@ -877,7 +877,7 @@ const Home = () => {
       )}
 
       {/* Area Admin originale */}
-      {legheAdmin.length > 0 && (
+      {legheAdmin?.length || 0 > 0 && (
         <Section>
           <SectionTitle>Area Admin</SectionTitle>
           <Table>
@@ -914,11 +914,11 @@ const Home = () => {
               </tr>
             </thead>
             <tbody>
-              {sortedLegheAdmin.map(lega => (
+              {sortedLegheAdmin?.map(lega => (
                 <tr key={lega.id}>
                   <Td>
                     <StyledLink to={`/lega/${lega.id}`}>
-                      {lega.nome}
+                      {lega?.nome || 'Nome'}
                     </StyledLink>
                   </Td>
                   <Td>{lega.modalita}</Td>
@@ -935,7 +935,7 @@ const Home = () => {
         </Section>
       )}
 
-      {notifiche.length > 0 && (
+      {notifiche?.length || 0 > 0 && (
         <Section>
           <SectionTitle>Notifiche Recenti</SectionTitle>
           {notifiche.slice(0, 5).map(notifica => (

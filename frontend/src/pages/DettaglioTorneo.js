@@ -206,7 +206,7 @@ const DettaglioTorneo = () => {
   return (
     <Container>
       <Header>
-        <Title>{torneo.nome}</Title>
+        <Title>{torneo?.nome || 'Nome'}</Title>
         <Button onClick={() => navigate(-1)}>
           Indietro
         </Button>
@@ -277,7 +277,7 @@ const DettaglioTorneo = () => {
             </span>
           </CardTitle>
           
-          {torneo.squadre_partecipanti && torneo.squadre_partecipanti.length > 0 ? (
+          {torneo.squadre_partecipanti && torneo.squadre_partecipanti?.length || 0 > 0 ? (
             <Table>
               <thead>
                 <tr>
@@ -286,10 +286,10 @@ const DettaglioTorneo = () => {
                 </tr>
               </thead>
               <tbody>
-                {torneo.squadre_partecipanti.map(squadra => (
+                {torneo.squadre_partecipanti?.map(squadra => (
                   <Tr key={squadra.id}>
                     <Td>
-                      <strong>{squadra.nome}</strong>
+                      <strong>{squadra?.nome || 'Nome'}</strong>
                     </Td>
                     <Td>
                       {squadra.proprietario_username || 'N/A'}
@@ -316,11 +316,11 @@ const DettaglioTorneo = () => {
               borderRadius: '12px', 
               fontSize: '0.8rem' 
             }}>
-              {classifica.length}
+              {classifica?.length || 0}
             </span>
           </CardTitle>
           
-          {classifica.length > 0 ? (
+          {classifica?.length || 0 > 0 ? (
             <Table>
               <thead>
                 <tr>
@@ -333,13 +333,13 @@ const DettaglioTorneo = () => {
                 </tr>
               </thead>
               <tbody>
-                {classifica.map((squadra, index) => (
+                {classifica?.map((squadra, index) => (
                   <Tr key={squadra.id}>
                     <Td>
                       <strong>{index + 1}</strong>
                     </Td>
                     <Td>
-                      <strong>{squadra.nome}</strong>
+                      <strong>{squadra?.nome || 'Nome'}</strong>
                     </Td>
                     <Td>{squadra.punti_campionato}</Td>
                     <Td>{squadra.gol_fatti}</Td>
@@ -367,11 +367,11 @@ const DettaglioTorneo = () => {
               borderRadius: '12px', 
               fontSize: '0.8rem' 
             }}>
-              {calendario.length}
+              {calendario?.length || 0}
             </span>
           </CardTitle>
           
-          {calendario.length > 0 ? (
+          {calendario?.length || 0 > 0 ? (
             <Table>
               <thead>
                 <tr>
@@ -383,7 +383,7 @@ const DettaglioTorneo = () => {
                 </tr>
               </thead>
               <tbody>
-                {calendario.map(partita => (
+                {calendario?.map(partita => (
                   <Tr key={partita.id}>
                     <Td>
                       <strong>{partita.giornata}</strong>

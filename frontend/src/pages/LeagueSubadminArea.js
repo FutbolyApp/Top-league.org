@@ -284,7 +284,7 @@ const LeagueSubadminArea = () => {
   return (
     <Container>
       <Header>
-        <Title>Area Subadmin - {lega.nome}</Title>
+        <Title>Area Subadmin - {lega?.nome || 'Nome'}</Title>
         <Subtitle>Richiedi modifiche alla lega (non modificare direttamente)</Subtitle>
       </Header>
 
@@ -308,11 +308,11 @@ const LeagueSubadminArea = () => {
         <SectionTitle>📊 Statistiche Lega</SectionTitle>
         <StatsGrid>
           <StatCard>
-            <StatValue>{squadre.length}</StatValue>
+            <StatValue>{squadre?.length || 0}</StatValue>
             <StatLabel>Squadre</StatLabel>
           </StatCard>
           <StatCard>
-            <StatValue>{tornei.length}</StatValue>
+            <StatValue>{tornei?.length || 0}</StatValue>
             <StatLabel>Tornei</StatLabel>
           </StatCard>
           <StatCard>
@@ -412,7 +412,7 @@ const LeagueSubadminArea = () => {
       <Section>
         <SectionTitle>ℹ️ Informazioni Lega</SectionTitle>
         <div>
-          <p><strong>Nome:</strong> {lega.nome}</p>
+          <p><strong>Nome:</strong> {lega?.nome || 'Nome'}</p>
           <p><strong>Descrizione:</strong> {lega.descrizione || 'Nessuna descrizione'}</p>
           <p><strong>Regolamento:</strong> {lega.regolamento || 'Nessun regolamento specificato'}</p>
           <p><strong>Budget:</strong> FM {lega.budget || 0}</p>

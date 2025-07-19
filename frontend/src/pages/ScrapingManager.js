@@ -435,11 +435,11 @@ const ScrapingManager = () => {
       console.log('Tornei selezionati:', selectedTournaments);
 
       // Se ci sono tornei selezionati, fai scraping per tutti
-      if (selectedTournaments.length > 0) {
-        setProgressMessage(`Scraping di ${selectedTournaments.length} tornei...`);
+      if (selectedTournaments?.length || 0 > 0) {
+        setProgressMessage(`Scraping di ${selectedTournaments?.length || 0} tornei...`);
         
         // Se ci sono più tornei, usa il metodo batch
-        if (selectedTournaments.length > 1) {
+        if (selectedTournaments?.length || 0 > 1) {
           console.log('Usando metodo batch per più tornei...');
           
           setProgress(10);
@@ -595,7 +595,7 @@ const ScrapingManager = () => {
       console.log('URL:', leagueUrl);
       console.log('Torneo selezionato:', selectedTournaments[0] || 'nessuno');
 
-      const tournamentId = selectedTournaments.length > 0 ? selectedTournaments[0] : null;
+      const tournamentId = selectedTournaments?.length || 0 > 0 ? selectedTournaments[0] : null;
       
       setProgress(20);
       setProgressMessage('Scraping classifica in corso...');
@@ -673,7 +673,7 @@ const ScrapingManager = () => {
       console.log('Giornata:', giornata);
       console.log('Torneo selezionato:', selectedTournaments[0] || 'nessuno');
 
-      const tournamentId = selectedTournaments.length > 0 ? selectedTournaments[0] : null;
+      const tournamentId = selectedTournaments?.length || 0 > 0 ? selectedTournaments[0] : null;
       
       setProgress(20);
       setProgressMessage(`Scraping formazioni giornata ${giornata}...`);
@@ -750,7 +750,7 @@ const ScrapingManager = () => {
       console.log('Giornata:', giornataNum || 'non specificata');
       console.log('Torneo selezionato:', selectedTournaments[0] || 'nessuno');
 
-      const tournamentId = selectedTournaments.length > 0 ? selectedTournaments[0] : null;
+      const tournamentId = selectedTournaments?.length || 0 > 0 ? selectedTournaments[0] : null;
       
       setProgress(10);
       setProgressMessage('Scraping rose, classifica e formazioni...');
@@ -895,7 +895,7 @@ const ScrapingManager = () => {
 
   // Salva i tornei preferiti
   const saveTorneiPreferiti = async () => {
-    if (!selectedLega || selectedTournaments.length === 0) {
+    if (!selectedLega || selectedTournaments?.length || 0 === 0) {
       showErrorModal('Dati Mancanti', 'Seleziona almeno un torneo da salvare come preferito.');
       return;
     }
@@ -1044,7 +1044,7 @@ const ScrapingManager = () => {
   };
 
   const sortGiocatori = (giocatori) => {
-    if (!giocatori || giocatori.length === 0) return giocatori;
+    if (!giocatori || giocatori?.length || 0 === 0) return giocatori;
     
     // Se non c'è un campo di ordinamento specifico, ordina sempre per ruolo Mantra
     if (!sortField || sortField === 'default') {
@@ -1052,8 +1052,8 @@ const ScrapingManager = () => {
       const roleOrder = ['Por', 'Ds', 'Dc', 'Dd', 'B', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc']; // Mantra
       
       return [...giocatori].sort((a, b) => {
-        const roleA = a.ruolo || '';
-        const roleB = b.ruolo || '';
+        const roleA = a?.ruolo || 'Ruolo' || '';
+        const roleB = b?.ruolo || 'Ruolo' || '';
         
         // Per ruoli multipli, prendi il primo ruolo
         const firstRoleA = roleA.split(';')[0];
@@ -1086,12 +1086,12 @@ const ScrapingManager = () => {
       
       switch (sortField) {
         case 'nome':
-          aValue = a.nome?.toLowerCase() || '';
-          bValue = b.nome?.toLowerCase() || '';
+          aValue = a?.nome || 'Nome'?.toLowerCase() || '';
+          bValue = b?.nome || 'Nome'?.toLowerCase() || '';
           break;
         case 'ruolo':
-          aValue = a.ruolo?.toLowerCase() || '';
-          bValue = b.ruolo?.toLowerCase() || '';
+          aValue = a?.ruolo || 'Ruolo'?.toLowerCase() || '';
+          bValue = b?.ruolo || 'Ruolo'?.toLowerCase() || '';
           break;
         case 'squadra':
           aValue = a.squadra?.toLowerCase() || '';
@@ -1161,10 +1161,10 @@ const ScrapingManager = () => {
 
     // Debug: controlla se ci sono rose
     console.log('DEBUG rose disponibili:', datiScraping.rose);
-    if (datiScraping.rose && datiScraping.rose.length > 0) {
+    if (datiScraping.rose && datiScraping.rose?.length || 0 > 0) {
       console.log('DEBUG prima squadra:', datiScraping.rose[0]);
       console.log('DEBUG giocatori prima squadra:', datiScraping.rose[0].giocatori);
-      if (datiScraping.rose[0].giocatori && datiScraping.rose[0].giocatori.length > 0) {
+      if (datiScraping.rose[0].giocatori && datiScraping.rose[0].giocatori?.length || 0 > 0) {
         console.log('DEBUG primo giocatore:', datiScraping.rose[0].giocatori[0]);
         console.log('DEBUG giocatori ordinati:', sortGiocatori(datiScraping.rose[0].giocatori));
       }
@@ -1192,13 +1192,13 @@ const ScrapingManager = () => {
         </p>
 
         {/* Sezione Rose */}
-        {datiScraping.rose && datiScraping.rose.length > 0 && (
+        {datiScraping.rose && datiScraping.rose?.length || 0 > 0 && (
           <div className="data-section">
             <div 
               className="section-header" 
               onClick={() => toggleSection('rose')}
             >
-              <h4>📋 Rose ({datiScraping.rose.length} squadre)</h4>
+              <h4>📋 Rose ({datiScraping.rose?.length || 0} squadre)</h4>
               <span className="toggle-icon">
                 {expandedSections.rose ? '▼' : '▶'}
               </span>
@@ -1235,13 +1235,13 @@ const ScrapingManager = () => {
                   </button>
                 </div>
                 
-                {datiScraping.rose.map((squadra, index) => (
+                {datiScraping.rose?.map((squadra, index) => (
                   <div key={index} className="squadra-card">
                     <div 
                       className="squadra-header"
                       onClick={() => toggleSquadra(`rose-${index}`)}
                     >
-                      <h5>{squadra.nome}</h5>
+                      <h5>{squadra?.nome || 'Nome'}</h5>
                       <span className="giocatori-count">
                         {squadra.giocatori?.length || 0} giocatori
                       </span>
@@ -1266,10 +1266,10 @@ const ScrapingManager = () => {
                           <tbody>
                             {sortGiocatori(squadra.giocatori).map((giocatore, gIndex) => (
                               <tr key={gIndex}>
-                                <td>{giocatore.nome}</td>
+                                <td>{giocatore?.nome || 'Nome'}</td>
                                 <td>
                                   <PlayerRole>
-                                    {splitRoles(giocatore.ruolo).map((ruolo, index) => (
+                                    {splitRoles(giocatore?.ruolo || 'Ruolo').map((ruolo, index) => (
                                       <span key={index} className={`ruolo-badge ${getRoleClass(ruolo)}`}>{ruolo}</span>
                                     ))}
                                   </PlayerRole>
@@ -1292,13 +1292,13 @@ const ScrapingManager = () => {
         )}
 
         {/* Sezione Classifica */}
-        {datiScraping.classifica && datiScraping.classifica.length > 0 && (
+        {datiScraping.classifica && datiScraping.classifica?.length || 0 > 0 && (
           <div className="data-section">
             <div 
               className="section-header" 
               onClick={() => toggleSection('classifica')}
             >
-              <h4>Classifica ({datiScraping.classifica.length} posizioni)</h4>
+              <h4>Classifica ({datiScraping.classifica?.length || 0} posizioni)</h4>
               <span className="toggle-icon">
                 {expandedSections.classifica ? '▼' : '▶'}
               </span>
@@ -1323,7 +1323,7 @@ const ScrapingManager = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {datiScraping.classifica.map((posizione, index) => (
+                    {datiScraping.classifica?.map((posizione, index) => (
                       <tr key={index}>
                         <td className="posizione">{posizione.posizione}</td>
                         <td className="squadra">{posizione.squadra}</td>
@@ -1346,13 +1346,13 @@ const ScrapingManager = () => {
         )}
 
         {/* Sezione Formazioni */}
-        {datiScraping.formazioni && datiScraping.formazioni.length > 0 && (
+        {datiScraping.formazioni && datiScraping.formazioni?.length || 0 > 0 && (
           <div className="data-section">
             <div 
               className="section-header" 
               onClick={() => toggleSection('formazioni')}
             >
-              <h4>Formazioni ({datiScraping.formazioni.length} formazioni)</h4>
+              <h4>Formazioni ({datiScraping.formazioni?.length || 0} formazioni)</h4>
               <span className="toggle-icon">
                 {expandedSections.formazioni ? '▼' : '▶'}
               </span>
@@ -1400,9 +1400,9 @@ const ScrapingManager = () => {
         )}
 
         {/* Messaggio se non ci sono dati */}
-        {(!datiScraping.rose || datiScraping.rose.length === 0) &&
-         (!datiScraping.classifica || datiScraping.classifica.length === 0) &&
-         (!datiScraping.formazioni || datiScraping.formazioni.length === 0) && (
+        {(!datiScraping.rose || datiScraping.rose?.length || 0 === 0) &&
+         (!datiScraping.classifica || datiScraping.classifica?.length || 0 === 0) &&
+         (!datiScraping.formazioni || datiScraping.formazioni?.length || 0 === 0) && (
           <div className="no-data-message">
             <p>📭 Nessun dato di scraping disponibile per questa lega</p>
             <p>Esegui lo scraping per iniziare a raccogliere dati</p>
@@ -1491,7 +1491,7 @@ const ScrapingManager = () => {
     console.log('🔍 DEBUG - toggleTournament chiamato con id:', id);
     console.log('🔍 DEBUG - selectedTournaments prima:', selectedTournaments);
     if (selectedTournaments.includes(id)) {
-      setSelectedTournaments(selectedTournaments.filter((i) => i !== id));
+      setSelectedTournaments(selectedTournaments?.filter((i) => i !== id));
     } else {
       setSelectedTournaments([...selectedTournaments, id]);
     }
@@ -1499,7 +1499,7 @@ const ScrapingManager = () => {
   };
 
   const selectAllTournaments = () => {
-    setSelectedTournaments(availableTournaments.map((t) => t.id));
+    setSelectedTournaments(availableTournaments?.map((t) => t.id));
   };
 
   const clearTournamentSelection = () => {
@@ -1507,7 +1507,7 @@ const ScrapingManager = () => {
   };
 
   const handleScrapingMultiplo = async (tipo) => {
-    if (!selectedTournaments.length) {
+    if (!selectedTournaments?.length || 0) {
       showErrorModal('Seleziona almeno un torneo');
       return;
     }
@@ -1516,7 +1516,7 @@ const ScrapingManager = () => {
     setProgress(0);
     setProgressMessage('Scraping multiplo in corso...');
     try {
-      const urls = availableTournaments.filter(t => selectedTournaments.includes(t.id)).map(t => ({
+      const urls = availableTournaments?.filter(t => selectedTournaments.includes(t.id)).map(t => ({
         torneo_id: t.id,
         url: t.url,
         nome: t.name
@@ -1738,9 +1738,9 @@ const ScrapingManager = () => {
                 onChange={(e) => setSelectedLega(e.target.value)}
               >
                 <option value="">Seleziona una lega</option>
-                {leghe.map(lega => (
+                {leghe?.map(lega => (
                   <option key={lega.id} value={lega.id}>
-                    {lega.nome}
+                    {lega?.nome || 'Nome'}
                   </option>
                 ))}
               </select>
@@ -1780,13 +1780,13 @@ const ScrapingManager = () => {
                 </div>
               </div>
             )}
-            {uploadErrors && uploadErrors.length > 0 && (
+            {uploadErrors && uploadErrors?.length || 0 > 0 && (
               <div style={{ marginTop: 20 }}>
                 <div style={{ fontWeight: 600, color: '#dc3545' }}>Errori durante l'aggiornamento:</div>
                 <ul style={{ fontSize: '0.95em', color: '#dc3545', maxHeight: 200, overflowY: 'auto', background: '#fff3f3', border: '1px solid #ffd6d6', borderRadius: 6, padding: 10 }}>
-                  {uploadErrors.map((err, idx) => (
+                  {uploadErrors?.map((err, idx) => (
                     <li key={idx}>
-                      {err.nome ? <b>{err.nome}</b> : null} {err.squadra ? `(${err.squadra})` : ''} - {err.motivo || 'Errore'}
+                      {err?.nome || 'Nome' ? <b>{err?.nome || 'Nome'}</b> : null} {err.squadra ? `(${err.squadra})` : ''} - {err.motivo || 'Errore'}
                     </li>
                   ))}
                 </ul>
@@ -1869,18 +1869,18 @@ const ScrapingManager = () => {
                   </div>
                 </div>
                 
-                {statsUploadResult.errors && statsUploadResult.errors.length > 0 && (
+                {statsUploadResult.errors && statsUploadResult.errors?.length || 0 > 0 && (
                   <div style={{ marginTop: '1rem' }}>
                     <h5 style={{ color: '#721c24', marginBottom: '0.5rem' }}>⚠️ Giocatori non trovati nel file Excel:</h5>
                     <div style={{ maxHeight: '200px', overflowY: 'auto', background: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', padding: '0.5rem' }}>
                       {statsUploadResult.errors.slice(0, 10).map((error, index) => (
                         <div key={index} style={{ fontSize: '0.85rem', color: '#721c24', marginBottom: '0.25rem' }}>
-                          <strong>{error.nome}</strong> ({error.squadra}) - {error.motivo}
+                          <strong>{error?.nome || 'Nome'}</strong> ({error.squadra}) - {error.motivo}
                         </div>
                       ))}
-                      {statsUploadResult.errors.length > 10 && (
+                      {statsUploadResult.errors?.length || 0 > 10 && (
                         <div style={{ fontSize: '0.85rem', color: '#721c24', fontStyle: 'italic' }}>
-                          ... e altri {statsUploadResult.errors.length - 10} giocatori
+                          ... e altri {statsUploadResult.errors?.length || 0 - 10} giocatori
                         </div>
                       )}
                     </div>
@@ -1901,11 +1901,11 @@ const ScrapingManager = () => {
               <div>
                 <h4 style={{ color: '#007bff', marginBottom: '1rem' }}>📈 Log Quotazioni</h4>
                 <div style={{ maxHeight: '300px', overflowY: 'auto', background: '#fff', border: '1px solid #dee2e6', borderRadius: '6px', padding: '1rem' }}>
-                  {quotazioniLogs.length > 0 ? (
-                    quotazioniLogs.map((log, index) => (
+                  {quotazioniLogs?.length || 0 > 0 ? (
+                    quotazioniLogs?.map((log, index) => (
                       <div key={index} style={{ 
                         padding: '0.75rem', 
-                        borderBottom: index < quotazioniLogs.length - 1 ? '1px solid #eee' : 'none',
+                        borderBottom: index < quotazioniLogs?.length || 0 - 1 ? '1px solid #eee' : 'none',
                         fontSize: '0.9rem'
                       }}>
                         <div style={{ fontWeight: '600', color: '#495057' }}>{log.utente_nome}</div>
@@ -1930,11 +1930,11 @@ const ScrapingManager = () => {
               <div>
                 <h4 style={{ color: '#28a745', marginBottom: '1rem' }}>📊 Log Statistiche</h4>
                 <div style={{ maxHeight: '300px', overflowY: 'auto', background: '#fff', border: '1px solid #dee2e6', borderRadius: '6px', padding: '1rem' }}>
-                  {statisticheLogs.length > 0 ? (
-                    statisticheLogs.map((log, index) => (
+                  {statisticheLogs?.length || 0 > 0 ? (
+                    statisticheLogs?.map((log, index) => (
                       <div key={index} style={{ 
                         padding: '0.75rem', 
-                        borderBottom: index < statisticheLogs.length - 1 ? '1px solid #eee' : 'none',
+                        borderBottom: index < statisticheLogs?.length || 0 - 1 ? '1px solid #eee' : 'none',
                         fontSize: '0.9rem'
                       }}>
                         <div style={{ fontWeight: '600', color: '#495057' }}>{log.utente_nome}</div>
@@ -1971,9 +1971,9 @@ const ScrapingManager = () => {
                 onChange={(e) => setSelectedLega(e.target.value)}
             >
               <option value="">Seleziona una lega</option>
-              {leghe.map(lega => (
+              {leghe?.map(lega => (
                 <option key={lega.id} value={lega.id}>
-                    {lega.nome}
+                    {lega?.nome || 'Nome'}
                 </option>
               ))}
               </select>
@@ -2093,11 +2093,11 @@ const ScrapingManager = () => {
                   {loading ? 'Recuperando...' : 'Recupera Tornei Disponibili'}
                 </button>
                 
-                {availableTournaments.length > 0 && (
+                {availableTournaments?.length || 0 > 0 && (
                   <div className="tournament-selection">
                     <h4>Tornei Disponibili:</h4>
                     <div className="tournament-buttons">
-                      {availableTournaments.map((tournament, index) => (
+                      {availableTournaments?.map((tournament, index) => (
                         <button
                           key={index}
                           type="button"
@@ -2125,7 +2125,7 @@ const ScrapingManager = () => {
                       </button>
                 </div>
                     <div className="selected-tournaments">
-                      <strong>Tornei selezionati:</strong> {selectedTournaments.length > 0 ? selectedTournaments.join(', ') : 'Nessuno'}
+                      <strong>Tornei selezionati:</strong> {selectedTournaments?.length || 0 > 0 ? selectedTournaments.join(', ') : 'Nessuno'}
               </div>
                   </div>
                 )}
@@ -2150,10 +2150,10 @@ const ScrapingManager = () => {
                     marginRight: '10px'
                   }}
                 >
-                  {showPreferiti ? '🔽 Nascondi' : '🔼 Mostra'} Preferiti ({torneiPreferiti.length})
+                  {showPreferiti ? '🔽 Nascondi' : '🔼 Mostra'} Preferiti ({torneiPreferiti?.length || 0})
                 </button>
                 
-                {selectedTournaments.length > 0 && (
+                {selectedTournaments?.length || 0 > 0 && (
                   <button 
                     type="button"
                     className="btn btn-success"
@@ -2175,11 +2175,11 @@ const ScrapingManager = () => {
               
               {showPreferiti && (
                 <div className="preferiti-section">
-                  {torneiPreferiti.length > 0 ? (
+                  {torneiPreferiti?.length || 0 > 0 ? (
                     <div className="preferiti-list">
                       <h5>I tuoi tornei preferiti:</h5>
                       <div className="preferiti-buttons">
-                        {torneiPreferiti.map((torneo, index) => (
+                        {torneiPreferiti?.map((torneo, index) => (
                           <div key={index} className="preferito-item">
                             <button
                               type="button"
@@ -2271,9 +2271,9 @@ const ScrapingManager = () => {
               onChange={(e) => setSelectedLega(e.target.value)}
             >
               <option value="">Seleziona una lega</option>
-              {leghe.map(lega => (
+              {leghe?.map(lega => (
                 <option key={lega.id} value={lega.id}>
-                  {lega.nome}
+                  {lega?.nome || 'Nome'}
                 </option>
               ))}
             </select>
@@ -2292,9 +2292,9 @@ const ScrapingManager = () => {
               onChange={(e) => setSelectedLega(e.target.value)}
             >
               <option value="">Seleziona una lega</option>
-              {leghe.map(lega => (
+              {leghe?.map(lega => (
                 <option key={lega.id} value={lega.id}>
-                  {lega.nome}
+                  {lega?.nome || 'Nome'}
                 </option>
               ))}
             </select>
@@ -2326,7 +2326,7 @@ const ScrapingManager = () => {
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(dati) && dati.map((row, idx) => (
+              {Array.isArray(dati) && dati?.map((row, idx) => (
                 <tr key={idx}>
                   <td>{row.posizione}</td>
                   <td>{row.squadra}</td>

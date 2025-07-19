@@ -634,14 +634,14 @@ const GestioneSquadra = () => {
   const handleSelectPlayer = (playerId) => {
     setSelectedPlayers(prev => 
       prev.includes(playerId) 
-        ? prev.filter(id => id !== playerId)
+        ? prev?.filter(id => id !== playerId)
         : [...prev, playerId]
     );
   };
 
   const handleSelectAll = () => {
     if (squadra?.giocatori) {
-      setSelectedPlayers(squadra.giocatori.map(p => p.id));
+      setSelectedPlayers(squadra.giocatori?.map(p => p.id));
     }
   };
 
@@ -650,7 +650,7 @@ const GestioneSquadra = () => {
   };
 
   const handlePayContracts = async () => {
-    if (selectedPlayers.length === 0) return;
+    if (selectedPlayers?.length || 0 === 0) return;
     
     setPayingContracts(true);
     try {
@@ -780,8 +780,8 @@ const GestioneSquadra = () => {
     const roleOrder = ['P', 'Por', 'D', 'Dc', 'B', 'Dd', 'Ds', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc'];
     
     return [...players].sort((a, b) => {
-      const roleA = splitRoles(a.ruolo)[0] || '';
-      const roleB = splitRoles(b.ruolo)[0] || '';
+      const roleA = splitRoles(a?.ruolo || 'Ruolo')[0] || '';
+      const roleB = splitRoles(b?.ruolo || 'Ruolo')[0] || '';
       const indexA = roleOrder.indexOf(roleA);
       const indexB = roleOrder.indexOf(roleB);
       
@@ -816,7 +816,7 @@ const GestioneSquadra = () => {
     );
   }
 
-  const totalSalary = selectedPlayers.reduce((sum, playerId) => {
+  const totalSalary = selectedPlayers?.reduce((sum, playerId) => {
     const player = squadra.giocatori.find(p => p.id === playerId);
     
     // Se abbiamo dati roster, considera solo giocatori in Roster A
@@ -840,16 +840,16 @@ const GestioneSquadra = () => {
           {squadra.logo_url ? (
             <TeamLogo 
               src={`${API_BASE_URL}/uploads/${squadra.logo_url}`} 
-              alt={squadra.nome} 
+              alt={squadra?.nome || 'Nome'} 
             />
           ) : (
             <TeamLogo 
               src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjQiIGN5PSIyNCIgcj0iMjQiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+" 
-              alt={squadra.nome} 
+              alt={squadra?.nome || 'Nome'} 
             />
           )}
           <TeamName>
-            Gestione Squadra: {squadra.nome}
+            Gestione Squadra: {squadra?.nome || 'Nome'}
           </TeamName>
         </TeamHeader>
         <Subtitle>
@@ -864,7 +864,7 @@ const GestioneSquadra = () => {
       <TeamInfo>
         <InfoCard>
           <InfoLabel>Nome Squadra</InfoLabel>
-          <InfoValue>{squadra.nome}</InfoValue>
+          <InfoValue>{squadra?.nome || 'Nome'}</InfoValue>
         </InfoCard>
         <InfoCard>
           <InfoLabel>Proprietario</InfoLabel>
@@ -880,7 +880,7 @@ const GestioneSquadra = () => {
         </InfoCard>
         <InfoCard>
           <InfoLabel>Selezionati</InfoLabel>
-          <InfoValue>{selectedPlayers.length}</InfoValue>
+          <InfoValue>{selectedPlayers?.length || 0}</InfoValue>
         </InfoCard>
         <InfoCard>
           <InfoLabel>Totale da Pagare</InfoLabel>
@@ -897,7 +897,7 @@ const GestioneSquadra = () => {
         {leagueConfig.contratti && (
         <PayContractsButton 
           onClick={handlePayContracts}
-          disabled={selectedPlayers.length === 0 || payingContracts}
+          disabled={selectedPlayers?.length || 0 === 0 || payingContracts}
         >
           {payingContracts ? 'Pagamento...' : 'Paga Contratti'}
         </PayContractsButton>
@@ -911,8 +911,8 @@ const GestioneSquadra = () => {
               <TableHeader>
                 <Checkbox 
                   type="checkbox"
-                  checked={selectedPlayers.length === squadra.giocatori?.length}
-                  onChange={selectedPlayers.length === squadra.giocatori?.length ? handleDeselectAll : handleSelectAll}
+                  checked={selectedPlayers?.length || 0 === squadra.giocatori?.length}
+                  onChange={selectedPlayers?.length || 0 === squadra.giocatori?.length ? handleDeselectAll : handleSelectAll}
                 />
               </TableHeader>
               <TableHeader>Giocatore</TableHeader>
@@ -974,12 +974,12 @@ const GestioneSquadra = () => {
                 </TableCell>
                 <TableCell>
                   <PlayerName onClick={() => navigate(`/giocatore/${giocatore.id}`)}>
-                    {giocatore.nome} {giocatore.cognome}
+                    {giocatore?.nome || 'Nome'} {giocatore?.cognome || ''}
                   </PlayerName>
                 </TableCell>
                 <TableCell>
                   <PlayerRole>
-                    {splitRoles(giocatore.ruolo).map((ruolo, index) => (
+                    {splitRoles(giocatore?.ruolo || 'Ruolo').map((ruolo, index) => (
                       <span key={index} className={`ruolo-badge ${getRoleClass(ruolo)}`}>
                         {ruolo}
                       </span>
@@ -991,7 +991,7 @@ const GestioneSquadra = () => {
                 <TableCell>{giocatore.squadra_reale || '-'}</TableCell>
                 <TableCell>{giocatore.cantera ? '✔' : '-'}</TableCell>
                 <TableCell>{giocatore.qi || '-'}</TableCell>
-                <TableCell>{giocatore.qa || giocatore.quotazione_attuale || '-'}</TableCell>
+                <TableCell>{giocatore?.qa || 0 || giocatore.quotazione_attuale || '-'}</TableCell>
                 <TableCell>{giocatore.fv_mp || '-'}</TableCell>
                 {leagueConfig.contratti && (
                   <>
@@ -1121,7 +1121,7 @@ const GestioneSquadra = () => {
       {leagueConfig.contratti && showContractModal && selectedPlayer && (
         <Modal onClick={() => setShowContractModal(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>Gestione Contratto: {selectedPlayer.nome}</ModalTitle>
+            <ModalTitle>Gestione Contratto: {selectedPlayer?.nome || 'Nome'}</ModalTitle>
             
             <FormGroup>
               <Label>Ingaggio Attuale</Label>
@@ -1161,7 +1161,7 @@ const GestioneSquadra = () => {
       {leagueConfig.contratti && showRenewModal && selectedPlayer && (
         <Modal onClick={() => setShowRenewModal(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>Rinnovo Contratto: {selectedPlayer.nome}</ModalTitle>
+            <ModalTitle>Rinnovo Contratto: {selectedPlayer?.nome || 'Nome'}</ModalTitle>
             
             <FormGroup>
               <Label>Anni di Rinnovo</Label>
@@ -1195,8 +1195,8 @@ const GestioneSquadra = () => {
               <LogTitle>Storico Rinnovi</LogTitle>
               {loadingLogs ? (
                 <div style={{ textAlign: 'center', padding: '1rem' }}>Caricamento log...</div>
-              ) : renewalLogs.length > 0 ? (
-                renewalLogs.map((log, index) => (
+              ) : renewalLogs?.length || 0 > 0 ? (
+                renewalLogs?.map((log, index) => (
                   <LogItem key={index}>
                     <LogDate>
                       {new Date(log.data_operazione).toLocaleString('it-IT')}
@@ -1227,7 +1227,7 @@ const GestioneSquadra = () => {
       {showTransferModal && selectedPlayer && (
         <Modal onClick={() => setShowTransferModal(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>Impostazioni Trasferimento: {selectedPlayer.nome}</ModalTitle>
+            <ModalTitle>Impostazioni Trasferimento: {selectedPlayer?.nome || 'Nome'}</ModalTitle>
             
             <FormGroup>
               <Label>
@@ -1295,12 +1295,12 @@ const GestioneSquadra = () => {
       {showEndLoanModal && selectedPlayer && (
         <Modal onClick={() => setShowEndLoanModal(false)}>
           <ModalContent onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>Concludi Prestito: {selectedPlayer.nome}</ModalTitle>
+            <ModalTitle>Concludi Prestito: {selectedPlayer?.nome || 'Nome'}</ModalTitle>
             
             <FormGroup>
               <Label>Confermi di voler concludere il prestito di questo giocatore?</Label>
               <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                <strong>Giocatore:</strong> {selectedPlayer.nome} {selectedPlayer.cognome}<br />
+                <strong>Giocatore:</strong> {selectedPlayer?.nome || 'Nome'} {selectedPlayer?.cognome || ''}<br />
                 <strong>Squadra di appartenenza:</strong> {selectedPlayer.squadra_prestito_nome || 'Sconosciuta'}<br />
                 <strong>Squadra attuale:</strong> {squadra?.nome || 'Sconosciuta'}
               </div>

@@ -74,7 +74,7 @@ const findSimilarPlayers = async (nome, squadra_reale, legaId) => {
     }
 
     // Prima cerca per nome esatto
-    const exactResult = await db.query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g.nome = $2', [legaId, nome]);
+    const exactResult = await db.query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g?.nome || 'Nome' = $2', [legaId, nome]);
     const giocatore = exactResult.rows[0];
     
     if (giocatore) {
@@ -84,7 +84,7 @@ const findSimilarPlayers = async (nome, squadra_reale, legaId) => {
     // Se non trova, cerca nomi simili con squadra corrispondente
     const searchPattern = `%${nome}%`;
     const similarResult = await db.query(
-      'SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g.nome LIKE $2 AND g.squadra_reale = $3', 
+      'SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g?.nome || 'Nome' LIKE $2 AND g.squadra_reale = $3', 
       [legaId, searchPattern, squadra_reale]
     );
     
@@ -108,18 +108,18 @@ const updatePlayer = async (giocatoreId, updateData) => {
     
     Object.entries(updateData).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        fields.push(`${key} = $${values.length + 1}`);
+        fields.push(`${key} = $${values?.length || 0 + 1}`);
         values.push(value);
       }
     });
     
-    if (fields.length === 0) {
+    if (fields?.length || 0 === 0) {
       return 0;
     }
     
     values.push(giocatoreId);
     
-    const sql = `UPDATE giocatori SET ${fields.join(', ')} WHERE id = $${values.length}`;
+    const sql = `UPDATE giocatori SET ${fields.join(', ')} WHERE id = $${values?.length || 0}`;
     
     const result = await db.query(sql, values);
     return result.rowCount;
@@ -178,9 +178,9 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
       });
     });
     
-    console.log(`[QUOTAZIONI] Giocatori nel database per lega ${legaId}: ${giocatoriDatabase.length}`);
-    console.log(`[QUOTAZIONI] Primi 5 giocatori nel DB:`, giocatoriDatabase.slice(0, 5).map(g => ({ id: g.id, nome: g.nome, squadra: g.squadra_reale })));
-    console.log(`[QUOTAZIONI] Righe Excel da processare: ${rows.length}`);
+    console.log(`[QUOTAZIONI] Giocatori nel database per lega ${legaId}: ${giocatoriDatabase?.length || 0}`);
+    console.log(`[QUOTAZIONI] Primi 5 giocatori nel DB:`, giocatoriDatabase.slice(0, 5).map(g => ({ id: g.id, nome: g?.nome || 'Nome', squadra: g.squadra_reale })));
+    console.log(`[QUOTAZIONI] Righe Excel da processare: ${rows?.length || 0}`);
     console.log(`[QUOTAZIONI] Primi 3 nomi dall'Excel:`, rows.slice(0, 3).map(row => isEuroleghe ? row[5] : row[4]));
     
     // Crea un set per ricerca rapida dei giocatori dell'Excel
@@ -188,7 +188,7 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
     const updatesFromExcel = [];
     
     // Prima passata: processa l'Excel e crea il set di ricerca
-    for (let i = 0; i < rows.length; i++) {
+    for (let i = 0; i < rows?.length || 0; i++) {
       const row = rows[i];
       
       try {
@@ -217,12 +217,12 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
           
           // Applica i valori in base alla modalità
           if (isMantra) {
-            playerData.ruolo = ruoloMantra;
-            playerData.qa = qaMantra;
+            playerData?.ruolo || 'Ruolo' = ruoloMantra;
+            playerData?.qa || 0 = qaMantra;
             playerData.qi = qiMantra;
           } else {
-            playerData.ruolo = ruoloClassic;
-            playerData.qa = qaClassic;
+            playerData?.ruolo || 'Ruolo' = ruoloClassic;
+            playerData?.qa || 0 = qaClassic;
             playerData.qi = qiClassic;
           }
           
@@ -245,12 +245,12 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
           
           // Applica i valori in base alla modalità
           if (isMantra) {
-            playerData.ruolo = ruoloMantra;
-            playerData.qa = qaMantra;
+            playerData?.ruolo || 'Ruolo' = ruoloMantra;
+            playerData?.qa || 0 = qaMantra;
             playerData.qi = qiMantra;
           } else {
-            playerData.ruolo = ruoloClassic;
-            playerData.qa = qaClassic;
+            playerData?.ruolo || 'Ruolo' = ruoloClassic;
+            playerData?.qa || 0 = qaClassic;
             playerData.qi = qiClassic;
           }
         }
@@ -275,7 +275,7 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
     for (const update of updatesFromExcel) {
       try {
         const updateResult = await updatePlayer(update.giocatore.id, update.playerData);
-        console.log(`[QUOTAZIONI] Update id=${update.giocatore.id} (${update.giocatore.nome}):`, update.playerData, 'Risultato:', updateResult);
+        console.log(`[QUOTAZIONI] Update id=${update.giocatore.id} (${update.giocatore?.nome || 'Nome'}):`, update.playerData, 'Risultato:', updateResult);
         updatedCount++;
       } catch (error) {
         console.error(`[QUOTAZIONI] Errore aggiornamento giocatore ${update.giocatore.id}:`, error);
@@ -291,7 +291,7 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
         errorCount++;
         errors.push({
           id: giocatoreDb.id,
-          nome: giocatoreDb.nome,
+          nome: giocatoreDb?.nome || 'Nome',
           squadra: giocatoreDb.squadra_reale,
           motivo: 'Giocatore presente nel database ma non trovato nel file Excel'
         });
@@ -302,7 +302,7 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
     const logData = {
       lega_id: legaId,
       utente_id: req.user.id,
-      utente_nome: req.user.nome || req.user.username,
+      utente_nome: req.user?.nome || 'Nome' || req.user.username,
       file_nome: req.file.originalname,
       giocatori_aggiornati: updatedCount,
       errori: errorCount
@@ -326,14 +326,14 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
       success: true,
       message: `Aggiornamento completato. ${updatedCount} giocatori aggiornati, ${errorCount} errori.`,
       stats: {
-        totalRows: rows.length,
+        totalRows: rows?.length || 0,
         updated: updatedCount,
         errors: errorCount
       },
       errors: errors,
       backup: {
         timestamp: backup.timestamp,
-        giocatoriCount: backup.giocatori.length
+        giocatoriCount: backup.giocatori?.length || 0
       }
     });
     
@@ -360,9 +360,9 @@ router.post('/restore-backup', requireSubadminOrAdmin, async (req, res) => {
     
     for (const giocatore of backupData.giocatori) {
       await updatePlayer(giocatore.id, {
-        ruolo: giocatore.ruolo,
+        ruolo: giocatore?.ruolo || 'Ruolo',
         squadra_reale: giocatore.squadra_reale,
-        qa: giocatore.qa,
+        qa: giocatore?.qa || 0,
         qi: giocatore.qi,
         site_id: giocatore.site_id,
         nazione_campionato: giocatore.nazione_campionato
@@ -433,9 +433,9 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
       });
     });
     
-    console.log(`[STATISTICHE] Giocatori nel database per lega ${legaId}: ${giocatoriDatabase.length}`);
-    console.log(`[STATISTICHE] Primi 5 giocatori nel DB:`, giocatoriDatabase.slice(0, 5).map(g => ({ id: g.id, nome: g.nome, squadra: g.squadra_reale })));
-    console.log(`[STATISTICHE] Righe Excel da processare: ${rows.length}`);
+    console.log(`[STATISTICHE] Giocatori nel database per lega ${legaId}: ${giocatoriDatabase?.length || 0}`);
+    console.log(`[STATISTICHE] Primi 5 giocatori nel DB:`, giocatoriDatabase.slice(0, 5).map(g => ({ id: g.id, nome: g?.nome || 'Nome', squadra: g.squadra_reale })));
+    console.log(`[STATISTICHE] Righe Excel da processare: ${rows?.length || 0}`);
     console.log(`[STATISTICHE] Primi 3 nomi dall'Excel:`, rows.slice(0, 3).map(row => ({ 
       nome: isEuroleghe ? row[3] : row[4], 
       squadra: isEuroleghe ? row[5] : row[5] 
@@ -446,7 +446,7 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
     const updatesFromExcel = [];
     
     // Prima passata: processa l'Excel e crea il set di ricerca
-    for (let i = 0; i < rows.length; i++) {
+    for (let i = 0; i < rows?.length || 0; i++) {
       const row = rows[i];
       
       try {
@@ -524,7 +524,7 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
         }
         
         // Salta righe che sembrano essere intestazioni o squadre (non giocatori)
-        if (!playerName || playerName.length < 2 || playerName === playerSquadra || 
+        if (!playerName || playerName?.length || 0 < 2 || playerName === playerSquadra || 
             ['Aston Villa', 'Chelsea', 'Liverpool', 'Manchester City', 'Atletico Madrid', 
              'Atalanta', 'Juventus', 'Lazio', 'Roma', 'Inter', 'Milan', 'Napoli'].includes(playerName)) {
           console.log(`[STATISTICHE] Saltando riga che sembra essere intestazione/squadra: "${playerName}"`);
@@ -533,19 +533,19 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
         
         // Trova il giocatore nel database usando nome e squadra
         const giocatore = await findSimilarPlayers(playerName, playerSquadra, legaId);
-        console.log(`[STATISTICHE] Ricerca: "${playerName}" (${playerSquadra}) ->`, giocatore ? `TROVATO id=${giocatore.id} (${giocatore.nome})` : 'NON TROVATO');
+        console.log(`[STATISTICHE] Ricerca: "${playerName}" (${playerSquadra}) ->`, giocatore ? `TROVATO id=${giocatore.id} (${giocatore?.nome || 'Nome'})` : 'NON TROVATO');
         
         // Se non trova, prova una ricerca più flessibile
         if (!giocatore) {
           console.log(`[STATISTICHE] Tentativo ricerca flessibile per: "${playerName}"`);
           const giocatoreFlessibile = await new Promise((resolve, reject) => {
             const searchPattern = `%${playerName}%`;
-            getDb().query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g.nome LIKE $2', [legaId, searchPattern], (err, result) => {
+            getDb().query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g?.nome || 'Nome' LIKE $2', [legaId, searchPattern], (err, result) => {
               if (err) reject(err);
               else resolve(result.rows[0]);
             });
           });
-          console.log(`[STATISTICHE] Ricerca flessibile: "${playerName}" ->`, giocatoreFlessibile ? `TROVATO id=${giocatoreFlessibile.id} (${giocatoreFlessibile.nome})` : 'NON TROVATO');
+          console.log(`[STATISTICHE] Ricerca flessibile: "${playerName}" ->`, giocatoreFlessibile ? `TROVATO id=${giocatoreFlessibile.id} (${giocatoreFlessibile?.nome || 'Nome'})` : 'NON TROVATO');
           
           if (giocatoreFlessibile) {
             giocatoriExcel.add(`${giocatoreFlessibile.id}`);
@@ -570,7 +570,7 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
     for (const update of updatesFromExcel) {
       try {
         const updateResult = await updatePlayer(update.giocatore.id, update.playerData);
-        console.log(`[STATISTICHE] Update id=${update.giocatore.id} (${update.giocatore.nome}):`, update.playerData, 'Risultato:', updateResult);
+        console.log(`[STATISTICHE] Update id=${update.giocatore.id} (${update.giocatore?.nome || 'Nome'}):`, update.playerData, 'Risultato:', updateResult);
         updatedCount++;
       } catch (error) {
         console.error(`[STATISTICHE] Errore aggiornamento giocatore ${update.giocatore.id}:`, error);
@@ -586,7 +586,7 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
         errorCount++;
         errors.push({
           id: giocatoreDb.id,
-          nome: giocatoreDb.nome,
+          nome: giocatoreDb?.nome || 'Nome',
           squadra: giocatoreDb.squadra_reale,
           motivo: 'Giocatore presente nel database ma non trovato nel file Excel'
         });
@@ -597,7 +597,7 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
     const logData = {
       lega_id: legaId,
       utente_id: req.user.id,
-      utente_nome: req.user.nome || req.user.username,
+      utente_nome: req.user?.nome || 'Nome' || req.user.username,
       file_nome: req.file.originalname,
       giocatori_aggiornati: updatedCount,
       errori: errorCount
@@ -621,14 +621,14 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
       success: true,
       message: `Aggiornamento statistiche completato. ${updatedCount} giocatori aggiornati, ${errorCount} errori.`,
       stats: {
-        totalRows: rows.length,
+        totalRows: rows?.length || 0,
         updated: updatedCount,
         errors: errorCount
       },
       errors: errors,
       backup: {
         timestamp: backup.timestamp,
-        giocatoriCount: backup.giocatori.length
+        giocatoriCount: backup.giocatori?.length || 0
       }
     });
     

@@ -13,7 +13,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     // Verifica che l'utente sia admin della lega
     const legaResult = await db.query('SELECT id FROM leghe WHERE id = $1 AND admin_id = $2', [lega_id, admin_id]);
-    if (legaResult.rows.length === 0) {
+    if (legaResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -26,7 +26,7 @@ router.post('/', requireAuth, async (req, res) => {
     const torneoId = torneoResult.rows[0].id;
     
     // Inserisci squadre partecipanti se specificate
-    if (squadre_partecipanti && squadre_partecipanti.length > 0) {
+    if (squadre_partecipanti && squadre_partecipanti?.length || 0 > 0) {
       for (const squadraId of squadre_partecipanti) {
         await db.query(`
           INSERT INTO tornei_squadre (torneo_id, squadra_id)
@@ -52,7 +52,7 @@ router.put('/:torneoId', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const torneoResult = await db.query('SELECT t.* FROM tornei t JOIN leghe l ON t.lega_id = l.id WHERE t.id = $1 AND l.admin_id = $2', [torneoId, admin_id]);
-    if (torneoResult.rows.length === 0) {
+    if (torneoResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -66,7 +66,7 @@ router.put('/:torneoId', requireAuth, async (req, res) => {
     // Aggiorna squadre partecipanti
     await db.query('DELETE FROM tornei_squadre WHERE torneo_id = $1', [torneoId]);
 
-    if (squadre_partecipanti && squadre_partecipanti.length > 0) {
+    if (squadre_partecipanti && squadre_partecipanti?.length || 0 > 0) {
       for (const squadraId of squadre_partecipanti) {
         await db.query(`
           INSERT INTO tornei_squadre (torneo_id, squadra_id)
@@ -91,7 +91,7 @@ router.delete('/:torneoId', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const torneoResult = await db.query('SELECT t.* FROM tornei t JOIN leghe l ON t.lega_id = l.id WHERE t.id = $1 AND l.admin_id = $2', [torneoId, admin_id]);
-    if (torneoResult.rows.length === 0) {
+    if (torneoResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -132,7 +132,7 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
     
     for (const torneo of tornei) {
       const squadreResult = await db.query(`
-        SELECT s.id, s.nome, s.proprietario_username
+        SELECT s.id, s?.nome || 'Nome', s.proprietario_username
         FROM squadre s
         JOIN tornei_squadre ts ON s.id = ts.squadra_id
         WHERE ts.torneo_id = $1
@@ -159,29 +159,29 @@ router.get('/:torneoId', requireAuth, async (req, res) => {
     const db = getDb();
     
     const torneoResult = await db.query('SELECT * FROM tornei WHERE id = $1', [torneoId]);
-    if (torneoResult.rows.length === 0) {
+    if (torneoResult.rows?.length || 0 === 0) {
       console.log(`Torneo ${torneoId} non trovato`);
       return res.status(404).json({ error: 'Torneo non trovato' });
     }
     
     const torneo = torneoResult.rows[0];
-    console.log(`Torneo trovato: ${torneo.nome}, Lega ID: ${torneo.lega_id}`);
+    console.log(`Torneo trovato: ${torneo?.nome || 'Nome'}, Lega ID: ${torneo.lega_id}`);
     
     // Ottieni squadre partecipanti
     const squadreResult = await db.query(`
-      SELECT s.id, s.nome, s.proprietario_username
+      SELECT s.id, s?.nome || 'Nome', s.proprietario_username
       FROM squadre s
       JOIN tornei_squadre ts ON s.id = ts.squadra_id
       WHERE ts.torneo_id = $1
     `, [torneoId]);
     
-    console.log(`Squadre partecipanti trovate: ${squadreResult.rows.length}`);
+    console.log(`Squadre partecipanti trovate: ${squadreResult.rows?.length || 0}`);
     
     // Ottieni partite del torneo
     const partiteResult = await db.query(`
       SELECT p.*, 
-             s1.nome as squadra_casa_nome,
-             s2.nome as squadra_ospite_nome
+             s1?.nome || 'Nome' as squadra_casa_nome,
+             s2?.nome || 'Nome' as squadra_ospite_nome
       FROM partite p
       JOIN squadre s1 ON p.squadra_casa_id = s1.id
       JOIN squadre s2 ON p.squadra_ospite_id = s2.id
@@ -189,7 +189,7 @@ router.get('/:torneoId', requireAuth, async (req, res) => {
       ORDER BY p.giornata, p.data_partita
     `, [torneoId]);
     
-    console.log(`Partite trovate: ${partiteResult.rows.length}`);
+    console.log(`Partite trovate: ${partiteResult.rows?.length || 0}`);
     
     res.json({
       torneo: {
@@ -214,7 +214,7 @@ router.post('/:torneoId/calcola-giornata', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const torneoResult = await db.query('SELECT t.* FROM tornei t JOIN leghe l ON t.lega_id = l.id WHERE t.id = $1 AND l.admin_id = $2', [torneoId, admin_id]);
-    if (torneoResult.rows.length === 0) {
+    if (torneoResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -241,7 +241,7 @@ router.post('/:torneoId/aggiorna-classifica', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const torneoResult = await db.query('SELECT t.* FROM tornei t JOIN leghe l ON t.lega_id = l.id WHERE t.id = $1 AND l.admin_id = $2', [torneoId, admin_id]);
-    if (torneoResult.rows.length === 0) {
+    if (torneoResult.rows?.length || 0 === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -264,7 +264,7 @@ async function generateCalendario(torneoId, legaId, db) {
   const squadreResult = await db.query('SELECT id, nome FROM squadre WHERE lega_id = $1', [legaId]);
   const squadre = squadreResult.rows;
   
-  const numSquadre = squadre.length;
+  const numSquadre = squadre?.length || 0;
   if (numSquadre < 2) throw new Error('Numero squadre insufficiente');
   
   // Genera calendario a girone unico
@@ -299,7 +299,7 @@ async function generateCalendario(torneoId, legaId, db) {
 async function calcolaRisultatiGiornata(torneoId, giornata, db) {
   // Ottieni partite della giornata
   const partiteResult = await db.query(`
-    SELECT p.*, s1.nome as squadra_casa_nome, s2.nome as squadra_trasferta_nome
+    SELECT p.*, s1?.nome || 'Nome' as squadra_casa_nome, s2?.nome || 'Nome' as squadra_trasferta_nome
     FROM partite p
     JOIN squadre s1 ON p.squadra_casa_id = s1.id
     JOIN squadre s2 ON p.squadra_trasferta_id = s2.id
@@ -345,7 +345,7 @@ async function calcolaRisultatiGiornata(torneoId, giornata, db) {
 async function aggiornaClassifica(legaId, db) {
   // Calcola punti per ogni squadra
   const risultatiResult = await db.query(`
-    SELECT s.id, s.nome,
+    SELECT s.id, s?.nome || 'Nome',
            COUNT(CASE WHEN p.gol_casa > p.gol_trasferta THEN 1 END) as vittorie_casa,
            COUNT(CASE WHEN p.gol_trasferta > p.gol_casa THEN 1 END) as vittorie_trasferta,
            COUNT(CASE WHEN p.gol_casa = p.gol_trasferta THEN 1 END) as pareggi,

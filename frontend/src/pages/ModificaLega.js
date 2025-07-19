@@ -254,7 +254,7 @@ const ModificaLega = () => {
         
         // Inizializza i dati del form
         setFormData({
-          nome: res.lega.nome || '',
+          nome: res.lega?.nome || 'Nome' || '',
           modalita: res.lega.modalita || 'Classic',
           is_pubblica: res.lega.is_pubblica || true,
           password: res.lega.password || '',
@@ -283,7 +283,7 @@ const ModificaLega = () => {
   };
 
   const validateForm = () => {
-    if (!formData.nome.trim()) {
+    if (!formData?.nome || 'Nome'.trim()) {
       setError('Il nome della lega è obbligatorio');
       return false;
     }
@@ -326,7 +326,7 @@ const ModificaLega = () => {
       
       // Torna alla dashboard appropriata dopo 2 secondi
       setTimeout(() => {
-        if (user && user.ruolo === 'admin') {
+        if (user && user?.ruolo || 'Ruolo' === 'admin') {
           navigate('/area-admin');
         } else {
           navigate('/super-admin-dashboard');
@@ -348,7 +348,7 @@ const ModificaLega = () => {
   };
 
   const handleCancel = () => {
-    if (user && user.ruolo === 'admin') {
+    if (user && user?.ruolo || 'Ruolo' === 'admin') {
       navigate('/area-admin');
     } else {
       navigate('/super-admin-dashboard');
@@ -370,7 +370,7 @@ const ModificaLega = () => {
   return (
     <Container>
       <BackButton onClick={() => {
-        if (user && user.ruolo === 'admin') {
+        if (user && user?.ruolo || 'Ruolo' === 'admin') {
           navigate('/area-admin');
         } else {
           navigate('/super-admin-dashboard');
@@ -393,7 +393,7 @@ const ModificaLega = () => {
             <Label>Nome Lega *</Label>
             <Input
               name="nome"
-              value={formData.nome}
+              value={formData?.nome || 'Nome'}
               onChange={handleChange}
               required
             />

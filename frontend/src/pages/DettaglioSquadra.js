@@ -479,8 +479,8 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
       : ['P', 'Por', 'D', 'Dc', 'B', 'Dd', 'Ds', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc']; // Classic
     
     return [...players].sort((a, b) => {
-      const roleA = a.ruolo || '';
-      const roleB = b.ruolo || '';
+      const roleA = a?.ruolo || 'Ruolo' || '';
+      const roleB = b?.ruolo || 'Ruolo' || '';
       
       // Per Euroleghe Mantra, mappa i ruoli complessi ai ruoli base
       let mappedRoleA = roleA;
@@ -554,8 +554,8 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
       
       switch (sortConfig.key) {
         case 'nome':
-          aValue = `${a.nome} ${a.cognome}`.toLowerCase();
-          bValue = `${b.nome} ${b.cognome}`.toLowerCase();
+          aValue = `${a?.nome || 'Nome'} ${a?.cognome || ''}`.toLowerCase();
+          bValue = `${b?.nome || 'Nome'} ${b?.cognome || ''}`.toLowerCase();
           break;
         case 'ruolo':
           // Per l'ordinamento per ruolo, usa la logica speciale
@@ -564,8 +564,8 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
             ? ['P', 'Por', 'D', 'Dc', 'B', 'Dd', 'Ds', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc']
             : ['P', 'Por', 'D', 'Dc', 'B', 'Dd', 'Ds', 'E', 'M', 'C', 'T', 'W', 'A', 'Pc'];
           
-          const roleA = a.ruolo || '';
-          const roleB = b.ruolo || '';
+          const roleA = a?.ruolo || 'Ruolo' || '';
+          const roleB = b?.ruolo || 'Ruolo' || '';
           
           // Per Euroleghe Mantra, mappa i ruoli complessi ai ruoli base
           let mappedRoleA = roleA;
@@ -706,13 +706,13 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
     if (!user || !lega || !squadra) return false;
     
     // Superadmin può modificare tutto
-    if (user.ruolo === 'superadmin') return true;
+    if (user?.ruolo || 'Ruolo' === 'superadmin') return true;
     
     // Admin della lega può modificare le squadre della sua lega
-    if (user.ruolo === 'admin' && lega.admin_id === user.id) return true;
+    if (user?.ruolo || 'Ruolo' === 'admin' && lega.admin_id === user.id) return true;
     
     // Subadmin può modificare (assumendo che i subadmin abbiano permessi di modifica)
-    if (user.ruolo === 'subadmin') return true;
+    if (user?.ruolo || 'Ruolo' === 'subadmin') return true;
     
     return false;
   };
@@ -771,10 +771,10 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
               fontWeight: '700',
               border: '2px solid #e5e5e7'
             }}>
-              {squadra.nome.charAt(0).toUpperCase()}
+              {squadra?.nome || 'Nome'.charAt(0).toUpperCase()}
             </div>
           )}
-          <TeamTitle>{squadra.nome}</TeamTitle>
+          <TeamTitle>{squadra?.nome || 'Nome'}</TeamTitle>
         </div>
         
         <TeamInfo>
@@ -962,7 +962,7 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
           </button>
         </div>
         
-        {!squadra.giocatori || squadra.giocatori.length === 0 ? (
+        {!squadra.giocatori || squadra.giocatori?.length || 0 === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#86868b' }}>
             Nessun giocatore in questa squadra
           </div>
@@ -1038,12 +1038,12 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
                   >
                     <TableCell>
                       <ViewButton to={`/giocatore/${giocatore.id}`}>
-                        {giocatore.nome} {giocatore.cognome}
+                        {giocatore?.nome || 'Nome'} {giocatore?.cognome || ''}
                       </ViewButton>
                     </TableCell>
                     <TableCell>
                       <PlayerRole>
-                        {splitRoles(giocatore.ruolo).map((ruolo, index) => (
+                        {splitRoles(giocatore?.ruolo || 'Ruolo').map((ruolo, index) => (
                           <span key={index} className={`ruolo-badge ${getRoleClass(ruolo)}`}>
                             {ruolo}
                           </span>

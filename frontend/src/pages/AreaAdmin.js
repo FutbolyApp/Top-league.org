@@ -503,9 +503,9 @@ const AreaAdmin = () => {
       
       // Carica pending per ogni lega
       const pendingCountsObj = {};
-      if (leghe && leghe.length > 0) {
+      if (leghe && leghe?.length || 0 > 0) {
         await Promise.all(
-          leghe.map(async (lega) => {
+          leghe?.map(async (lega) => {
             try {
               const res = await getPendingChangesByLega(lega.id, token);
               pendingCountsObj[lega.id] = (res.changes || []).length;
@@ -680,16 +680,16 @@ const AreaAdmin = () => {
       // Gestisci i costi dimezzati per le richieste cantera
       if (data.costi_dimezzati && typeof data.costi_dimezzati === 'object') {
         const costiEntries = Object.entries(data.costi_dimezzati);
-        if (costiEntries.length > 0) {
-          details.push(`Giocatori Selezionati: ${data.giocatori_selezionati ? data.giocatori_selezionati.length : 0}`);
-          details.push(`Costi Dimezzati: ${costiEntries.length} giocatori`);
+        if (costiEntries?.length || 0 > 0) {
+          details.push(`Giocatori Selezionati: ${data.giocatori_selezionati ? data.giocatori_selezionati?.length || 0 : 0}`);
+          details.push(`Costi Dimezzati: ${costiEntries?.length || 0} giocatori`);
           
           // Aggiungi dettagli completi per ogni giocatore se disponibili
           if (data.dettagli_giocatori && typeof data.dettagli_giocatori === 'object') {
             Object.entries(data.dettagli_giocatori).forEach(([giocatoreId, dettagli]) => {
-              details.push(`  • ${dettagli.nome} ${dettagli.cognome} (${dettagli.ruolo})`);
+              details.push(`  • ${dettagli?.nome || 'Nome'} ${dettagli?.cognome || ''} (${dettagli?.ruolo || 'Ruolo'})`);
               details.push(`    Squadra Reale: ${dettagli.squadra_reale}`);
-              details.push(`    QA: ${dettagli.qa}`);
+              details.push(`    QA: ${dettagli?.qa || 0}`);
               details.push(`    QI: ${dettagli.qi}`);
               details.push(`    Ingaggio Attuale: ${dettagli.costo_attuale} FM`);
               details.push(`    Ingaggio Cantera: ${dettagli.costo_dimezzato} FM`);
@@ -709,7 +709,7 @@ const AreaAdmin = () => {
       }
       
       // Se non abbiamo mappato nessun campo specifico, mostra tutti i campi
-      if (details.length === 0) {
+      if (details?.length || 0 === 0) {
         Object.entries(data).forEach(([key, value]) => {
           const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
           if (typeof value === 'object' && value !== null) {
@@ -740,9 +740,9 @@ const AreaAdmin = () => {
   };
 
   // Calcola statistiche
-  const totalLeghe = leghe.length;
-  const totalSquadre = leghe.reduce((sum, lega) => sum + (lega.squadre_assegnate || 0), 0);
-  const totalRichieste = richieste.length;
+  const totalLeghe = leghe?.length || 0;
+  const totalSquadre = leghe?.reduce((sum, lega) => sum + (lega.squadre_assegnate || 0), 0);
+  const totalRichieste = richieste?.length || 0;
 
   if (loading) {
     return (
@@ -775,7 +775,7 @@ const AreaAdmin = () => {
             <StatLabel>Squadre Assegnate</StatLabel>
           </StatCard>
           <StatCard>
-            <StatNumber $color="#f59e0b">{leghe.reduce((sum, lega) => sum + (lega.numero_tornei || 0), 0)}</StatNumber>
+            <StatNumber $color="#f59e0b">{leghe?.reduce((sum, lega) => sum + (lega.numero_tornei || 0), 0)}</StatNumber>
             <StatLabel>Tornei Totali</StatLabel>
           </StatCard>
           <StatCard>
@@ -794,7 +794,7 @@ const AreaAdmin = () => {
               </SectionTitle>
             </SectionHeader>
             
-            {leghe.length === 0 ? (
+            {leghe?.length || 0 === 0 ? (
               <EmptyState>
                 <EmptyIcon>🏆</EmptyIcon>
                 <EmptyTitle>Nessuna lega amministrata</EmptyTitle>
@@ -816,7 +816,7 @@ const AreaAdmin = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {leghe.map(lega => (
+                  {leghe?.map(lega => (
                     <Tr key={lega.id}>
                       <Td>
                         <div 
@@ -831,7 +831,7 @@ const AreaAdmin = () => {
                           onMouseEnter={(e) => e.target.style.color = '#d97706'}
                           onMouseLeave={(e) => e.target.style.color = '#f59e0b'}
                         >
-                          {lega.nome}
+                          {lega?.nome || 'Nome'}
                         </div>
                       </Td>
                       <Td>
@@ -936,7 +936,7 @@ const AreaAdmin = () => {
               </SectionTitle>
             </SectionHeader>
             
-            {richieste.length === 0 ? (
+            {richieste?.length || 0 === 0 ? (
               <EmptyState>
                 <EmptyIcon>📭</EmptyIcon>
                 <EmptyTitle>Nessuna richiesta</EmptyTitle>
@@ -945,7 +945,7 @@ const AreaAdmin = () => {
             ) : (
               <div>
                 {/* Mostra solo le prime 3 richieste */}
-                {displayedRequests.map(richiesta => {
+                {displayedRequests?.map(richiesta => {
                   const status = getRequestStatus(richiesta);
                   const isAnswered = richiesta.stato !== 'pending';
                   
@@ -998,10 +998,10 @@ const AreaAdmin = () => {
                 })}
                 
                 {/* Pulsante "MOSTRA ALTRO" se ci sono più di 3 richieste */}
-                {richieste.length > 3 && (
+                {richieste?.length || 0 > 3 && (
                   <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                     <ShowMoreButton onClick={() => setShowAllRequestsModal(true)}>
-                      MOSTRA ALTRO ({richieste.length - 3} rimanenti)
+                      MOSTRA ALTRO ({richieste?.length || 0 - 3} rimanenti)
                     </ShowMoreButton>
                   </div>
                 )}
@@ -1024,7 +1024,7 @@ const AreaAdmin = () => {
               </p>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
-                {leghe.map(lega => (
+                {leghe?.map(lega => (
                   <div key={lega.id} style={{ 
                     background: '#f8fafc', 
                     border: '1px solid #e2e8f0', 
@@ -1038,7 +1038,7 @@ const AreaAdmin = () => {
                   onMouseLeave={(e) => e.target.style.background = '#f8fafc'}
                   >
                     <div style={{ fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>
-                      {lega.nome}
+                      {lega?.nome || 'Nome'}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
                       {lega.squadre_assegnate || 0} squadre • {lega.numero_tornei || 0} tornei
@@ -1117,7 +1117,7 @@ const AreaAdmin = () => {
               })}
               
               {/* Paginazione */}
-              {richieste.length > requestsPerPage && (
+              {richieste?.length || 0 > requestsPerPage && (
                 <PaginationContainer>
                   <PaginationButton
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
@@ -1127,12 +1127,12 @@ const AreaAdmin = () => {
                   </PaginationButton>
                   
                   <span style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                    Pagina {currentPage} di {Math.ceil(richieste.length / requestsPerPage)}
+                    Pagina {currentPage} di {Math.ceil(richieste?.length || 0 / requestsPerPage)}
                   </span>
                   
                   <PaginationButton
-                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(richieste.length / requestsPerPage), prev + 1))}
-                    disabled={currentPage === Math.ceil(richieste.length / requestsPerPage)}
+                    onClick={() => setCurrentPage(prev => Math.min(Math.ceil(richieste?.length || 0 / requestsPerPage), prev + 1))}
+                    disabled={currentPage === Math.ceil(richieste?.length || 0 / requestsPerPage)}
                   >
                     Successiva →
                   </PaginationButton>

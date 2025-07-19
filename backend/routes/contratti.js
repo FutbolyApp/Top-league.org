@@ -21,7 +21,7 @@ router.post('/paga/:giocatoreId', requireAuth, async (req, res) => {
       [giocatoreId]
     );
 
-    if (giocatoreResult.rows.length === 0) {
+    if (giocatoreResult.rows?.length || 0 === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato' });
     }
 
@@ -64,14 +64,14 @@ router.post('/paga/:giocatoreId', requireAuth, async (req, res) => {
       valore_prima: giocatore.casse_societarie,
       valore_dopo: nuoveCasse,
       importo: giocatore.costo_attuale,
-      note: `Pagamento contratto ${giocatore.nome}`
+      note: `Pagamento contratto ${giocatore?.nome || 'Nome'}`
     });
 
     // 7. Crea notifica
     await db.query(
       `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
        VALUES ($1, 'pagamento_contratto', $2, NOW())`,
-      [giocatore.proprietario_id, `Contratto pagato per ${giocatore.nome} - FM ${giocatore.costo_attuale}`]
+      [giocatore.proprietario_id, `Contratto pagato per ${giocatore?.nome || 'Nome'} - FM ${giocatore.costo_attuale}`]
     );
 
     res.json({ 
@@ -93,31 +93,31 @@ router.post('/paga-multipli', requireAuth, async (req, res) => {
     const userId = req.user.id;
     const db = getDb();
 
-    if (!giocatoriIds || !Array.isArray(giocatoriIds) || giocatoriIds.length === 0) {
+    if (!giocatoriIds || !Array.isArray(giocatoriIds) || giocatoriIds?.length || 0 === 0) {
       return res.status(400).json({ error: 'Lista giocatori non valida' });
     }
 
     // 1. Ottieni tutte le squadre dell'utente
     const squadreResult = await db.query(
-      `SELECT s.id as squadra_id, s.casse_societarie, s.proprietario_id, s.nome
+      `SELECT s.id as squadra_id, s.casse_societarie, s.proprietario_id, s?.nome || 'Nome'
        FROM squadre s 
        WHERE s.proprietario_id = $1`,
       [userId]
     );
 
-    if (squadreResult.rows.length === 0) {
+    if (squadreResult.rows?.length || 0 === 0) {
       return res.status(404).json({ error: 'Nessuna squadra trovata' });
     }
 
     const squadre = squadreResult.rows;
 
     // 2. Ottieni tutti i giocatori e calcola il totale
-    const placeholders = giocatoriIds.map((_, index) => `$${index + 1}`).join(',');
-    const squadraIds = squadre.map(s => s.id);
-    const squadraPlaceholders = squadraIds.map((_, index) => `$${giocatoriIds.length + index + 1}`).join(',');
+    const placeholders = giocatoriIds?.map((_, index) => `$${index + 1}`).join(',');
+    const squadraIds = squadre?.map(s => s.id);
+    const squadraPlaceholders = squadraIds?.map((_, index) => `$${giocatoriIds?.length || 0 + index + 1}`).join(',');
     
     const giocatoriResult = await db.query(
-      `SELECT g.*, s.casse_societarie, s.nome as squadra_nome 
+      `SELECT g.*, s.casse_societarie, s?.nome || 'Nome' as squadra_nome 
        FROM giocatori g 
        JOIN squadre s ON g.squadra_id = s.id
        WHERE g.id IN (${placeholders}) AND g.squadra_id IN (${squadraPlaceholders})`,
@@ -125,14 +125,14 @@ router.post('/paga-multipli', requireAuth, async (req, res) => {
     );
 
     const giocatori = giocatoriResult.rows;
-    if (giocatori.length !== giocatoriIds.length) {
+    if (giocatori?.length || 0 !== giocatoriIds?.length || 0) {
       return res.status(400).json({ error: 'Alcuni giocatori non appartengono alla tua squadra' });
     }
 
     // 3. Verifica che nessun giocatore sia in Roster B
-    const giocatoriInRosterB = giocatori.filter(g => g.roster === 'B');
-    if (giocatoriInRosterB.length > 0) {
-      const nomiGiocatori = giocatoriInRosterB.map(g => `${g.nome} ${g.cognome || ''}`).join(', ');
+    const giocatoriInRosterB = giocatori?.filter(g => g.roster === 'B');
+    if (giocatoriInRosterB?.length || 0 > 0) {
+      const nomiGiocatori = giocatoriInRosterB?.map(g => `${g?.nome || 'Nome'} ${g?.cognome || '' || ''}`).join(', ');
       return res.status(400).json({ 
         error: `Non puoi pagare contratti per giocatori in Roster B: ${nomiGiocatori}` 
       });
@@ -175,7 +175,7 @@ router.post('/paga-multipli', requireAuth, async (req, res) => {
     }
 
     // 7. Aggiorna timestamp e anni contratto per tutti i giocatori
-    const giocatoriPlaceholders = giocatoriIds.map((_, index) => `$${index + 1}`).join(',');
+    const giocatoriPlaceholders = giocatoriIds?.map((_, index) => `$${index + 1}`).join(',');
     await db.query(
       `UPDATE giocatori 
        SET ultimo_pagamento_contratto = NOW(),
@@ -196,21 +196,21 @@ router.post('/paga-multipli', requireAuth, async (req, res) => {
         valore_prima: giocatore.casse_societarie,
         valore_dopo: giocatore.casse_societarie - giocatore.costo_attuale,
         importo: giocatore.costo_attuale,
-        note: `Pagamento contratto ${giocatore.nome}`
+        note: `Pagamento contratto ${giocatore?.nome || 'Nome'}`
       });
     }
 
     // 9. Crea notifica
-    const totalePagato = giocatori.reduce((sum, g) => sum + (g.costo_attuale || 0), 0);
+    const totalePagato = giocatori?.reduce((sum, g) => sum + (g.costo_attuale || 0), 0);
     await db.query(
       `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
        VALUES ($1, 'pagamento_contratti_multipli', $2, NOW())`,
-      [userId, `Pagati contratti per ${giocatori.length} giocatori - Totale: FM ${totalePagato}`]
+      [userId, `Pagati contratti per ${giocatori?.length || 0} giocatori - Totale: FM ${totalePagato}`]
     );
 
     res.json({ 
       success: true, 
-      message: `Pagati contratti per ${giocatori.length} giocatori`,
+      message: `Pagati contratti per ${giocatori?.length || 0} giocatori`,
       totale_pagato: totalePagato,
       timestamp: new Date().toISOString()
     });
@@ -241,7 +241,7 @@ router.post('/rinnova/:giocatoreId', requireAuth, async (req, res) => {
       [giocatoreId]
     );
 
-    if (giocatoreResult.rows.length === 0) {
+    if (giocatoreResult.rows?.length || 0 === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato' });
     }
 
@@ -283,14 +283,14 @@ router.post('/rinnova/:giocatoreId', requireAuth, async (req, res) => {
       valore_prima: giocatore.casse_societarie,
       valore_dopo: nuoveCasse,
       importo: giocatore.quotazione_attuale,
-      note: `Rinnovo contratto ${giocatore.nome} per ${anniRinnovo} anni`
+      note: `Rinnovo contratto ${giocatore?.nome || 'Nome'} per ${anniRinnovo} anni`
     });
 
     // 7. Crea notifica per il rinnovo
     await db.query(
       `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
        VALUES ($1, 'rinnovo_contratto', $2, NOW())`,
-      [giocatore.proprietario_id, `Contratto rinnovato per ${giocatore.nome} - ${anniRinnovo} anni - FM ${giocatore.quotazione_attuale}`]
+      [giocatore.proprietario_id, `Contratto rinnovato per ${giocatore?.nome || 'Nome'} - ${anniRinnovo} anni - FM ${giocatore.quotazione_attuale}`]
     );
 
     res.json({ 
@@ -324,7 +324,7 @@ router.post('/impostazioni/:giocatoreId', requireAuth, async (req, res) => {
       [giocatoreId, userId]
     );
 
-    if (giocatoreResult.rows.length === 0) {
+    if (giocatoreResult.rows?.length || 0 === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato o non autorizzato' });
     }
 
@@ -354,7 +354,7 @@ router.post('/impostazioni/:giocatoreId', requireAuth, async (req, res) => {
     const updateValues = Object.values(updateData);
 
     await db.query(
-      `UPDATE giocatori SET ${updateFields} WHERE id = $${updateValues.length + 1}`,
+      `UPDATE giocatori SET ${updateFields} WHERE id = $${updateValues?.length || 0 + 1}`,
       [...updateValues, giocatoreId]
     );
 

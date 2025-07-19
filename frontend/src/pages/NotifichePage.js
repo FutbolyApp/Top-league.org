@@ -539,10 +539,10 @@ const NotifichePage = () => {
         const data = response.data;
         const notifiche = data.notifiche || [];
         
-        console.log('📋 Found notifications:', notifiche.length);
+        console.log('📋 Found notifications:', notifiche?.length || 0);
         
         // Normalizza le notifiche per gestire entrambi i campi (letta e letto)
-        const notificheNormalizzate = notifiche.map(n => {
+        const notificheNormalizzate = notifiche?.map(n => {
           let dati_aggiuntivi = {};
           
           if (n.dati_aggiuntivi) {
@@ -601,10 +601,10 @@ const NotifichePage = () => {
       await api.put(`/notifiche/${notificationId}/letta`, {}, token);
       
       setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, letta: true, letto: 1 } : n)
+        prev?.map(n => n.id === notificationId ? { ...n, letta: true, letto: 1 } : n)
       );
       setDisplayedNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, letta: true, letto: 1 } : n)
+        prev?.map(n => n.id === notificationId ? { ...n, letta: true, letto: 1 } : n)
       );
     } catch (error) {
       console.error('Errore marcatura notifica come letta:', error);
@@ -616,10 +616,10 @@ const NotifichePage = () => {
       await api.put('/notifiche/tutte-lette', {}, token);
       
       setNotifications(prev => 
-        prev.map(n => ({ ...n, letta: true, letto: 1 }))
+        prev?.map(n => ({ ...n, letta: true, letto: 1 }))
       );
       setDisplayedNotifications(prev => 
-        prev.map(n => ({ ...n, letta: true, letto: 1 }))
+        prev?.map(n => ({ ...n, letta: true, letto: 1 }))
       );
     } catch (error) {
       console.error('Errore marcatura tutte notifiche come lette:', error);
@@ -743,16 +743,16 @@ const NotifichePage = () => {
         
         if (dati.costi_dimezzati && typeof dati.costi_dimezzati === 'object') {
           const costiEntries = Object.entries(dati.costi_dimezzati);
-          if (costiEntries.length > 0) {
-            details.push(`Giocatori Selezionati: ${dati.giocatori_selezionati ? dati.giocatori_selezionati.length : 0}`);
-            details.push(`Costi Dimezzati: ${costiEntries.length} giocatori`);
+          if (costiEntries?.length || 0 > 0) {
+            details.push(`Giocatori Selezionati: ${dati.giocatori_selezionati ? dati.giocatori_selezionati?.length || 0 : 0}`);
+            details.push(`Costi Dimezzati: ${costiEntries?.length || 0} giocatori`);
             
             // Aggiungi dettagli completi per ogni giocatore se disponibili
             if (dati.dettagli_giocatori && typeof dati.dettagli_giocatori === 'object') {
               Object.entries(dati.dettagli_giocatori).forEach(([giocatoreId, dettagli]) => {
-                details.push(`  • ${dettagli.nome} ${dettagli.cognome} (${dettagli.ruolo})`);
+                details.push(`  • ${dettagli?.nome || 'Nome'} ${dettagli?.cognome || ''} (${dettagli?.ruolo || 'Ruolo'})`);
                 details.push(`    Squadra Reale: ${dettagli.squadra_reale}`);
-                details.push(`    QA: ${dettagli.qa}`);
+                details.push(`    QA: ${dettagli?.qa || 0}`);
                 details.push(`    QI: ${dettagli.qi}`);
                 details.push(`    Ingaggio Attuale: ${dettagli.costo_attuale} FM`);
                 details.push(`    Ingaggio Cantera: ${dettagli.costo_dimezzato} FM`);
@@ -840,7 +840,7 @@ const NotifichePage = () => {
 
   // Filtra le notifiche in base ai filtri selezionati
   const filteredNotifications = useMemo(() => {
-    return notifications.filter(notification => {
+    return notifications?.filter(notification => {
       // Filtro per tipo
       if (filter === 'tutte') {
         // Continua con altri filtri
@@ -877,8 +877,8 @@ const NotifichePage = () => {
     setCurrentPage(1);
   }, [filteredNotifications, notificationsPerPage]);
 
-  const unreadCount = notifications.filter(n => !n.letta).length;
-  const readCount = notifications.filter(n => n.letta).length;
+  const unreadCount = notifications?.filter(n => !n.letta).length;
+  const readCount = notifications?.filter(n => n.letta).length;
 
   const handleLoadMore = () => {
     const nextPage = currentPage + 1;
@@ -959,7 +959,7 @@ const NotifichePage = () => {
         
         // Aggiorna la notifica locale per riflettere il nuovo stato
         setNotifications(prev => 
-          prev.map(n => 
+          prev?.map(n => 
             n.id === selectedMarketNotification.id 
               ? { ...n, messaggio: n.messaggio + ` - ${action.toUpperCase()}` }
               : n
@@ -1000,9 +1000,9 @@ const NotifichePage = () => {
     setArchivingNotifications(true);
     try {
       // Ottieni le notifiche filtrate attuali
-      const notificaIds = filteredNotifications.map(n => n.id);
+      const notificaIds = filteredNotifications?.map(n => n.id);
       
-      if (notificaIds.length === 0) {
+      if (notificaIds?.length || 0 === 0) {
         alert('Nessuna notifica da archiviare');
         return;
       }
@@ -1138,25 +1138,25 @@ const NotifichePage = () => {
           <option value="admin">Richieste Admin</option>
         </FilterSelect>
 
-        {userLeagues.length > 0 && (
+        {userLeagues?.length || 0 > 0 && (
           <FilterSelect value={selectedLeague} onChange={(e) => setSelectedLeague(e.target.value)}>
             <option value="">Tutte le leghe</option>
-            {userLeagues.map(league => (
-              <option key={league.id} value={league.id}>{league.nome}</option>
+            {userLeagues?.map(league => (
+              <option key={league.id} value={league.id}>{league?.nome || 'Nome'}</option>
             ))}
           </FilterSelect>
         )}
 
-        {months.length > 1 && (
+        {months?.length || 0 > 1 && (
           <DateFilterContainer>
             <FilterSelect value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-              {months.map(month => (
+              {months?.map(month => (
                 <option key={month.value} value={month.value}>{month.label}</option>
               ))}
             </FilterSelect>
             
             <FilterSelect value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-              {years.map(year => (
+              {years?.map(year => (
                 <option key={year.value} value={year.value}>{year.label}</option>
               ))}
             </FilterSelect>
@@ -1174,7 +1174,7 @@ const NotifichePage = () => {
         </ActionButton>
       </FilterContainer>
 
-      {filteredNotifications.length === 0 ? (
+      {filteredNotifications?.length || 0 === 0 ? (
         <EmptyState>
           <EmptyIcon>📭</EmptyIcon>
           <EmptyTitle>Nessuna notifica trovata</EmptyTitle>
@@ -1182,7 +1182,7 @@ const NotifichePage = () => {
         </EmptyState>
       ) : (
         <>
-          {displayedNotifications.map(notification => (
+          {displayedNotifications?.map(notification => (
             <NotificationCard 
               key={notification.id} 
               $type={notification.letta ? 'read' : 'unread'}
@@ -1239,9 +1239,9 @@ const NotifichePage = () => {
             </NotificationCard>
           ))}
 
-          {displayedNotifications.length < filteredNotifications.length && (
+          {displayedNotifications?.length || 0 < filteredNotifications?.length || 0 && (
             <LoadMoreButton onClick={handleLoadMore}>
-              Mostra di più ({filteredNotifications.length - displayedNotifications.length} rimanenti)
+              Mostra di più ({filteredNotifications?.length || 0 - displayedNotifications?.length || 0} rimanenti)
             </LoadMoreButton>
           )}
         </>
@@ -1394,7 +1394,7 @@ const NotifichePage = () => {
             <MarketModalBody>
               <p>Sei sicuro di voler archiviare queste notifiche?</p>
               <p><strong>Attenzione:</strong> Questa azione non può essere annullata.</p>
-              <p>Verranno archiviate <strong>{filteredNotifications.length}</strong> notifiche.</p>
+              <p>Verranno archiviate <strong>{filteredNotifications?.length || 0}</strong> notifiche.</p>
             </MarketModalBody>
             
             <MarketModalFooter>

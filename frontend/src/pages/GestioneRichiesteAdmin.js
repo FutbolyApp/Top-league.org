@@ -258,7 +258,7 @@ const GestioneRichiesteAdmin = () => {
                 const giocatore = richiesta.giocatori?.find(gioc => gioc.id === id);
                 return (
                   <li key={id}>
-                    {giocatore ? `${giocatore.nome} ${giocatore.cognome}` : `ID: ${id}`}
+                    {giocatore ? `${giocatore?.nome || 'Nome'} ${giocatore?.cognome || ''}` : `ID: ${id}`}
                   </li>
                 );
               })}
@@ -385,13 +385,13 @@ const GestioneRichiesteAdmin = () => {
     <Container>
       <Title>Gestione Richieste Admin</Title>
 
-      {richieste.length === 0 ? (
+      {richieste?.length || 0 === 0 ? (
         <EmptyState>
           <h3>Nessuna richiesta in attesa</h3>
           <p>Non ci sono richieste pendenti per questa lega.</p>
         </EmptyState>
       ) : (
-        richieste.map(richiesta => (
+        richieste?.map(richiesta => (
           <RequestCard key={richiesta.id}>
             <RequestHeader>
               <RequestTitle>

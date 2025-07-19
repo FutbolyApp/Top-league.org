@@ -302,8 +302,8 @@ const ModificaGiocatoreCompleta = () => {
         const giocatoreRes = await getGiocatoreById(id, token);
         setGiocatore(giocatoreRes.giocatore);
         setFormData({
-          nome: giocatoreRes.giocatore.nome || '',
-          ruoli: giocatoreRes.giocatore.ruolo ? giocatoreRes.giocatore.ruolo.split(';').map(r => r.trim()).filter(Boolean) : [],
+          nome: giocatoreRes.giocatore?.nome || 'Nome' || '',
+          ruoli: giocatoreRes.giocatore?.ruolo || 'Ruolo' ? giocatoreRes.giocatore?.ruolo || 'Ruolo'.split(';').map(r => r.trim()).filter(Boolean) : [],
           squadra_reale: giocatoreRes.giocatore.squadra_reale || '',
           costo_attuale: giocatoreRes.giocatore.costo_attuale || 0,
           valore_mercato: giocatoreRes.giocatore.valore_mercato || 0,
@@ -332,7 +332,7 @@ const ModificaGiocatoreCompleta = () => {
     setFormData(prev => {
       const currentRoles = prev.ruoli || [];
       const newRoles = currentRoles.includes(ruolo)
-        ? currentRoles.filter(r => r !== ruolo)
+        ? currentRoles?.filter(r => r !== ruolo)
         : [...currentRoles, ruolo];
       return { ...prev, ruoli: newRoles };
     });
@@ -345,12 +345,12 @@ const ModificaGiocatoreCompleta = () => {
     setSubmitting(true);
 
     try {
-      if (!formData.nome.trim()) {
+      if (!formData?.nome || 'Nome'.trim()) {
         setError('Il nome del giocatore è obbligatorio');
         setSubmitting(false);
         return;
       }
-      if (!formData.ruoli || formData.ruoli.length === 0) {
+      if (!formData.ruoli || formData.ruoli?.length || 0 === 0) {
         setError('Seleziona almeno un ruolo');
         setSubmitting(false);
         return;
@@ -419,7 +419,7 @@ const ModificaGiocatoreCompleta = () => {
             <Label>Nome Completo *</Label>
             <Input
               name="nome"
-              value={formData.nome}
+              value={formData?.nome || 'Nome'}
               onChange={handleChange}
               placeholder="Inserisci il nome completo"
               required
@@ -429,7 +429,7 @@ const ModificaGiocatoreCompleta = () => {
                       <FormGroup>
               <Label>Ruoli *</Label>
               <RoleGrid>
-                {RUOLI_MANTRA.map(ruolo => (
+                {RUOLI_MANTRA?.map(ruolo => (
                   <RoleCheckbox
                     key={ruolo}
                     className={formData.ruoli?.includes(ruolo) ? 'selected' : ''}

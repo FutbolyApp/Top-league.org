@@ -18,11 +18,11 @@ router.get('/:giocatoreId', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT g.*, 
              g.quotazione_attuale,
-             s.nome as squadra_nome,
-             l.nome as lega_nome,
+             s?.nome || 'Nome' as squadra_nome,
+             l?.nome || 'Nome' as lega_nome,
              CASE 
-               WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-               ELSE u.nome 
+               WHEN u?.ruolo || 'Ruolo' = 'SuperAdmin' THEN 'Futboly'
+               ELSE u?.nome || 'Nome' 
              END as proprietario_nome
       FROM giocatori g 
       LEFT JOIN squadre s ON g.squadra_id = s.id
@@ -31,7 +31,7 @@ router.get('/:giocatoreId', requireAuth, async (req, res) => {
       WHERE g.id = $1
     `, [giocatoreId]);
     
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Giocatore non trovato' });
+    if (result.rows?.length || 0 === 0) return res.status(404).json({ error: 'Giocatore non trovato' });
     res.json({ giocatore: result.rows[0] });
   } catch (err) {
     console.error('Errore DB:', err);
@@ -51,7 +51,7 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT g.*, 
              g.quotazione_attuale,
-             sp.nome as squadra_prestito_nome
+             sp?.nome || 'Nome' as squadra_prestito_nome
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
       WHERE g.squadra_id = $1
@@ -66,7 +66,7 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
 // Rinnovo contratto per uno o più giocatori
 router.post('/rinnovo-contratto', requireAuth, (req, res) => {
   const { rinnovi } = req.body; // [{ giocatore_id, anni_contratto, nuovo_salario }]
-  if (!Array.isArray(rinnovi) || rinnovi.length === 0) return res.status(400).json({ error: 'Nessun rinnovo fornito' });
+  if (!Array.isArray(rinnovi) || rinnovi?.length || 0 === 0) return res.status(400).json({ error: 'Nessun rinnovo fornito' });
   let completati = 0;
   let errori = [];
   rinnovi.forEach(r => {
@@ -76,8 +76,8 @@ router.post('/rinnovo-contratto', requireAuth, (req, res) => {
     }, err => {
       if (err) errori.push({ giocatore_id: r.giocatore_id, error: err.message });
       completati++;
-      if (completati === rinnovi.length) {
-        if (errori.length > 0) return res.status(500).json({ error: 'Alcuni rinnovi falliti', dettagli: errori });
+      if (completati === rinnovi?.length || 0) {
+        if (errori?.length || 0 > 0) return res.status(500).json({ error: 'Alcuni rinnovi falliti', dettagli: errori });
         res.json({ success: true });
       }
     });
@@ -102,8 +102,8 @@ router.post('/batch', requireAuth, async (req, res) => {
       return res.status(503).json({ error: 'Database non disponibile' });
     }
     const { ids } = req.body;
-    if (!Array.isArray(ids) || ids.length === 0) return res.status(400).json({ error: 'Nessun ID fornito' });
-    const placeholders = ids.map((_, index) => `$${index + 1}`).join(',');
+    if (!Array.isArray(ids) || ids?.length || 0 === 0) return res.status(400).json({ error: 'Nessun ID fornito' });
+    const placeholders = ids?.map((_, index) => `$${index + 1}`).join(',');
     const result = await db.query(`
       SELECT *, 
              quotazione_attuale
@@ -127,7 +127,7 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT g.*, 
              g.quotazione_attuale,
-             sp.nome as squadra_prestito_nome
+             sp?.nome || 'Nome' as squadra_prestito_nome
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
       JOIN squadre s ON g.squadra_id = s.id
@@ -148,7 +148,7 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(503).json({ error: 'Database non disponibile' });
     }
     const utenteId = req.user.id;
-    const userRole = req.user.ruolo;
+    const userRole = req.user?.ruolo || 'Ruolo';
     const giocatoreData = req.body;
 
     // Verifica permessi
@@ -175,7 +175,7 @@ router.post('/', requireAuth, async (req, res) => {
     }
     
     // Validazioni
-    if (!giocatoreData.nome || !giocatoreData.ruolo) {
+    if (!giocatoreData?.nome || 'Nome' || !giocatoreData?.ruolo || 'Ruolo') {
       return res.status(400).json({ error: 'Nome e ruolo sono obbligatori' });
     }
     
@@ -197,7 +197,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     }
     const giocatoreId = req.params.id;
     const utenteId = req.user.id;
-    const userRole = req.user.ruolo;
+    const userRole = req.user?.ruolo || 'Ruolo';
     const updateData = req.body;
 
     // Verifica permessi
@@ -264,7 +264,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     }
     const giocatoreId = req.params.id;
     const utenteId = req.user.id;
-    const userRole = req.user.ruolo;
+    const userRole = req.user?.ruolo || 'Ruolo';
 
     // Verifica permessi
     const canDelete = async () => {
@@ -310,7 +310,7 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
     }
     const giocatoreId = req.params.id;
     const utenteId = req.user.id;
-    const userRole = req.user.ruolo;
+    const userRole = req.user?.ruolo || 'Ruolo';
     const { squadra_destinazione_id, costo, ingaggio, anni_contratto } = req.body;
 
     // Validazioni
@@ -450,8 +450,8 @@ router.get('/:id/qa-history', requireAuth, async (req, res) => {
     `, [giocatoreId]);
     
     // Formatta le date per il frontend
-    const history = result.rows.map(row => ({
-      qa_value: row.qa_value,
+    const history = result.rows?.map(row => ({
+      qa_value: row?.qa || 0_value,
       data_registrazione: row.data_registrazione,
       fonte: row.fonte
     }));

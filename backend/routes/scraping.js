@@ -553,7 +553,7 @@ router.get('/debug-credentials/:leagueId', requireAuth, async (req, res) => {
 
         console.log('🔍 DEBUG: Credenziali trovate:', {
             id: lega.id,
-            nome: lega.nome,
+            nome: lega?.nome || 'Nome',
             username: lega.fantacalcio_username,
             password: lega.fantacalcio_password ? '***' : 'NON IMPOSTATA',
             hasPassword: !!lega.fantacalcio_password
@@ -563,10 +563,10 @@ router.get('/debug-credentials/:leagueId', requireAuth, async (req, res) => {
             success: true,
             data: {
                 leagueId: lega.id,
-                leagueName: lega.nome,
+                leagueName: lega?.nome || 'Nome',
                 username: lega.fantacalcio_username,
                 hasPassword: !!lega.fantacalcio_password,
-                passwordLength: lega.fantacalcio_password ? lega.fantacalcio_password.length : 0
+                passwordLength: lega.fantacalcio_password ? lega.fantacalcio_password?.length || 0 : 0
             }
         });
 
@@ -634,7 +634,7 @@ router.post('/test-urls', requireAuth, async (req, res) => {
             }
         }
 
-        const existingUrls = results.filter(r => r.exists);
+        const existingUrls = results?.filter(r => r.exists);
         const suggestedUrls = {
             classifica: existingUrls.find(r => r.name === 'classifica')?.url || `${leagueUrl}/classifica`,
             voti: existingUrls.find(r => r.name === 'voti' || r.name === 'voti-giornata')?.url || `${leagueUrl}/voti-giornata`,
@@ -643,7 +643,7 @@ router.post('/test-urls', requireAuth, async (req, res) => {
 
         return res.json({
             success: true,
-            message: `Test completato - ${existingUrls.length} URL validi trovati`,
+            message: `Test completato - ${existingUrls?.length || 0} URL validi trovati`,
             results,
             suggestedUrls
         });
@@ -767,11 +767,11 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
     let giocatoriScraping;
     try {
       const giocatoriResult = await db.query(`
-        SELECT gs.*, ss.nome as nome_squadra_scraping
+        SELECT gs.*, ss?.nome || 'Nome' as nome_squadra_scraping
         FROM giocatori_scraping gs
         JOIN squadre_scraping ss ON gs.squadra_scraping_id = ss.id
         WHERE gs.lega_id = $1
-        ORDER BY ss.nome, gs.nome
+        ORDER BY ss?.nome || 'Nome', gs?.nome || 'Nome'
       `, [legaId]);
       giocatoriScraping = giocatoriResult.rows;
     } catch (err) {
@@ -780,9 +780,9 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
     }
     
     // Raggruppa giocatori per squadra
-    const squadreConGiocatori = squadreScraping.map(squadra => ({
+    const squadreConGiocatori = squadreScraping?.map(squadra => ({
       ...squadra,
-      giocatori: giocatoriScraping.filter(g => g.squadra_scraping_id === squadra.id)
+      giocatori: giocatoriScraping?.filter(g => g.squadra_scraping_id === squadra.id)
     }));
     
     // Ottieni classifica di scraping
@@ -824,7 +824,7 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
         WHERE lega_id = $1 
         ORDER BY squadra
       `, [legaId]);
-      formazioniScraping = formazioniResult.rows.map(row => ({
+      formazioniScraping = formazioniResult.rows?.map(row => ({
         ...row,
         titolari: row.titolari ? (() => {
           try {
@@ -863,12 +863,12 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
       mercatoScraping = [];
     }
     
-    console.log(`[DEBUG] /dati-scraping/${legaId} - Successo, squadre: ${squadreScraping.length}, giocatori: ${giocatoriScraping.length}, classifica: ${classificaScraping.length}, voti: ${votiScraping.length}, formazioni: ${formazioniScraping.length}, mercato: ${mercatoScraping.length}`);
+    console.log(`[DEBUG] /dati-scraping/${legaId} - Successo, squadre: ${squadreScraping?.length || 0}, giocatori: ${giocatoriScraping?.length || 0}, classifica: ${classificaScraping?.length || 0}, voti: ${votiScraping?.length || 0}, formazioni: ${formazioniScraping?.length || 0}, mercato: ${mercatoScraping?.length || 0}`);
     res.json({
       success: true,
       lega: {
         id: lega.id,
-        nome: lega.nome
+        nome: lega?.nome || 'Nome'
       },
       dati_scraping: {
         rose: squadreConGiocatori,
@@ -876,14 +876,14 @@ router.get('/dati-scraping/:legaId', requireAuth, async (req, res) => {
         voti: votiScraping,
         formazioni: formazioniScraping,
         mercato: mercatoScraping,
-        totale_squadre: squadreScraping.length,
-        totale_giocatori: giocatoriScraping.length,
-        totale_posizioni: classificaScraping.length,
-        totale_voti: votiScraping.length,
-        totale_formazioni: formazioniScraping.length,
-        totale_movimenti: mercatoScraping.length,
-        ultimo_scraping: squadreScraping.length > 0 ? 
-          Math.max(...squadreScraping.map(s => new Date(s.data_scraping).getTime())) : null
+        totale_squadre: squadreScraping?.length || 0,
+        totale_giocatori: giocatoriScraping?.length || 0,
+        totale_posizioni: classificaScraping?.length || 0,
+        totale_voti: votiScraping?.length || 0,
+        totale_formazioni: formazioniScraping?.length || 0,
+        totale_movimenti: mercatoScraping?.length || 0,
+        ultimo_scraping: squadreScraping?.length || 0 > 0 ? 
+          Math.max(...squadreScraping?.map(s => new Date(s.data_scraping).getTime())) : null
       }
     });
     
@@ -938,11 +938,11 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     let giocatoriUfficiali;
     try {
       const giocatoriResult = await db.query(`
-        SELECT g.*, s.nome as nome_squadra
+        SELECT g.*, s?.nome || 'Nome' as nome_squadra
         FROM giocatori g
         JOIN squadre s ON g.squadra_id = s.id
         WHERE s.lega_id = $1
-        ORDER BY s.nome, g.nome
+        ORDER BY s?.nome || 'Nome', g?.nome || 'Nome'
       `, [legaId]);
       giocatoriUfficiali = giocatoriResult.rows;
     } catch (err) {
@@ -969,11 +969,11 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     let giocatoriScraping;
     try {
       const giocatoriScrapingResult = await db.query(`
-        SELECT gs.*, ss.nome as nome_squadra_scraping
+        SELECT gs.*, ss?.nome || 'Nome' as nome_squadra_scraping
         FROM giocatori_scraping gs
         JOIN squadre_scraping ss ON gs.squadra_scraping_id = ss.id
         WHERE gs.lega_id = $1
-        ORDER BY ss.nome, gs.nome
+        ORDER BY ss?.nome || 'Nome', gs?.nome || 'Nome'
       `, [legaId]);
       giocatoriScraping = giocatoriScrapingResult.rows;
     } catch (err) {
@@ -983,37 +983,37 @@ router.get('/confronto/:legaId', requireAuth, async (req, res) => {
     
     // Analisi del confronto
     const confronto = {
-      squadre_ufficiali: squadreUfficiali.length,
-      squadre_scraping: squadreScraping.length,
-      giocatori_ufficiali: giocatoriUfficiali.length,
-      giocatori_scraping: giocatoriScraping.length,
+      squadre_ufficiali: squadreUfficiali?.length || 0,
+      squadre_scraping: squadreScraping?.length || 0,
+      giocatori_ufficiali: giocatoriUfficiali?.length || 0,
+      giocatori_scraping: giocatoriScraping?.length || 0,
       squadre_comuni: 0,
       giocatori_comuni: 0,
       differenze: []
     };
     
     // Trova squadre comuni
-    const nomiSquadreUfficiali = squadreUfficiali.map(s => s.nome.toLowerCase());
-    const nomiSquadreScraping = squadreScraping.map(s => s.nome.toLowerCase());
+    const nomiSquadreUfficiali = squadreUfficiali?.map(s => s?.nome || 'Nome'.toLowerCase());
+    const nomiSquadreScraping = squadreScraping?.map(s => s?.nome || 'Nome'.toLowerCase());
     
-    confronto.squadre_comuni = nomiSquadreUfficiali.filter(nome => 
+    confronto.squadre_comuni = nomiSquadreUfficiali?.filter(nome => 
       nomiSquadreScraping.includes(nome)
     ).length;
     
     // Trova giocatori comuni
-    const nomiGiocatoriUfficiali = giocatoriUfficiali.map(g => g.nome.toLowerCase());
-    const nomiGiocatoriScraping = giocatoriScraping.map(g => g.nome.toLowerCase());
+    const nomiGiocatoriUfficiali = giocatoriUfficiali?.map(g => g?.nome || 'Nome'.toLowerCase());
+    const nomiGiocatoriScraping = giocatoriScraping?.map(g => g?.nome || 'Nome'.toLowerCase());
     
-    confronto.giocatori_comuni = nomiGiocatoriUfficiali.filter(nome => 
+    confronto.giocatori_comuni = nomiGiocatoriUfficiali?.filter(nome => 
       nomiGiocatoriScraping.includes(nome)
     ).length;
     
-    console.log(`[DEBUG] /confronto/${legaId} - Successo, squadre ufficiali: ${squadreUfficiali.length}, scraping: ${squadreScraping.length}`);
+    console.log(`[DEBUG] /confronto/${legaId} - Successo, squadre ufficiali: ${squadreUfficiali?.length || 0}, scraping: ${squadreScraping?.length || 0}`);
     res.json({
       success: true,
       lega: {
         id: lega.id,
-        nome: lega.nome
+        nome: lega?.nome || 'Nome'
       },
       confronto,
       dati_ufficiali: {
@@ -1152,21 +1152,21 @@ router.post('/playwright', requireAuth, async (req, res) => {
             results.database = {};
             
             // Salva rose
-            if (results.rose && Array.isArray(results.rose) && results.rose.length > 0) {
+            if (results.rose && Array.isArray(results.rose) && results.rose?.length || 0 > 0) {
               const roseResults = await scraper.saveRoseToDatabase(lega_id, results.rose);
               results.database.rose = roseResults;
               console.log('✅ Rose salvate nel database:', roseResults);
             }
             
             // Salva classifica
-            if (results.classifica && Array.isArray(results.classifica) && results.classifica.length > 0) {
+            if (results.classifica && Array.isArray(results.classifica) && results.classifica?.length || 0 > 0) {
               const classificaResults = await scraper.saveClassificaToDatabase(lega_id, results.classifica);
               results.database.classifica = classificaResults;
               console.log('✅ Classifica salvata nel database:', classificaResults);
             }
             
             // Salva formazioni
-            if (results.formazioni && Array.isArray(results.formazioni) && results.formazioni.length > 0) {
+            if (results.formazioni && Array.isArray(results.formazioni) && results.formazioni?.length || 0 > 0) {
               const formazioniResults = await scraper.saveFormazioniToDatabase(lega_id, results.formazioni);
               results.database.formazioni = formazioniResults;
               console.log('✅ Formazioni salvate nel database:', formazioniResults);
@@ -1253,13 +1253,13 @@ router.post('/playwright-batch', requireAuth, async (req, res) => {
       });
     }
     
-    if (!tournamentIds || tournamentIds.length === 0) {
+    if (!tournamentIds || tournamentIds?.length || 0 === 0) {
       return res.status(400).json({ 
         error: 'Almeno un tournamentId è richiesto per lo scraping batch' 
       });
     }
     
-    console.log(`Avvio scraping batch con Playwright per ${tournamentIds.length} tornei`);
+    console.log(`Avvio scraping batch con Playwright per ${tournamentIds?.length || 0} tornei`);
     console.log('URL:', leagueUrl);
     console.log('Tornei:', tournamentIds);
     
@@ -1282,10 +1282,10 @@ router.post('/playwright-batch', requireAuth, async (req, res) => {
       }
       
       // Scraping per ogni torneo
-      for (let i = 0; i < tournamentIds.length; i++) {
+      for (let i = 0; i < tournamentIds?.length || 0; i++) {
         const tournamentId = tournamentIds[i];
         
-        console.log(`Scraping torneo ${i + 1}/${tournamentIds.length}: ${tournamentId}`);
+        console.log(`Scraping torneo ${i + 1}/${tournamentIds?.length || 0}: ${tournamentId}`);
         
         try {
           // Seleziona il torneo
@@ -1307,12 +1307,12 @@ router.post('/playwright-batch', requireAuth, async (req, res) => {
               success: true,
               data: results,
               summary: {
-                squadre: results.rose.length,
-                giocatori: results.rose.reduce((total, squadra) => total + (squadra.giocatori?.length || 0), 0)
+                squadre: results.rose?.length || 0,
+                giocatori: results.rose?.reduce((total, squadra) => total + (squadra.giocatori?.length || 0), 0)
               }
             });
             
-            console.log(`✅ Torneo ${tournamentId} completato: ${results.rose.length} squadre`);
+            console.log(`✅ Torneo ${tournamentId} completato: ${results.rose?.length || 0} squadre`);
           } else {
             errorCount++;
             batchResults.push({
@@ -1334,21 +1334,21 @@ router.post('/playwright-batch', requireAuth, async (req, res) => {
         }
         
         // Pausa tra le richieste
-        if (i < tournamentIds.length - 1) {
+        if (i < tournamentIds?.length || 0 - 1) {
           await new Promise(resolve => setTimeout(resolve, 3000));
         }
       }
       
       await scraper.close();
       
-      const message = `Scraping batch completato: ${successCount} successi, ${errorCount} errori su ${tournamentIds.length} tornei`;
+      const message = `Scraping batch completato: ${successCount} successi, ${errorCount} errori su ${tournamentIds?.length || 0} tornei`;
       
       res.json({ 
         success: successCount > 0,
         message: message,
         data: batchResults,
         summary: {
-          total: tournamentIds.length,
+          total: tournamentIds?.length || 0,
           success: successCount,
           errors: errorCount
         }
@@ -1394,7 +1394,7 @@ router.post('/playwright-classifica', requireAuth, async (req, res) => {
             [lega_id]
         );
 
-        if (legaResult.rows.length === 0) {
+        if (legaResult.rows?.length || 0 === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Lega non trovata nel database'
@@ -1455,7 +1455,7 @@ router.post('/playwright-classifica', requireAuth, async (req, res) => {
             const classifica = await scraper.scrapeClassifica(classificaUrl);
             
             // Salva nel database
-            if (classifica && Array.isArray(classifica) && classifica.length > 0) {
+            if (classifica && Array.isArray(classifica) && classifica?.length || 0 > 0) {
                 const dbResult = await scraper.saveClassificaToDatabase(lega_id, classifica);
                 console.log('✅ Classifica salvata nel database:', dbResult);
             }
@@ -1465,7 +1465,7 @@ router.post('/playwright-classifica', requireAuth, async (req, res) => {
             res.json({
                 success: true,
                 classifica: classifica,
-                posizioni_trovate: classifica ? classifica.length : 0,
+                posizioni_trovate: classifica ? classifica?.length || 0 : 0,
                 tipo_lega: scraper.tipoLega
             });
 
@@ -1510,7 +1510,7 @@ router.post('/playwright-formazioni', requireAuth, async (req, res) => {
             [lega_id]
         );
 
-        if (legaResult.rows.length === 0) {
+        if (legaResult.rows?.length || 0 === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Lega non trovata nel database'
@@ -1560,7 +1560,7 @@ router.post('/playwright-formazioni', requireAuth, async (req, res) => {
             const formazioni = await scraper.scrapeFormazioni(formazioniUrl, giornata);
             
             // Salva nel database
-            if (formazioni && Array.isArray(formazioni) && formazioni.length > 0) {
+            if (formazioni && Array.isArray(formazioni) && formazioni?.length || 0 > 0) {
                 const dbResult = await scraper.saveFormazioniToDatabase(lega_id, formazioni);
                 console.log('✅ Formazioni salvate nel database:', dbResult);
             }
@@ -1570,7 +1570,7 @@ router.post('/playwright-formazioni', requireAuth, async (req, res) => {
             res.json({
                 success: true,
                 formazioni: formazioni,
-                formazioni_trovate: formazioni ? formazioni.length : 0,
+                formazioni_trovate: formazioni ? formazioni?.length || 0 : 0,
                 giornata: giornata || 'non specificata',
                 tipo_lega: scraper.tipoLega
             });
@@ -1612,7 +1612,7 @@ router.post('/playwright-completo', requireAuth, async (req, res) => {
             [lega_id]
         );
 
-        if (legaResult.rows.length === 0) {
+        if (legaResult.rows?.length || 0 === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Lega non trovata nel database'
@@ -1651,10 +1651,10 @@ router.post('/playwright-completo', requireAuth, async (req, res) => {
                 success: true,
                 results: results,
                 summary: {
-                    squadre_trovate: results.rose ? results.rose.length : 0,
-                    giocatori_totali: results.rose ? results.rose.reduce((total, squadra) => total + (squadra.giocatori?.length || 0), 0) : 0,
-                    posizioni_classifica: results.classifica ? results.classifica.length : 0,
-                    formazioni_trovate: results.formazioni ? results.formazioni.length : 0
+                    squadre_trovate: results.rose ? results.rose?.length || 0 : 0,
+                    giocatori_totali: results.rose ? results.rose?.reduce((total, squadra) => total + (squadra.giocatori?.length || 0), 0) : 0,
+                    posizioni_classifica: results.classifica ? results.classifica?.length || 0 : 0,
+                    formazioni_trovate: results.formazioni ? results.formazioni?.length || 0 : 0
                 },
                 tipo_lega: results.tipo_lega,
                 torneo_selezionato: results.torneo_selezionato
@@ -1697,7 +1697,7 @@ router.post('/tournaments', async (req, res) => {
             [lega_id]
         );
 
-        if (legaResult.rows.length === 0) {
+        if (legaResult.rows?.length || 0 === 0) {
             console.log('❌ [TOURNAMENTS] Lega non trovata nel database');
             return res.status(400).json({
                 success: false,
@@ -1744,7 +1744,7 @@ router.post('/tournaments', async (req, res) => {
             console.log('✅ [TOURNAMENTS] Tornei recuperati:', tournaments?.length || 0);
 
             // Se non sono stati trovati tornei, restituisci un messaggio informativo
-            if (!tournaments || tournaments.length === 0) {
+            if (!tournaments || tournaments?.length || 0 === 0) {
                 console.log('⚠️ [TOURNAMENTS] Nessun torneo trovato, restituisco messaggio informativo');
                 await scraper.close();
                 
@@ -1805,7 +1805,7 @@ router.get('/preferiti/:lega_id', requireAuth, async (req, res) => {
         
         res.json({
             success: true,
-            tornei: tornei.map(t => ({
+            tornei: tornei?.map(t => ({
                 id: t.torneo_id,
                 name: t.torneo_nome,
                 url: t.torneo_url
@@ -1853,7 +1853,7 @@ router.post('/preferiti/salva', requireAuth, async (req, res) => {
         for (const torneo of tornei) {
             await db.query(
                 'INSERT INTO tornei_preferiti (utente_id, lega_id, torneo_id, torneo_nome, torneo_url, created_at) VALUES ($1, $2, $3, $4, $5, $6)',
-                [utente_id, lega_id, torneo.id, torneo.nome, torneo.url || null, new Date().toISOString()]
+                [utente_id, lega_id, torneo.id, torneo?.nome || 'Nome', torneo.url || null, new Date().toISOString()]
             );
             torneiSalvati++;
         }
@@ -1930,7 +1930,7 @@ router.get('/formazioni/:lega_id', requireAuth, async (req, res) => {
         console.log('✅ [FORMAZIONI] Formazioni trovate:', formazioni?.length || 0);
         
         // Parsa i dati JSON per ogni formazione
-        const formazioniParsate = formazioni.map(formazione => {
+        const formazioniParsate = formazioni?.map(formazione => {
             try {
                 return {
                     ...formazione,
@@ -1954,7 +1954,7 @@ router.get('/formazioni/:lega_id', requireAuth, async (req, res) => {
         res.json({
             success: true,
             formazioni: formazioniParsate,
-            totale: formazioniParsate.length
+            totale: formazioniParsate?.length || 0
         });
         
     } catch (error) {
@@ -2003,7 +2003,7 @@ router.get('/bonus-images/:lega_id', requireAuth, async (req, res) => {
             res.json({
                 success: true,
                 bonus_images: bonusImages,
-                totale: bonusImages.length
+                totale: bonusImages?.length || 0
             });
             
         } finally {

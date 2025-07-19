@@ -268,7 +268,7 @@ const GestioneRosterAdmin = () => {
         </BackButton>
 
         <Header>
-          <Title>📊 Gestione Roster A/B - {lega.nome}</Title>
+          <Title>📊 Gestione Roster A/B - {lega?.nome || 'Nome'}</Title>
           <Subtitle>
             Gestisci i roster A/B per tutte le squadre della lega. 
             Solo admin, superadmin e subadmin possono modificare i roster.
@@ -276,14 +276,14 @@ const GestioneRosterAdmin = () => {
         </Header>
 
         <LeagueInfo>
-          <LeagueName>{lega.nome}</LeagueName>
+          <LeagueName>{lega?.nome || 'Nome'}</LeagueName>
           <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
             {lega.descrizione || 'Nessuna descrizione disponibile'}
           </div>
           
           <LeagueStats>
             <StatItem>
-              <StatValue>{Array.isArray(squadre) ? squadre.length : 0}</StatValue>
+              <StatValue>{Array.isArray(squadre) ? squadre?.length || 0 : 0}</StatValue>
               <StatLabel>Squadre</StatLabel>
             </StatItem>
             <StatItem>
@@ -301,17 +301,17 @@ const GestioneRosterAdmin = () => {
           </LeagueStats>
         </LeagueInfo>
 
-        {!Array.isArray(squadre) || squadre.length === 0 ? (
+        {!Array.isArray(squadre) || squadre?.length || 0 === 0 ? (
           <EmptyState>
             Nessuna squadra trovata in questa lega
           </EmptyState>
         ) : (
           <TeamsGrid>
-            {Array.isArray(squadre) && squadre.map(squadra => (
+            {Array.isArray(squadre) && squadre?.map(squadra => (
               <TeamCard key={squadra.id}>
                 <TeamHeader>
                   <div>
-                    <TeamName>{squadra.nome}</TeamName>
+                    <TeamName>{squadra?.nome || 'Nome'}</TeamName>
                     <TeamOwner>
                       Proprietario: {squadra.proprietario_nome} {squadra.proprietario_cognome}
                     </TeamOwner>

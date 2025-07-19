@@ -94,11 +94,11 @@ router.post('/login', async (req, res) => {
           token, 
           user: { 
             id: utente.id, 
-            nome: utente.nome, 
-            cognome: utente.cognome, 
+            nome: utente?.nome || 'Nome', 
+            cognome: utente?.cognome || '', 
             username: utente.username,
             email: utente.email, 
-            ruolo: utente.ruolo,
+            ruolo: utente?.ruolo || 'Ruolo',
             leghe_admin: []
           } 
         });
@@ -108,17 +108,17 @@ router.post('/login', async (req, res) => {
       const legheAdmin = legheResult.rows;
       
       const token = generateToken(utente);
-      console.log('Login successful for:', utente.username, 'Leghe admin:', legheAdmin.length);
+      console.log('Login successful for:', utente.username, 'Leghe admin:', legheAdmin?.length || 0);
       
       res.json({ 
         token, 
         user: { 
           id: utente.id, 
-          nome: utente.nome, 
-          cognome: utente.cognome, 
+          nome: utente?.nome || 'Nome', 
+          cognome: utente?.cognome || '', 
           username: utente.username,
           email: utente.email, 
-          ruolo: utente.ruolo,
+          ruolo: utente?.ruolo || 'Ruolo',
           leghe_admin: legheAdmin
         } 
       });
@@ -130,11 +130,11 @@ router.post('/login', async (req, res) => {
         token, 
         user: { 
           id: utente.id, 
-          nome: utente.nome, 
-          cognome: utente.cognome, 
+          nome: utente?.nome || 'Nome', 
+          cognome: utente?.cognome || '', 
           username: utente.username,
           email: utente.email, 
-          ruolo: utente.ruolo,
+          ruolo: utente?.ruolo || 'Ruolo',
           leghe_admin: []
         } 
       });
@@ -170,18 +170,18 @@ async function processLoginSuccess(utente, res, req) {
     
     console.log('Generating token for user:', utente.username);
     const token = generateToken(utente);
-    console.log('Login successful for:', utente.username, 'Leghe admin:', legheAdmin.length);
+    console.log('Login successful for:', utente.username, 'Leghe admin:', legheAdmin?.length || 0);
     
     console.log('Sending response to client');
     res.json({ 
       token, 
       user: { 
         id: utente.id, 
-        nome: utente.nome, 
-        cognome: utente.cognome, 
+        nome: utente?.nome || 'Nome', 
+        cognome: utente?.cognome || '', 
         username: utente.username,
         email: utente.email, 
-        ruolo: utente.ruolo,
+        ruolo: utente?.ruolo || 'Ruolo',
         leghe_admin: legheAdmin
       } 
     });
@@ -208,8 +208,8 @@ router.post('/check-user', async (req, res) => {
       exists: true, 
       user: {
         id: utente.id,
-        nome: utente.nome,
-        cognome: utente.cognome,
+        nome: utente?.nome || 'Nome',
+        cognome: utente?.cognome || '',
         username: utente.username,
         email: utente.email
       }
@@ -224,7 +224,7 @@ router.post('/check-user', async (req, res) => {
 router.get('/search-users', requireSuperAdmin, async (req, res) => {
   try {
     const { query, legaId } = req.query;
-    if (!query || query.length < 2) {
+    if (!query || query?.length || 0 < 2) {
       return res.json([]);
     }
     
@@ -256,7 +256,7 @@ router.get('/search-users', requireSuperAdmin, async (req, res) => {
           'SELECT id FROM squadre WHERE lega_id = $1 AND proprietario_id = $2',
           [legaId, user.id]
         );
-        const hasTeamInLeague = squadraResult.rows.length > 0;
+        const hasTeamInLeague = squadraResult.rows?.length || 0 > 0;
         
         if (!hasTeamInLeague) {
           filteredUsers.push(user);
@@ -296,7 +296,7 @@ router.get('/all-users', requireSuperAdmin, async (req, res) => {
     console.log('GET /all-users - Executing query:', query);
     
     const result = await db.query(query);
-    console.log('GET /all-users - Query result rows:', result.rows.length);
+    console.log('GET /all-users - Query result rows:', result.rows?.length || 0);
     
     res.json(result.rows);
   } catch (e) {
@@ -367,7 +367,7 @@ router.get('/is-league-admin/:legaId', async (req, res) => {
         [legaId, userId]
       );
       
-      const isAdmin = result.rows.length > 0;
+      const isAdmin = result.rows?.length || 0 > 0;
       res.json({ isAdmin });
     } catch (e) {
       return res.status(401).json({ error: 'Token non valido' });
@@ -411,11 +411,11 @@ router.get('/verify-user', async (req, res) => {
       res.json({ 
         user: { 
           id: utente.id, 
-          nome: utente.nome, 
-          cognome: utente.cognome, 
+          nome: utente?.nome || 'Nome', 
+          cognome: utente?.cognome || '', 
           username: utente.username,
           email: utente.email, 
-          ruolo: utente.ruolo,
+          ruolo: utente?.ruolo || 'Ruolo',
           leghe_admin: legheAdmin
         } 
       });

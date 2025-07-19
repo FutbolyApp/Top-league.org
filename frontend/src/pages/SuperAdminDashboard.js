@@ -413,7 +413,7 @@ const SuperAdminDashboard = () => {
     if (window.confirm(`Sei sicuro di voler eliminare la lega "${legaNome}"? Questa azione non può essere annullata.`)) {
       try {
         await deleteLeague(legaId, token);
-        setLeghe(leghe.filter(lega => lega.id !== legaId));
+        setLeghe(leghe?.filter(lega => lega.id !== legaId));
         alert('Lega eliminata con successo!');
       } catch (err) {
         alert(`Errore nell'eliminazione: ${err.message}`);
@@ -487,7 +487,7 @@ const SuperAdminDashboard = () => {
   };
 
   const getSubadminsForLega = (legaId) => {
-    return subadmins.filter(sub => sub.lega_id === legaId);
+    return subadmins?.filter(sub => sub.lega_id === legaId);
   };
 
   const fetchUsers = async () => {
@@ -533,7 +533,7 @@ const SuperAdminDashboard = () => {
     setUserFormData({
       username: user.username,
       email: user.email,
-      ruolo: user.ruolo
+      ruolo: user?.ruolo || 'Ruolo'
     });
     setShowUserModal(true);
   };
@@ -568,7 +568,7 @@ const SuperAdminDashboard = () => {
 
   const handleSubmitUser = async () => {
     try {
-      if (!userFormData.username || !userFormData.email || !userFormData.ruolo) {
+      if (!userFormData.username || !userFormData.email || !userFormData?.ruolo || 'Ruolo') {
         alert('Compila tutti i campi obbligatori');
         return;
       }
@@ -582,7 +582,7 @@ const SuperAdminDashboard = () => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            ruolo: userFormData.ruolo
+            ruolo: userFormData?.ruolo || 'Ruolo'
           })
         });
 
@@ -608,7 +608,7 @@ const SuperAdminDashboard = () => {
             username: userFormData.username,
             email: userFormData.email,
             password: 'password123', // Password temporanea
-            ruolo: userFormData.ruolo
+            ruolo: userFormData?.ruolo || 'Ruolo'
           })
         });
 
@@ -674,7 +674,7 @@ const SuperAdminDashboard = () => {
       <LeaguesSection>
         <SectionTitle>🏆 Gestione Leghe</SectionTitle>
         
-        {!leghe || leghe.length === 0 ? (
+        {!leghe || leghe?.length || 0 === 0 ? (
           <EmptyContainer>
             <h3>Nessuna lega trovata</h3>
             <p>Non ci sono ancora leghe nel sistema.</p>
@@ -699,7 +699,7 @@ const SuperAdminDashboard = () => {
                 {leghe?.map(lega => (
                   <Tr key={lega.id}>
                     <Td>
-                      <strong>{lega.nome}</strong>
+                      <strong>{lega?.nome || 'Nome'}</strong>
                     </Td>
                     <Td>
                       <div>
@@ -762,7 +762,7 @@ const SuperAdminDashboard = () => {
                       </ActionButton>
                       <ActionButton 
                         className="danger"
-                        onClick={() => handleDeleteLega(lega.id, lega.nome)}
+                        onClick={() => handleDeleteLega(lega.id, lega?.nome || 'Nome')}
                       >
                         🗑️ Elimina
                       </ActionButton>
@@ -797,7 +797,7 @@ const SuperAdminDashboard = () => {
         
         {usersLoading ? (
           <LoadingContainer>Caricamento utenti...</LoadingContainer>
-        ) : !users || users.length === 0 ? (
+        ) : !users || users?.length || 0 === 0 ? (
           <EmptyContainer>
             <h3>Nessun utente trovato</h3>
             <p>Non ci sono ancora utenti nel sistema.</p>
@@ -822,8 +822,8 @@ const SuperAdminDashboard = () => {
                     </Td>
                     <Td>{user.email}</Td>
                     <Td>
-                      <StatusBadge className={user.ruolo === 'SuperAdmin' ? 'public' : 'private'}>
-                        {user.ruolo}
+                      <StatusBadge className={user?.ruolo || 'Ruolo' === 'SuperAdmin' ? 'public' : 'private'}>
+                        {user?.ruolo || 'Ruolo'}
                       </StatusBadge>
                     </Td>
                     <Td>{formatDate(user.created_at)}</Td>
@@ -964,7 +964,7 @@ const SuperAdminDashboard = () => {
             <FormGroup>
               <Label>Ruolo</Label>
               <Select
-                value={userFormData.ruolo}
+                value={userFormData?.ruolo || 'Ruolo'}
                 onChange={(e) => setUserFormData(prev => ({ ...prev, ruolo: e.target.value }))}
               >
                 <option value="Utente">Utente</option>

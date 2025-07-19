@@ -250,7 +250,7 @@ const RichiestaAdmin = () => {
     try {
       const response = await getSquadreByUtente(token);
       setSquadre(response.squadre || []);
-      if (response.squadre && response.squadre.length > 0) {
+      if (response.squadre && response.squadre?.length || 0 > 0) {
         setSelectedSquadra(response.squadre[0]);
         loadGiocatori(response.squadre[0].id);
         loadRichieste(response.squadre[0].id);
@@ -319,12 +319,12 @@ const RichiestaAdmin = () => {
             if (giocatore) {
               dati_richiesta.costi_dimezzati[giocatore_id] = Math.floor(giocatore.costo_attuale / 2);
               dati_richiesta.dettagli_giocatori[giocatore_id] = {
-                nome: giocatore.nome,
-                cognome: giocatore.cognome,
-                ruolo: giocatore.ruolo,
+                nome: giocatore?.nome || 'Nome',
+                cognome: giocatore?.cognome || '',
+                ruolo: giocatore?.ruolo || 'Ruolo',
                 squadra_reale: giocatore.squadra_reale,
                 qi: giocatore.qi,
-                qa: giocatore.qa || giocatore.quotazione_attuale,
+                qa: giocatore?.qa || 0 || giocatore.quotazione_attuale,
                 costo_attuale: giocatore.costo_attuale,
                 costo_dimezzato: Math.floor(giocatore.costo_attuale / 2)
               };
@@ -397,10 +397,10 @@ const RichiestaAdmin = () => {
       
       switch (richiesta.tipo_richiesta) {
         case 'cantera':
-          if (dati.giocatori_selezionati && dati.giocatori_selezionati.length > 0) {
-            const nomiGiocatori = dati.giocatori_selezionati.map(id => {
+          if (dati.giocatori_selezionati && dati.giocatori_selezionati?.length || 0 > 0) {
+            const nomiGiocatori = dati.giocatori_selezionati?.map(id => {
               const giocatore = giocatori.find(gioc => gioc.id === id);
-              return giocatore ? `${giocatore.nome} ${giocatore.cognome}` : `ID: ${id}`;
+              return giocatore ? `${giocatore?.nome || 'Nome'} ${giocatore?.cognome || ''}` : `ID: ${id}`;
             }).join(', ');
             return `Richiesta Cantera per: ${nomiGiocatori}`;
           }
@@ -426,13 +426,13 @@ const RichiestaAdmin = () => {
           
         case 'trigger':
           if (dati.trigger) {
-            return `Richiesta Trigger: ${dati.trigger.substring(0, 50)}${dati.trigger.length > 50 ? '...' : ''}`;
+            return `Richiesta Trigger: ${dati.trigger.substring(0, 50)}${dati.trigger?.length || 0 > 50 ? '...' : ''}`;
           }
           return 'Richiesta Trigger';
           
         case 'generale':
           if (dati.messaggio) {
-            return `Richiesta Generale: ${dati.messaggio.substring(0, 50)}${dati.messaggio.length > 50 ? '...' : ''}`;
+            return `Richiesta Generale: ${dati.messaggio.substring(0, 50)}${dati.messaggio?.length || 0 > 50 ? '...' : ''}`;
           }
           return 'Richiesta Generale';
           
@@ -526,7 +526,7 @@ const RichiestaAdmin = () => {
                       .filter(g => !formData.giocatori_selezionati?.includes(g.id))
                       .map(giocatore => (
                         <option key={giocatore.id} value={giocatore.id}>
-                          {giocatore.nome} {giocatore.cognome} - QA: {giocatore.qa}
+                          {giocatore?.nome || 'Nome'} {giocatore?.cognome || ''} - QA: {giocatore?.qa || 0}
                         </option>
                       ))}
                   </Select>
@@ -549,23 +549,23 @@ const RichiestaAdmin = () => {
                   </Button>
                 </div>
                 
-                {formData.giocatori_selezionati && formData.giocatori_selezionati.length > 0 && (
+                {formData.giocatori_selezionati && formData.giocatori_selezionati?.length || 0 > 0 && (
                   <div style={{marginTop: '15px'}}>
                     <label style={{fontWeight: 'bold', marginBottom: '10px', display: 'block'}}>
                       Giocatori selezionati:
                     </label>
-                    {formData.giocatori_selezionati.map((id, index) => {
+                    {formData.giocatori_selezionati?.map((id, index) => {
                       const giocatore = giocatori.find(gioc => gioc.id === id);
                       return (
                         <PlayerItem key={index}>
                           <span style={{flex: 1}}>
-                            {giocatore ? `${giocatore.nome} ${giocatore.cognome} - QA: ${giocatore.qa}` : `ID: ${id}`}
+                            {giocatore ? `${giocatore?.nome || 'Nome'} ${giocatore?.cognome || ''} - QA: ${giocatore?.qa || 0}` : `ID: ${id}`}
                           </span>
                           <RemoveButton onClick={() => {
                             const selected = formData.giocatori_selezionati || [];
                             setFormData({
                               ...formData,
-                              giocatori_selezionati: selected.filter(i => i !== id)
+                              giocatori_selezionati: selected?.filter(i => i !== id)
                             });
                           }}>Rimuovi</RemoveButton>
                         </PlayerItem>
@@ -674,9 +674,9 @@ const RichiestaAdmin = () => {
             if (squadra) handleSquadraChange(squadra);
           }}
         >
-          {squadre.map(squadra => (
+          {squadre?.map(squadra => (
             <option key={squadra.id} value={squadra.id}>
-              {squadra.nome}
+              {squadra?.nome || 'Nome'}
             </option>
           ))}
         </Select>
@@ -728,10 +728,10 @@ const RichiestaAdmin = () => {
 
       <HistorySection>
         <HistoryTitle>Storico Richieste</HistoryTitle>
-        {richieste.length === 0 ? (
+        {richieste?.length || 0 === 0 ? (
           <p>Nessuna richiesta inviata</p>
         ) : (
-          richieste.map(richiesta => (
+          richieste?.map(richiesta => (
             <HistoryItem key={richiesta.id}>
               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                 <div>

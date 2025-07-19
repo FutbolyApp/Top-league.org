@@ -382,9 +382,9 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
         const torneiReali = resTornei.tornei || [];
         const torneiOptions = [
           { id: 'all', name: 'Tutti i Tornei' },
-          ...torneiReali.map(torneo => ({
+          ...torneiReali?.map(torneo => ({
             id: torneo.id.toString(),
-            name: torneo.nome
+            name: torneo?.nome || 'Nome'
           })),
           { id: 'na', name: 'N/A (Senza Torneo)' }
         ];
@@ -403,13 +403,13 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
   };
 
   const getLeagueStats = () => {
-    const totalSquadre = squadre.length;
-    const squadreConProprietario = squadre.filter(s => s.proprietario_id).length;
-    const squadreOrfane = squadre.filter(s => s.is_orfana).length;
-    const valoreTotale = squadre.reduce((sum, s) => sum + (s.valore_squadra || 0), 0);
-    const casseTotali = squadre.reduce((sum, s) => sum + (s.casse_societarie || 0), 0);
-    const costoSalarialeTotale = squadre.reduce((sum, s) => sum + (s.costo_salariale_totale || 0), 0);
-    const costoSalarialeAnnual = squadre.reduce((sum, s) => sum + (s.costo_salariale_annuale || 0), 0);
+    const totalSquadre = squadre?.length || 0;
+    const squadreConProprietario = squadre?.filter(s => s.proprietario_id).length;
+    const squadreOrfane = squadre?.filter(s => s.is_orfana).length;
+    const valoreTotale = squadre?.reduce((sum, s) => sum + (s.valore_squadra || 0), 0);
+    const casseTotali = squadre?.reduce((sum, s) => sum + (s.casse_societarie || 0), 0);
+    const costoSalarialeTotale = squadre?.reduce((sum, s) => sum + (s.costo_salariale_totale || 0), 0);
+    const costoSalarialeAnnual = squadre?.reduce((sum, s) => sum + (s.costo_salariale_annuale || 0), 0);
 
     return {
       totalSquadre,
@@ -439,10 +439,10 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
   // Filter teams based on selected tournament
   const filteredSquadre = selectedTournament === 'all' 
     ? squadre 
-    : squadre.filter(squadra => {
+    : squadre?.filter(squadra => {
         if (selectedTournament === 'na') {
           // Mostra squadre senza torneo (N/A)
-          return !squadra.tornei || squadra.tornei.length === 0;
+          return !squadra.tornei || squadra.tornei?.length || 0 === 0;
         } else {
           // Mostra squadre del torneo selezionato
           return squadra.tornei && squadra.tornei.some(torneo => 
@@ -480,7 +480,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
       
       <Header>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <LeagueTitle>{lega.nome}</LeagueTitle>
+          <LeagueTitle>{lega?.nome || 'Nome'}</LeagueTitle>
           {isAdmin && (
             <DeleteButton onClick={() => setShowDeleteModal(true)}>
               🗑️ Cancella Lega
@@ -539,7 +539,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
             value={selectedTournament} 
             onChange={(e) => setSelectedTournament(e.target.value)}
           >
-            {tournaments.map(tournament => (
+            {tournaments?.map(tournament => (
               <option key={tournament.id} value={tournament.id}>
                 {tournament.name}
               </option>
@@ -563,7 +563,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredSquadre.map(squadra => (
+              {filteredSquadre?.map(squadra => (
                 <tr key={squadra.id}>
                   <TableCell>
                     {squadra.logo_url ? (
@@ -574,13 +574,13 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
                       />
                     ) : (
                       <TeamLogo>
-                        {squadra.nome.charAt(0).toUpperCase()}
+                        {squadra?.nome || 'Nome'.charAt(0).toUpperCase()}
                       </TeamLogo>
                     )}
                   </TableCell>
                   <TableCell>
                     <ViewButton to={`/squadra/${squadra.id}`}>
-                      {squadra.nome}
+                      {squadra?.nome || 'Nome'}
                     </ViewButton>
                   </TableCell>
                   <TableCell>
@@ -596,8 +596,8 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
                   </TableCell>
                   <TableCell>{squadra.club_level || 1}</TableCell>
                   <TableCell>
-                    {squadra.tornei && squadra.tornei.length > 0 
-                      ? squadra.tornei.map(torneo => torneo.nome).join(', ')
+                    {squadra.tornei && squadra.tornei?.length || 0 > 0 
+                      ? squadra.tornei?.map(torneo => torneo?.nome || 'Nome').join(', ')
                       : "N/A"
                     }
                   </TableCell>
@@ -623,7 +623,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
           <ModalContent>
             <ModalTitle>⚠️ Conferma Eliminazione</ModalTitle>
             <ModalText>
-              Sei sicuro di voler eliminare la lega <strong>"{lega.nome}"</strong>?<br />
+              Sei sicuro di voler eliminare la lega <strong>"{lega?.nome || 'Nome'}"</strong>?<br />
               Questa azione è <strong>IRREVERSIBILE</strong> e eliminerà:
             </ModalText>
             <ul style={{ textAlign: 'left', marginBottom: '2rem' }}>

@@ -413,7 +413,7 @@ const RequestSquadreModification = () => {
     const addedPlayers = modifications.addedPlayers[squadraId] || [];
     const removedPlayers = modifications.removedPlayers[squadraId] || [];
     
-    return giocatori.filter(g => 
+    return giocatori?.filter(g => 
       !currentPlayers.some(p => p.id === g.id) && 
       !addedPlayers.includes(g.id) &&
       !removedPlayers.includes(g.id)
@@ -426,7 +426,7 @@ const RequestSquadreModification = () => {
         legaId: parseInt(legaId),
         tipo: 'modifica_squadre',
         modifiche: modifications,
-        descrizione: `Richiesta modifica squadre per la lega ${lega.nome}`,
+        descrizione: `Richiesta modifica squadre per la lega ${lega?.nome || 'Nome'}`,
         dettagli: {
           squadreModificate: Object.keys(modifications.squadreModifiche).length,
           giocatoriAggiunti: Object.values(modifications.addedPlayers).flat().length,
@@ -476,7 +476,7 @@ const RequestSquadreModification = () => {
       <Section>
         <SectionTitle>🏆 Gestione Squadre</SectionTitle>
         
-        {squadre.map(squadra => {
+        {squadre?.map(squadra => {
           const isOpen = openSquad === squadra.id;
           const giocatoriCount = squadra.giocatori?.length || 0;
           
@@ -488,7 +488,7 @@ const RequestSquadreModification = () => {
               >
                 <SquadName>
                   {isSquadModified(squadra.id) && <span style={{ color: '#28a745' }}>●</span>}
-                  {squadra.nome}
+                  {squadra?.nome || 'Nome'}
                 </SquadName>
                 <SquadInfo>
                   <SquadStats>
@@ -506,7 +506,7 @@ const RequestSquadreModification = () => {
                       <FieldLabel>Nome Squadra</FieldLabel>
                       <FieldInput
                         type="text"
-                        value={getModifiedValue(squadra.id, 'nome', squadra.nome)}
+                        value={getModifiedValue(squadra.id, 'nome', squadra?.nome || 'Nome')}
                         onChange={(e) => handleSquadModification(squadra.id, 'nome', e.target.value)}
                       />
                     </FieldGroup>
@@ -593,8 +593,8 @@ const RequestSquadreModification = () => {
                               $isModified={isPlayerModified(squadra.id, giocatore.id)}
                               $isRemoved={isPlayerRemoved(squadra.id, giocatore.id)}
                             >
-                              <PlayerName>{giocatore.nome} {giocatore.cognome}</PlayerName>
-                              <PlayerInfo>Ruolo: {giocatore.ruolo}</PlayerInfo>
+                              <PlayerName>{giocatore?.nome || 'Nome'} {giocatore?.cognome || ''}</PlayerName>
+                              <PlayerInfo>Ruolo: {giocatore?.ruolo || 'Ruolo'}</PlayerInfo>
                               <PlayerInfo>Valore: {giocatore.valore}</PlayerInfo>
                               {!isPlayerRemoved(squadra.id, giocatore.id) && (
                                 <ActionButton 
@@ -630,8 +630,8 @@ const RequestSquadreModification = () => {
                         <PlayerList>
                           {getAvailablePlayers(squadra.id).map(giocatore => (
                             <PlayerCard key={giocatore.id}>
-                              <PlayerName>{giocatore.nome} {giocatore.cognome}</PlayerName>
-                              <PlayerInfo>Ruolo: {giocatore.ruolo}</PlayerInfo>
+                              <PlayerName>{giocatore?.nome || 'Nome'} {giocatore?.cognome || ''}</PlayerName>
+                              <PlayerInfo>Ruolo: {giocatore?.ruolo || 'Ruolo'}</PlayerInfo>
                               <PlayerInfo>Valore: {giocatore.valore}</PlayerInfo>
                               <ActionButton 
                                 className="success"

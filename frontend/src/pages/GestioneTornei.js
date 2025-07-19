@@ -616,8 +616,8 @@ const GestioneTornei = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.nome.trim()) {
-      newErrors.nome = 'Il nome del torneo è obbligatorio';
+    if (!formData?.nome || 'Nome'.trim()) {
+      newErrors?.nome || 'Nome' = 'Il nome del torneo è obbligatorio';
     }
     
     if (!formData.data_inizio) {
@@ -628,7 +628,7 @@ const GestioneTornei = () => {
       newErrors.giornate_totali = 'Le giornate totali devono essere almeno 1';
     }
     
-    if (formData.squadre_partecipanti.length < 2) {
+    if (formData.squadre_partecipanti?.length || 0 < 2) {
       newErrors.squadre_partecipanti = 'Seleziona almeno 2 squadre per il torneo';
     }
     
@@ -678,7 +678,7 @@ const GestioneTornei = () => {
   const handleEdit = (torneo) => {
     setEditingTorneo(torneo);
     setFormData({
-      nome: torneo.nome || '',
+      nome: torneo?.nome || 'Nome' || '',
       tipo: torneo.tipo || 'campionato',
       formato: torneo.formato || 'girone_unico',
       giornate_totali: torneo.giornate_totali || 1,
@@ -725,17 +725,17 @@ const GestioneTornei = () => {
     setFormData(prev => ({
       ...prev,
       squadre_partecipanti: prev.squadre_partecipanti.includes(squadraId)
-        ? prev.squadre_partecipanti.filter(id => id !== squadraId)
+        ? prev.squadre_partecipanti?.filter(id => id !== squadraId)
         : [...prev.squadre_partecipanti, squadraId]
     }));
     
-    if (formData.squadre_partecipanti.length >= 1) {
+    if (formData.squadre_partecipanti?.length || 0 >= 1) {
       setErrors(prev => ({ ...prev, squadre_partecipanti: undefined }));
     }
   };
 
   const handleShowForm = () => {
-    if (squadre.length === 0) {
+    if (squadre?.length || 0 === 0) {
       setWarningMessage('Non ci sono squadre disponibili in questa lega. Crea prima delle squadre.');
       return;
     }
@@ -767,11 +767,11 @@ const GestioneTornei = () => {
           </div>
           <Stats>
             <StatCard>
-              <StatNumber>{tornei.length}</StatNumber>
+              <StatNumber>{tornei?.length || 0}</StatNumber>
               <StatLabel>Tornei</StatLabel>
             </StatCard>
             <StatCard>
-              <StatNumber>{squadre.length}</StatNumber>
+              <StatNumber>{squadre?.length || 0}</StatNumber>
               <StatLabel>Squadre</StatLabel>
             </StatCard>
           </Stats>
@@ -805,11 +805,11 @@ const GestioneTornei = () => {
               Tornei Esistenti
             </CardTitle>
             
-            {tornei.length === 0 ? (
+            {tornei?.length || 0 === 0 ? (
               <EmptyState>
                 <h3>Nessun torneo creato</h3>
                 <p>Crea il tuo primo torneo per iniziare a competere!</p>
-                <CreateButton onClick={handleShowForm} disabled={squadre.length === 0}>
+                <CreateButton onClick={handleShowForm} disabled={squadre?.length || 0 === 0}>
                   Crea Primo Torneo
                 </CreateButton>
               </EmptyState>
@@ -817,18 +817,18 @@ const GestioneTornei = () => {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <span style={{ color: '#718096', fontSize: '0.9rem' }}>
-                    {tornei.length} torneo{tornei.length !== 1 ? 'i' : ''} trovato{tornei.length !== 1 ? 'i' : ''}
+                    {tornei?.length || 0} torneo{tornei?.length || 0 !== 1 ? 'i' : ''} trovato{tornei?.length || 0 !== 1 ? 'i' : ''}
                   </span>
-                  <CreateButton onClick={handleShowForm} disabled={squadre.length === 0}>
+                  <CreateButton onClick={handleShowForm} disabled={squadre?.length || 0 === 0}>
                     + Nuovo Torneo
                   </CreateButton>
                 </div>
                 
                 <TorneiGrid>
-                  {tornei.map(torneo => (
+                  {tornei?.map(torneo => (
                     <TorneoCard key={torneo.id}>
                       <TorneoHeader>
-                        <TorneoName>{torneo.nome}</TorneoName>
+                        <TorneoName>{torneo?.nome || 'Nome'}</TorneoName>
                         <TorneoStatus $status={torneo.stato}>
                           {torneo.stato === 'in_corso' && 'In Corso'}
                           {torneo.stato === 'programmato' && 'Programmato'}
@@ -900,12 +900,12 @@ const GestioneTornei = () => {
                       <Label required>Nome Torneo</Label>
                       <Input
                         type="text"
-                        value={formData.nome}
+                        value={formData?.nome || 'Nome'}
                         onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                        className={errors.nome ? 'error' : ''}
+                        className={errors?.nome || 'Nome' ? 'error' : ''}
                         placeholder="Es: Campionato 2024"
                       />
-                      {errors.nome && <div style={{ color: '#e53e3e', fontSize: '0.8rem' }}>{errors.nome}</div>}
+                      {errors?.nome || 'Nome' && <div style={{ color: '#e53e3e', fontSize: '0.8rem' }}>{errors?.nome || 'Nome'}</div>}
                     </FormGroup>
 
                     <FormGroup>
@@ -985,10 +985,10 @@ const GestioneTornei = () => {
                     <SquadreHeader>
                       <span>Squadre disponibili</span>
                       <SquadreCount>
-                        {formData.squadre_partecipanti.length} selezionate di {squadre.length}
+                        {formData.squadre_partecipanti?.length || 0} selezionate di {squadre?.length || 0}
                       </SquadreCount>
                     </SquadreHeader>
-                    {squadre.map(squadra => (
+                    {squadre?.map(squadra => (
                       <CheckboxContainer key={squadra.id}>
                         <Checkbox
                           type="checkbox"
@@ -997,7 +997,7 @@ const GestioneTornei = () => {
                           onChange={() => handleSquadraToggle(squadra.id)}
                         />
                         <CheckboxLabel htmlFor={`squadra-${squadra.id}`}>
-                          {squadra.nome}
+                          {squadra?.nome || 'Nome'}
                           {squadra.proprietario_username && (
                             <span style={{ color: '#718096', fontSize: '0.8rem' }}>
                               {' '}({squadra.proprietario_username})
@@ -1043,7 +1043,7 @@ const GestioneTornei = () => {
                   </CancelButton>
                   <SubmitButton 
                     type="submit"
-                    disabled={formData.squadre_partecipanti.length < 2}
+                    disabled={formData.squadre_partecipanti?.length || 0 < 2}
                   >
                     {editingTorneo ? 'Aggiorna Torneo' : 'Crea Torneo'}
                   </SubmitButton>

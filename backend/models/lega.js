@@ -11,13 +11,13 @@ export async function checkLegaExists(nome) {
   const db = getDb();
   // Cerco tra tutte le leghe già normalizzate
   const result = await db.query('SELECT id, nome FROM leghe');
-  const found = result.rows.find(l => normalizeLegaName(l.nome) === normalized);
+  const found = result.rows.find(l => normalizeLegaName(l?.nome || 'Nome') === normalized);
   return found;
 }
 
 export async function createLega(data) {
   // Prima controlla se esiste già una lega con lo stesso nome normalizzato
-  const existingLega = await checkLegaExists(data.nome);
+  const existingLega = await checkLegaExists(data?.nome || 'Nome');
   
   if (existingLega) {
     throw new Error('Esiste già una lega con questo nome');
@@ -34,7 +34,7 @@ export async function createLega(data) {
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`;
   const db = getDb();
   const result = await db.query(sql, [
-    data.nome,
+    data?.nome || 'Nome',
     data.modalita,
     admin_id,
     data.is_pubblica ? true : false,
@@ -68,8 +68,8 @@ export async function getAllLeghe() {
 
 export async function updateLega(id, data) {
   // Se si sta modificando il nome, controlla che non ci siano duplicati
-  if (data.nome) {
-    const existingLega = await checkLegaExists(data.nome);
+  if (data?.nome || 'Nome') {
+    const existingLega = await checkLegaExists(data?.nome || 'Nome');
     
     // Se trova una lega con lo stesso nome normalizzato E non è la stessa lega che si sta modificando
     if (existingLega && existingLega.id !== parseInt(id)) {
@@ -87,7 +87,7 @@ export async function updateLega(id, data) {
   const sql = `UPDATE leghe SET nome=$1, modalita=$2, admin_id=$3, is_pubblica=$4, password=$5, max_squadre=$6, min_giocatori=$7, max_giocatori=$8, roster_ab=$9, cantera=$10, contratti=$11, triggers=$12, regolamento_pdf=$13, excel_originale=$14, excel_modificato=$15 WHERE id=$16`;
   const db = getDb();
   await db.query(sql, [
-    data.nome,
+    data?.nome || 'Nome',
     data.modalita,
     admin_id,
     data.is_pubblica ? true : false,
