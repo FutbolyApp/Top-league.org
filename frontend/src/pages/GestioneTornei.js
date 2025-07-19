@@ -628,7 +628,7 @@ const GestioneTornei = () => {
       newErrors.giornate_totali = 'Le giornate totali devono essere almeno 1';
     }
     
-    if (formData.squadre_partecipanti?.length || 0 < 2) {
+    if ((formData.squadre_partecipanti?.length || 0) < 2) {
       newErrors.squadre_partecipanti = 'Seleziona almeno 2 squadre per il torneo';
     }
     
@@ -729,13 +729,13 @@ const GestioneTornei = () => {
         : [...prev.squadre_partecipanti, squadraId]
     }));
     
-    if (formData.squadre_partecipanti?.length || 0 >= 1) {
+    if ((formData.squadre_partecipanti?.length || 0) >= 1) {
       setErrors(prev => ({ ...prev, squadre_partecipanti: undefined }));
     }
   };
 
   const handleShowForm = () => {
-    if (squadre?.length || 0 === 0) {
+    if ((squadre?.length || 0) === 0) {
       setWarningMessage('Non ci sono squadre disponibili in questa lega. Crea prima delle squadre.');
       return;
     }

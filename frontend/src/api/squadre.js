@@ -17,7 +17,7 @@ export async function getSquadreByLega(lega_id, token) {
 }
 
 export async function getSquadreByUtente(token) {
-  return api.get('/squadre/utente', token);
+  return api.get('/leghe/utente', token);
 }
 
 export async function getGiocatoriSquadra(squadraId, token) {

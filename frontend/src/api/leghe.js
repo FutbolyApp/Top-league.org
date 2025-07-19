@@ -64,7 +64,7 @@ export async function updateLega(legaId, data, token) {
   const userRole = payload.ruolo;
   
   // Usa la rotta appropriata in base al ruolo
-  const endpoint = userRole === 'admin' ? `/leghe/${legaId}/admin` : `/leghe/${legaId}`;
+  const endpoint = (userRole === 'admin' || userRole === 'SuperAdmin') ? `/leghe/${legaId}/admin` : `/leghe/${legaId}`;
   
   return api.put(endpoint, data, token);
 }
