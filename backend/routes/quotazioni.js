@@ -540,7 +540,7 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
           console.log(`[STATISTICHE] Tentativo ricerca flessibile per: "${playerName}"`);
           const giocatoreFlessibile = await new Promise((resolve, reject) => {
             const searchPattern = `%${playerName}%`;
-            getDb().query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g?.nome || 'Nome' LIKE $2', [legaId, searchPattern], (err, result) => {
+            getDb().query('SELECT * FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = $1 AND g.nome LIKE $2', [legaId, searchPattern], (err, result) => {
               if (err) reject(err);
               else resolve(result.rows[0]);
             });
