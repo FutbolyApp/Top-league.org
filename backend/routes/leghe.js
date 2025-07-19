@@ -416,16 +416,24 @@ router.get('/all', requireSuperAdmin, async (req, res) => {
              ELSE u.nome || ' ' || u.cognome 
            END as admin_nome,
            u.email as admin_email,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id) as numero_squadre,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.proprietario_id IS NOT NULL) as squadre_con_proprietario,
-           (SELECT COUNT(*) FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = l.id) as numero_giocatori,
-           (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei
+           COALESCE((SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id), 0) as numero_squadre,
+           COALESCE((SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.proprietario_id IS NOT NULL), 0) as squadre_con_proprietario,
+           COALESCE((SELECT COUNT(*) FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = l.id), 0) as numero_giocatori,
+           COALESCE((SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id), 0) as numero_tornei
       FROM leghe l
       LEFT JOIN users u ON l.admin_id = u.id
       ORDER BY l.created_at DESC
     `);
     
     console.log('Tutte le leghe trovate:', result.rows.length);
+    console.log('🔍 Leghe details:', result.rows.map(l => ({
+      id: l.id,
+      nome: l.nome,
+      numero_squadre: l.numero_squadre,
+      squadre_con_proprietario: l.squadre_con_proprietario,
+      numero_giocatori: l.numero_giocatori,
+      numero_tornei: l.numero_tornei
+    })));
     res.json({ leghe: result.rows });
   } catch (err) {
     console.error('Errore query tutte le leghe:', err);
