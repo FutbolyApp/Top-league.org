@@ -638,16 +638,18 @@ router.put('/:legaId', requireSuperAdmin, (req, res) => {
       return res.status(400).json({ error: 'Il nome della lega è obbligatorio' });
     }
     
-    if (updateData?.max_squadre || '' && updateData?.max_squadre || '' < 1) {
+    if (updateData?.max_squadre && parseInt(updateData.max_squadre) < 1) {
       return res.status(400).json({ error: 'Il numero massimo di squadre deve essere almeno 1' });
     }
     
-    if (updateData?.min_giocatori || '' && updateData?.min_giocatori || '' < 1) {
+    if (updateData?.min_giocatori && parseInt(updateData.min_giocatori) < 1) {
       return res.status(400).json({ error: 'Il numero minimo di giocatori deve essere almeno 1' });
     }
     
-    if (updateData?.max_giocatori || '' && updateData?.min_giocatori || '' && 
-        updateData?.max_giocatori || '' < updateData?.min_giocatori || '') {
+    if (
+      updateData?.max_giocatori && updateData?.min_giocatori &&
+      parseInt(updateData.max_giocatori) < parseInt(updateData.min_giocatori)
+    ) {
       return res.status(400).json({ error: 'Il numero massimo di giocatori deve essere maggiore o uguale al minimo' });
     }
     
@@ -723,16 +725,18 @@ router.put('/:legaId/admin', requireLegaAdminOrSuperAdmin, (req, res) => {
       return res.status(400).json({ error: 'Il nome della lega è obbligatorio' });
     }
     
-    if (updateData?.max_squadre || '' && updateData?.max_squadre || '' < 1) {
+    if (updateData?.max_squadre && parseInt(updateData.max_squadre) < 1) {
       return res.status(400).json({ error: 'Il numero massimo di squadre deve essere almeno 1' });
     }
     
-    if (updateData?.min_giocatori || '' && updateData?.min_giocatori || '' < 1) {
+    if (updateData?.min_giocatori && parseInt(updateData.min_giocatori) < 1) {
       return res.status(400).json({ error: 'Il numero minimo di giocatori deve essere almeno 1' });
     }
     
-    if (updateData?.max_giocatori || '' && updateData?.min_giocatori || '' && 
-        updateData?.max_giocatori || '' < updateData?.min_giocatori || '') {
+    if (
+      updateData?.max_giocatori && updateData?.min_giocatori &&
+      parseInt(updateData.max_giocatori) < parseInt(updateData.min_giocatori)
+    ) {
       return res.status(400).json({ error: 'Il numero massimo di giocatori deve essere maggiore o uguale al minimo' });
     }
     

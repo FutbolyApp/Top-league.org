@@ -383,7 +383,7 @@ const PagaContratti = () => {
         const res = await getLeghe(token);
         setLeghe(res.leghe);
         
-        if (res.leghe?.length || 0 > 0) {
+        if ((res.leghe?.length || 0) > 0) {
           setSelectedLega(res.leghe[0].id);
           await fetchSquadre(res.leghe[0].id);
         }
@@ -400,7 +400,7 @@ const PagaContratti = () => {
       const res = await getSquadreByLega(legaId, token);
       setSquadre(res.squadre);
       
-      if (res.squadre?.length || 0 > 0) {
+      if ((res.squadre?.length || 0) > 0) {
         setSelectedSquadra(res.squadre[0].id);
         await fetchGiocatori(res.squadre[0].id);
       }
@@ -454,17 +454,17 @@ const PagaContratti = () => {
   };
 
   const getContractStats = () => {
-    const contrattiScaduti = giocatori?.filter(g => g.contratto_scadenza && new Date(g.contratto_scadenza) < new Date()).length;
+    const contrattiScaduti = giocatori?.filter(g => g?.contratto_scadenza && new Date(g.contratto_scadenza) < new Date()).length || 0;
     const contrattiInScadenza = giocatori?.filter(g => {
-      if (!g.contratto_scadenza) return false;
+      if (!g?.contratto_scadenza) return false;
       const scadenza = new Date(g.contratto_scadenza);
       const oggi = new Date();
       const diffTime = scadenza - oggi;
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       return diffDays <= 30 && diffDays > 0;
-    }).length;
-    const costoContratti = giocatori?.reduce((sum, g) => sum + (g.salario || 0), 0);
-    const triggerAttivi = giocatori?.filter(g => g.trigger_attivo).length;
+    }).length || 0;
+    const costoContratti = giocatori?.reduce((sum, g) => sum + (g?.salario || 0), 0) || 0;
+    const triggerAttivi = giocatori?.filter(g => g?.trigger_attivo).length || 0;
 
     return {
       contrattiScaduti,

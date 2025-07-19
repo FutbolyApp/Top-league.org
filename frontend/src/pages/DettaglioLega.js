@@ -445,7 +445,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
           return !squadra?.tornei || (squadra?.tornei?.length || 0) === 0;
         } else {
           // Mostra squadre del torneo selezionato
-          return squadra?.tornei && squadra.tornei.some(torneo => 
+                    return squadra?.tornei && squadra?.tornei.some(torneo =>
             torneo?.id === parseInt(selectedTournament) || torneo?.id === selectedTournament
           );
         }
@@ -574,7 +574,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
                       />
                     ) : (
                       <TeamLogo>
-                        {squadra?.nome || 'Nome'.charAt(0).toUpperCase()}
+                        {(squadra?.nome || 'Nome').charAt(0).toUpperCase()}
                       </TeamLogo>
                     )}
                   </TableCell>
