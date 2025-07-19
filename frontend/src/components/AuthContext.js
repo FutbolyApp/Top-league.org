@@ -22,8 +22,10 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to refresh user data:', error);
-      // Se il token è scaduto, fai logout
-      if (error.message?.includes('401') || error.message?.includes('Token')) {
+      // Se il token è scaduto, fai logout solo se non siamo già nella pagina di login
+      if ((error.message?.includes('401') || error.message?.includes('Token')) && 
+          window.location.pathname !== '/login' && 
+          window.location.pathname !== '/register') {
         logoutUser();
       }
     }

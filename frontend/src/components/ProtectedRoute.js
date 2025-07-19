@@ -3,8 +3,13 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
 export default function ProtectedRoute({ children }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+  
+  // Non fare redirect se stiamo ancora caricando
+  if (loading) {
+    return <div>Loading...</div>;
+  }
   
   if (!user) {
     // Salva l'URL corrente per il redirect dopo il login
