@@ -616,8 +616,8 @@ const GestioneTornei = () => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData?.nome || 'Nome'.trim()) {
-      newErrors?.nome || 'Nome' = 'Il nome del torneo è obbligatorio';
+    if (!formData?.nome?.trim()) {
+      newErrors.nome = 'Il nome del torneo è obbligatorio';
     }
     
     if (!formData.data_inizio) {

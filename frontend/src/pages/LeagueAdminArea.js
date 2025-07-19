@@ -605,7 +605,7 @@ const LeagueAdminArea = () => {
           });
           
           // Ottieni il nome del giocatore e il ruolo dai dettagli se disponibili
-          const giocatoreNome = cleanValue(actionData.modifiche.giocatore) || cleanValue(actionData.modifiche?.nome || 'Nome'_giocatore) || `ID ${actionData.modifiche.giocatoreId}` || 'Giocatore sconosciuto';
+          const giocatoreNome = cleanValue(actionData.modifiche.giocatore) || cleanValue(actionData.modifiche?.nome) || `ID ${actionData.modifiche.giocatoreId}` || 'Giocatore sconosciuto';
           
           // Cerca il ruolo in vari punti possibili
           let ruolo = 'N/A';
@@ -652,7 +652,7 @@ const LeagueAdminArea = () => {
           });
           
           // Ottieni il nome del giocatore e il ruolo dai dettagli se disponibili
-          const giocatoreNome = cleanValue(actionData.giocatore) || cleanValue(actionData?.nome || 'Nome'_giocatore) || `ID ${actionData.giocatoreId}` || 'Giocatore sconosciuto';
+          const giocatoreNome = cleanValue(actionData.giocatore) || cleanValue(actionData?.nome) || `ID ${actionData.giocatoreId}` || 'Giocatore sconosciuto';
           const ruolo = cleanValue(actionData.valoriOriginali?.ruolo) || 'N/A';
           
           return `👤 ${giocatoreNome} (${ruolo}):\n  • ${modificheList.join('\n  • ')}`;
