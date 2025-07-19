@@ -290,7 +290,7 @@ router.get('/', requireAuth, async (req, res) => {
            END as ha_squadre_disponibili
       FROM leghe l
       LEFT JOIN users u ON l.admin_id = u.id
-      WHERE l.admin_id = $1 OR l?.is_pubblica || false = true
+      WHERE l.admin_id = $1 OR l.is_pubblica = true
       ORDER BY l.nome
     `, [userId]);
     
