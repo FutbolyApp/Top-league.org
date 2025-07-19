@@ -175,7 +175,7 @@ router.post('/', requireAuth, async (req, res) => {
     }
     
     // Validazioni
-    if (!giocatoreData?.nome || 'Nome' || !giocatoreData?.ruolo || 'Ruolo') {
+    if (!giocatoreData?.nome || !giocatoreData?.ruolo) {
       return res.status(400).json({ error: 'Nome e ruolo sono obbligatori' });
     }
     

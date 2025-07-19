@@ -213,7 +213,7 @@ const CreaLega = () => {
   };
 
   const testScraping = async () => {
-    if (!form.fantacalcio_url.trim() || !form.fantacalcio_username.trim() || !form.fantacalcio_password.trim()) {
+    if (!form?.fantacalcio_url?.trim() || !form?.fantacalcio_username?.trim() || !form?.fantacalcio_password?.trim()) {
       setError('Compila tutti i campi Fantacalcio per testare lo scraping');
       return;
     }
@@ -230,9 +230,9 @@ const CreaLega = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          leagueUrl: form.fantacalcio_url,
-          username: form.fantacalcio_username,
-          password: form.fantacalcio_password
+          leagueUrl: form?.fantacalcio_url || '',
+          username: form?.fantacalcio_username || '',
+          password: form?.fantacalcio_password || ''
         })
       });
 
@@ -286,18 +286,18 @@ const CreaLega = () => {
     }
     
     // Validazione campi scraping
-    if (form.scraping_automatico) {
-      if (!form.fantacalcio_url.trim()) {
+    if (form?.scraping_automatico) {
+      if (!form?.fantacalcio_url?.trim()) {
         setError('URL Fantacalcio richiesto per lo scraping automatico');
         setSubmitting(false);
         return;
       }
-      if (!form.fantacalcio_username.trim()) {
+      if (!form?.fantacalcio_username?.trim()) {
         setError('Username Fantacalcio richiesto per lo scraping automatico');
         setSubmitting(false);
         return;
       }
-      if (!form.fantacalcio_password.trim()) {
+      if (!form?.fantacalcio_password?.trim()) {
         setError('Password Fantacalcio richiesta per lo scraping automatico');
         setSubmitting(false);
         return;

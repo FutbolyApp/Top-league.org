@@ -329,7 +329,7 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
 
       // Ottieni limite massimo dalla lega
       const lega = await getLegaById(offertaData.lega_id);
-      const maxGiocatori = lega?.max_giocatori || '' || 30;
+      const maxGiocatori = lega?.max_giocatori || 30;
       
       if (giocatoriAttualiCount >= maxGiocatori) {
         return res.status(400).json({ 

@@ -252,11 +252,11 @@ const JoinLeagueForm = ({ lega, onClose, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.squadra_id) {
+    if (!form?.squadra_id) {
       setError('Seleziona una squadra');
       return;
     }
-    if (!form.messaggio) {
+    if (!form?.messaggio) {
       setError('Inserisci un messaggio per la tua richiesta');
       return;
     }
@@ -266,8 +266,8 @@ const JoinLeagueForm = ({ lega, onClose, onSuccess }) => {
 
     try {
       const data = {
-        messaggio: form.messaggio,
-        squadra_id: form.squadra_id
+        messaggio: form?.messaggio || '',
+        squadra_id: form?.squadra_id || ''
       };
       
       // Aggiungi password solo se la lega non è pubblica
@@ -277,7 +277,7 @@ const JoinLeagueForm = ({ lega, onClose, onSuccess }) => {
 
       await richiediIngresso(lega.id, data, token);
       
-      const squadraSelezionata = squadreDisponibili.find(s => s.id === parseInt(form.squadra_id));
+      const squadraSelezionata = squadreDisponibili.find(s => s.id === parseInt(form?.squadra_id || ''));
       onSuccess(`Richiesta di ingresso inviata con successo per la squadra "${squadraSelezionata?.nome}" nella lega "${lega.nome}"!`);
       onClose();
     } catch (err) {
@@ -332,7 +332,7 @@ const JoinLeagueForm = ({ lega, onClose, onSuccess }) => {
             <TeamGrid>
               {tutteLeSquadre.map(squadra => {
                 const isAvailable = squadra.is_orfana === 1;
-                const isSelected = form.squadra_id === squadra.id.toString();
+                const isSelected = form?.squadra_id === squadra.id.toString();
                 
                 return (
                   <TeamOption
@@ -384,7 +384,7 @@ const JoinLeagueForm = ({ lega, onClose, onSuccess }) => {
           )}
 
           <ButtonGroup>
-            <Button type="submit" disabled={loading || !form.squadra_id}>
+            <Button type="submit" disabled={loading || !form?.squadra_id}>
               {loading ? 'Invio...' : 'Invia Richiesta'}
             </Button>
             <Button type="button" $secondary onClick={onClose}>

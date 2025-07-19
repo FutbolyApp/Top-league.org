@@ -302,15 +302,15 @@ const ModificaGiocatoreCompleta = () => {
         const giocatoreRes = await getGiocatoreById(id, token);
         setGiocatore(giocatoreRes.giocatore);
         setFormData({
-          nome: giocatoreRes.giocatore?.nome || 'Nome' || '',
-          ruoli: giocatoreRes.giocatore?.ruolo || 'Ruolo' ? giocatoreRes.giocatore?.ruolo || 'Ruolo'.split(';').map(r => r.trim()).filter(Boolean) : [],
-          squadra_reale: giocatoreRes.giocatore.squadra_reale || '',
-          costo_attuale: giocatoreRes.giocatore.costo_attuale || 0,
-          valore_mercato: giocatoreRes.giocatore.valore_mercato || 0,
-          ingaggio: giocatoreRes.giocatore.costo_attuale || 0,
-          nazionalita: giocatoreRes.giocatore.nazionalita || '',
-          note: giocatoreRes.giocatore.note || '',
-          cantera: giocatoreRes.giocatore.cantera || false
+          nome: giocatoreRes.giocatore?.nome || '',
+          ruoli: giocatoreRes.giocatore?.ruolo ? giocatoreRes.giocatore.ruolo.split(';').map(r => r.trim()).filter(Boolean) : [],
+          squadra_reale: giocatoreRes.giocatore?.squadra_reale || '',
+          costo_attuale: giocatoreRes.giocatore?.costo_attuale || 0,
+          valore_mercato: giocatoreRes.giocatore?.valore_mercato || 0,
+          ingaggio: giocatoreRes.giocatore?.costo_attuale || 0,
+          nazionalita: giocatoreRes.giocatore?.nazionalita || '',
+          note: giocatoreRes.giocatore?.note || '',
+          cantera: giocatoreRes.giocatore?.cantera || false
         });
       } catch (err) {
         setError(err.message);
@@ -345,12 +345,12 @@ const ModificaGiocatoreCompleta = () => {
     setSubmitting(true);
 
     try {
-      if (!formData?.nome || 'Nome'.trim()) {
+      if (!formData?.nome?.trim()) {
         setError('Il nome del giocatore è obbligatorio');
         setSubmitting(false);
         return;
       }
-      if (!formData.ruoli || formData.ruoli?.length || 0 === 0) {
+      if (!formData.ruoli || (formData.ruoli?.length || 0) === 0) {
         setError('Seleziona almeno un ruolo');
         setSubmitting(false);
         return;
