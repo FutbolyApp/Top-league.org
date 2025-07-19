@@ -8,17 +8,14 @@ const AuthRedirect = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Se non è in caricamento e non c'è un utente, salva l'URL corrente
-    if (!loading && !user) {
-      // Salva l'URL corrente per il redirect dopo il login
-      if (location.pathname !== '/login' && location.pathname !== '/register') {
-        sessionStorage.setItem('redirectAfterLogin', location.pathname + location.search);
-      }
+    // Solo se non è in caricamento e non c'è un utente, salva l'URL corrente
+    if (!loading && !user && location.pathname !== '/login' && location.pathname !== '/register') {
+      sessionStorage.setItem('redirectAfterLogin', location.pathname + location.search);
     }
-  }, [user, loading, location]);
+  }, [user, loading, location.pathname, location.search]);
 
   useEffect(() => {
-    // Se l'utente è loggato e c'è un URL di redirect salvato
+    // Solo se l'utente è loggato e c'è un URL di redirect salvato
     if (user && !loading) {
       const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
       if (redirectUrl) {
@@ -28,7 +25,7 @@ const AuthRedirect = () => {
     }
   }, [user, loading, navigate]);
 
-  return null; // Questo componente non renderizza nulla
+  return null;
 };
 
 export default AuthRedirect; 

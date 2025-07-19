@@ -38,12 +38,6 @@ export const AuthProvider = ({ children }) => {
           const userData = JSON.parse(userDataString);
           if (userData) {
             setUser(userData);
-            
-            // Verifica se i dati sono aggiornati (controlla se mancano leghe_admin)
-            if (!userData.leghe_admin || userData.leghe_admin.length === 0) {
-              // Se mancano i dati delle leghe admin, è normale per utenti non admin
-              // Non loggare più questo messaggio per ridurre il rumore
-            }
           }
         }
       } catch (error) {
@@ -54,7 +48,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
     setLoading(false);
-  }, [token]);
+  }, []); // Solo al mount, non quando cambia token
 
   const loginUser = (userData, newToken) => {
     setUser(userData);
@@ -72,9 +66,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
   };
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  // Non bloccare il rendering dell'app durante il loading
+  // L'app può funzionare anche senza user inizialmente
 
   return (
     <AuthContext.Provider value={{ user, token, loginUser, logoutUser, refreshUserData }}>
