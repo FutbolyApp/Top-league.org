@@ -442,11 +442,11 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
     : squadre?.filter(squadra => {
         if (selectedTournament === 'na') {
           // Mostra squadre senza torneo (N/A)
-          return !squadra.tornei || squadra.tornei?.length || 0 === 0;
+          return !squadra?.tornei || (squadra?.tornei?.length || 0) === 0;
         } else {
           // Mostra squadre del torneo selezionato
-          return squadra.tornei && squadra.tornei.some(torneo => 
-            torneo.id === parseInt(selectedTournament) || torneo.id === selectedTournament
+          return squadra?.tornei && squadra.tornei.some(torneo => 
+            torneo?.id === parseInt(selectedTournament) || torneo?.id === selectedTournament
           );
         }
       });
@@ -596,7 +596,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
                   </TableCell>
                   <TableCell>{squadra.club_level || 1}</TableCell>
                   <TableCell>
-                    {squadra.tornei && squadra.tornei?.length || 0 > 0 
+                    {squadra?.tornei && (squadra.tornei?.length || 0) > 0 
                       ? squadra.tornei?.map(torneo => torneo?.nome || 'Nome').join(', ')
                       : "N/A"
                     }

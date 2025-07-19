@@ -641,7 +641,7 @@ const GestioneSquadra = () => {
 
   const handleSelectAll = () => {
     if (squadra?.giocatori) {
-      setSelectedPlayers(squadra.giocatori?.map(p => p.id));
+      setSelectedPlayers(squadra.giocatori?.map(p => p?.id));
     }
   };
 
@@ -817,7 +817,7 @@ const GestioneSquadra = () => {
   }
 
   const totalSalary = selectedPlayers?.reduce((sum, playerId) => {
-    const player = squadra.giocatori.find(p => p.id === playerId);
+    const player = squadra?.giocatori?.find(p => p?.id === playerId);
     
     // Se abbiamo dati roster, considera solo giocatori in Roster A
     if (rosterData && rosterData.rosterA) {

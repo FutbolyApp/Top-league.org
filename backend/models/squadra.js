@@ -47,7 +47,7 @@ export async function getSquadraById(id) {
            END as proprietario_nome,
            CASE 
              WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN ''
-             ELSE u?.cognome || '' 
+             ELSE COALESCE(u.cognome, '') 
            END as proprietario_cognome
     FROM squadre s
     LEFT JOIN users u ON s.proprietario_id = u.id
@@ -124,7 +124,7 @@ export async function getAllSquadre() {
            END as proprietario_nome,
            CASE 
              WHEN COALESCE(u.ruolo, 'Ruolo') = 'SuperAdmin' THEN ''
-             ELSE u?.cognome || '' 
+             ELSE COALESCE(u.cognome, '') 
            END as proprietario_cognome
     FROM squadre s
     LEFT JOIN users u ON s.proprietario_id = u.id

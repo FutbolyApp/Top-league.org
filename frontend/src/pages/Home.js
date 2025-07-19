@@ -774,11 +774,11 @@ const Home = () => {
                 let valoreAttuale = 0;
                 let ingaggi = 0;
                 let numGiocatori = 0;
-                if (Array.isArray(squadra.giocatori) && squadra.giocatori?.length || 0 > 0) {
-                  valoreAttuale = squadra.giocatori?.reduce((sum, g) => sum + (parseInt(g.quotazione_attuale) || 0), 0);
-                  ingaggi = squadra.giocatori?.reduce((sum, g) => sum + (parseInt(g.costo_attuale) || 0), 0);
+                if (Array.isArray(squadra?.giocatori) && (squadra.giocatori?.length || 0) > 0) {
+                  valoreAttuale = squadra.giocatori?.reduce((sum, g) => sum + (parseInt(g?.quotazione_attuale) || 0), 0);
+                  ingaggi = squadra.giocatori?.reduce((sum, g) => sum + (parseInt(g?.costo_attuale) || 0), 0);
                   numGiocatori = squadra.giocatori?.length || 0;
-                } else if (typeof squadra.numero_giocatori === 'number') {
+                } else if (typeof squadra?.numero_giocatori === 'number') {
                   numGiocatori = squadra.numero_giocatori;
                 }
                 const maxGiocatori = squadra?.max_giocatori || 30;
@@ -854,7 +854,7 @@ const Home = () => {
 
                             <MarketMovements>
                               <MarketTitle>📈 Ultimi 5 Movimenti di Mercato</MarketTitle>
-                              {movimentiLega?.length || 0 === 0 ? (
+                              {(movimentiLega?.length || 0) === 0 ? (
                                 <MovementItem>Nessun movimento recente</MovementItem>
                               ) : (
                                 movimentiLega?.map((movimento, index) => (
@@ -877,7 +877,7 @@ const Home = () => {
       )}
 
       {/* Area Admin originale */}
-      {legheAdmin?.length || 0 > 0 && (
+      {(legheAdmin?.length || 0) > 0 && (
         <Section>
           <SectionTitle>Area Admin</SectionTitle>
           <Table>
@@ -935,7 +935,7 @@ const Home = () => {
         </Section>
       )}
 
-      {notifiche?.length || 0 > 0 && (
+      {(notifiche?.length || 0) > 0 && (
         <Section>
           <SectionTitle>Notifiche Recenti</SectionTitle>
           {notifiche.slice(0, 5).map(notifica => (

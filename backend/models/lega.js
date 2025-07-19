@@ -11,7 +11,7 @@ export async function checkLegaExists(nome) {
   const db = getDb();
   // Cerco tra tutte le leghe già normalizzate
   const result = await db.query('SELECT id, nome FROM leghe');
-  const found = result.rows.find(l => normalizeLegaName(COALESCE(l.nome, 'Nome')) === normalized);
+  const found = result.rows.find(l => normalizeLegaName(l?.nome || 'Nome') === normalized);
   return found;
 }
 
@@ -38,17 +38,17 @@ export async function createLega(data) {
     data?.modalita || '',
     admin_id,
     data?.is_pubblica || false? true : false,
-    data?.password || '' || null,
+    data?.password || null,
     max_squadre,
     min_giocatori,
     max_giocatori,
-    data.roster_ab ? true : false,
-    data.cantera ? true : false,
-    data.contratti ? true : false,
-    data.triggers ? true : false,
-    data.regolamento_pdf || null,
-    data.excel_originale || null,
-    data.excel_modificato || null
+    data?.roster_ab ? true : false,
+    data?.cantera ? true : false,
+    data?.contratti ? true : false,
+    data?.triggers ? true : false,
+    data?.regolamento_pdf || null,
+    data?.excel_originale || null,
+    data?.excel_modificato || null
   ]);
   
   return result.rows[0].id;
@@ -91,17 +91,17 @@ export async function updateLega(id, data) {
     data?.modalita || '',
     admin_id,
     data?.is_pubblica || false? true : false,
-    data?.password || '' || null,
+    data?.password || null,
     max_squadre,
     min_giocatori,
     max_giocatori,
-    data.roster_ab ? true : false,
-    data.cantera ? true : false,
-    data.contratti ? true : false,
-    data.triggers ? true : false,
-    data.regolamento_pdf || null,
-    data.excel_originale || null,
-    data.excel_modificato || null,
+    data?.roster_ab ? true : false,
+    data?.cantera ? true : false,
+    data?.contratti ? true : false,
+    data?.triggers ? true : false,
+    data?.regolamento_pdf || null,
+    data?.excel_originale || null,
+    data?.excel_modificato || null,
     id
   ]);
 }

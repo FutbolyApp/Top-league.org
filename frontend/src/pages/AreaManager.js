@@ -369,11 +369,11 @@ const AreaManager = () => {
                 let valoreAttuale = 0;
                 let ingaggi = 0;
                 let numGiocatori = 0;
-                if (Array.isArray(squadra.giocatori) && squadra.giocatori.length > 0) {
-                  valoreAttuale = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g.quotazione_attuale) || 0), 0);
-                  ingaggi = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g.costo_attuale) || 0), 0);
+                if (Array.isArray(squadra?.giocatori) && squadra?.giocatori?.length > 0) {
+                  valoreAttuale = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g?.quotazione_attuale) || 0), 0);
+                  ingaggi = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g?.costo_attuale) || 0), 0);
                   numGiocatori = squadra.giocatori.length;
-                } else if (typeof squadra.numero_giocatori === 'number') {
+                } else if (typeof squadra?.numero_giocatori === 'number') {
                   numGiocatori = squadra.numero_giocatori;
                 }
                 const maxGiocatori = squadra?.max_giocatori || 30;
