@@ -290,7 +290,7 @@ router.get('/', requireAuth, async (req, res) => {
            END as ha_squadre_disponibili
       FROM leghe l
       LEFT JOIN users u ON l.admin_id = u.id
-      WHERE l.admin_id = $1 OR l.is_pubblica = true
+      WHERE l.admin_id = $1 OR l?.is_pubblica || false = true
       ORDER BY l.nome
     `, [userId]);
     
@@ -655,8 +655,8 @@ router.put('/:legaId', requireSuperAdmin, (req, res) => {
     const updatedLega = {
       nome: updateData.nome.trim(),
       modalita: updateData?.modalita || '' || (lega?.modalita || 'Classic Serie A'),
-      is_pubblica: updateData.is_pubblica === 'true' || updateData.is_pubblica === true,
-      password: updateData.is_pubblica ? null : (updateData.password || lega.password),
+      is_pubblica: updateData?.is_pubblica || false === 'true' || updateData?.is_pubblica || false === true,
+      password: updateData?.is_pubblica || false? null : (updateData.password || lega.password),
       max_squadre: updateData.max_squadre || lega.max_squadre,
       min_giocatori: updateData.min_giocatori || lega.min_giocatori,
       max_giocatori: updateData.max_giocatori || lega.max_giocatori,
@@ -740,8 +740,8 @@ router.put('/:legaId/admin', requireLegaAdminOrSuperAdmin, (req, res) => {
     const updatedLega = {
       nome: updateData.nome.trim(),
       modalita: updateData?.modalita || '' || (lega?.modalita || 'Classic Serie A'),
-      is_pubblica: updateData.is_pubblica === 'true' || updateData.is_pubblica === true,
-      password: updateData.is_pubblica ? null : (updateData.password || lega.password),
+      is_pubblica: updateData?.is_pubblica || false === 'true' || updateData?.is_pubblica || false === true,
+      password: updateData?.is_pubblica || false? null : (updateData.password || lega.password),
       max_squadre: updateData.max_squadre || lega.max_squadre,
       min_giocatori: updateData.min_giocatori || lega.min_giocatori,
       max_giocatori: updateData.max_giocatori || lega.max_giocatori,
@@ -856,7 +856,7 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, async (req, res) => {
     }
 
     // Se la lega non è pubblica, verifica la password
-    if (!lega.is_pubblica) {
+    if (!lega?.is_pubblica || false) {
       if (!password) {
         return res.status(400).json({ error: 'Password richiesta per unirsi a questa lega' });
       }
@@ -1308,7 +1308,7 @@ router.put('/:legaId/scraping-credentials', requireAuth, (req, res) => {
       nome: lega.nome, // Mantieni il nome esistente
       modalita: lega?.modalita || 'Classic Serie A',
       admin_id: lega.admin_id,
-      is_pubblica: lega.is_pubblica,
+      is_pubblica: lega?.is_pubblica || false,
       password: lega.password,
       max_squadre: lega.max_squadre,
       min_giocatori: lega.min_giocatori,

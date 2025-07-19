@@ -856,8 +856,8 @@ const AreaAdmin = () => {
                         </div>
                       </Td>
                       <Td>
-                        <TypeBadge $public={lega.is_pubblica}>
-                          {lega.is_pubblica ? 'Pubblica' : 'Privata'}
+                        <TypeBadge $public={lega?.is_pubblica || false}>
+                          {lega?.is_pubblica ? 'Pubblica' : 'Privata'}
                         </TypeBadge>
                       </Td>
                       <Td>

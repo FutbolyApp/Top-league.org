@@ -643,7 +643,7 @@ const SuperAdminDashboard = () => {
   const totalSquadre = leghe?.reduce((sum, lega) => sum + (lega.numero_squadre || 0), 0) || 0;
   const totalSquadreAssegnate = leghe?.reduce((sum, lega) => sum + (lega.squadre_con_proprietario || 0), 0) || 0;
   const totalGiocatori = leghe?.reduce((sum, lega) => sum + (lega.numero_giocatori || 0), 0) || 0;
-  const leghePubbliche = leghe?.filter(lega => lega.is_pubblica).length || 0;
+  const leghePubbliche = leghe?.filter(lega => lega?.is_pubblica).length || 0;
 
   return (
     <Container>
@@ -711,8 +711,8 @@ const SuperAdminDashboard = () => {
                     </Td>
                     <Td>{lega?.modalita || 'N/A'}</Td>
                     <Td>
-                      <StatusBadge className={lega.is_pubblica ? 'public' : 'private'}>
-                        {lega.is_pubblica ? 'Pubblica' : 'Privata'}
+                      <StatusBadge className={lega?.is_pubblica || false? 'public' : 'private'}>
+                        {lega?.is_pubblica || false? 'Pubblica' : 'Privata'}
                       </StatusBadge>
                     </Td>
                     <Td>

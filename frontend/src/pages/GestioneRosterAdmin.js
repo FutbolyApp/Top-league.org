@@ -295,7 +295,7 @@ const GestioneRosterAdmin = () => {
               <StatLabel>Max Giocatori</StatLabel>
             </StatItem>
             <StatItem>
-              <StatValue>{lega.is_pubblica ? 'Pubblica' : 'Privata'}</StatValue>
+              <StatValue>{lega?.is_pubblica || false? 'Pubblica' : 'Privata'}</StatValue>
               <StatLabel>Tipo</StatLabel>
             </StatItem>
           </LeagueStats>

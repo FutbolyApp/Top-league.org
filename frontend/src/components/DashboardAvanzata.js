@@ -407,8 +407,8 @@ const DashboardAvanzata = () => {
                 <LeagueCard key={lega.id} onClick={() => handleLegaSelect(lega)}>
                   <LeagueHeader>
                     <LeagueName>{lega.nome}</LeagueName>
-                    <LeagueStatus public={lega.is_pubblica}>
-                      {lega.is_pubblica ? 'Pubblica' : 'Privata'}
+                    <LeagueStatus public={lega?.is_pubblica || false}>
+                      {lega?.is_pubblica || false? 'Pubblica' : 'Privata'}
                     </LeagueStatus>
                   </LeagueHeader>
                   <LeagueStats>

@@ -581,8 +581,8 @@ const Leghe = () => {
       
       // Filtro per tipo (pubblica/privata)
       if (filters.tipo !== 'tutti') {
-        if (filters.tipo === 'pubblica' && !lega.is_pubblica) return false;
-        if (filters.tipo === 'privata' && lega.is_pubblica) return false;
+        if (filters.tipo === 'pubblica' && !lega?.is_pubblica) return false;
+        if (filters.tipo === 'privata' && lega?.is_pubblica) return false;
       }
       
       // Filtro per stato (completa/non completa)
@@ -913,8 +913,8 @@ const Leghe = () => {
                       <Td>{lega.admin_nome || 'N/A'}</Td>
                       <Td>{lega?.modalita || 'N/A'}</Td>
                       <Td>
-                        <StatusBadge $status={lega.is_pubblica ? 'pubblica' : 'privata'}>
-                          {lega.is_pubblica ? 'Pubblica' : 'Privata'}
+                        <StatusBadge $status={lega?.is_pubblica || false? 'pubblica' : 'privata'}>
+                          {lega?.is_pubblica || false? 'Pubblica' : 'Privata'}
                         </StatusBadge>
                       </Td>
                       <Td>{lega.squadre_assegnate || 0}/{lega.numero_squadre_totali || 0}</Td>

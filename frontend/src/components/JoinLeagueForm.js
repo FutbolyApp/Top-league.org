@@ -271,7 +271,7 @@ const JoinLeagueForm = ({ lega, onClose, onSuccess }) => {
       };
       
       // Aggiungi password solo se la lega non è pubblica
-      if (!lega.is_pubblica && form.password) {
+      if (!lega?.is_pubblica && form.password) {
         data.password = form.password;
       }
 
@@ -316,7 +316,7 @@ const JoinLeagueForm = ({ lega, onClose, onSuccess }) => {
           <LeagueName>{lega?.nome}</LeagueName>
           <LeagueDetails>
             <span>Modalità: {lega?.modalita || ''}</span>
-            <span>Tipo: {lega?.is_pubblica ? 'Pubblica' : 'Privata'}</span>
+            <span>Tipo: {lega?.is_pubblica || false? 'Pubblica' : 'Privata'}</span>
             <span>Squadre: {lega?.squadre_assegnate || 0}/{lega?.numero_squadre_totali || 0}</span>
           </LeagueDetails>
         </LeagueInfo>

@@ -273,7 +273,7 @@ const CreaLega = () => {
       return;
     }
     
-    if (!form.is_pubblica && !form.password.trim()) {
+    if (!form?.is_pubblica || false && !form.password.trim()) {
       setError('La password è obbligatoria per le leghe private');
       setSubmitting(false);
       return;
@@ -386,19 +386,19 @@ const CreaLega = () => {
             <input
               type="checkbox"
               name="is_pubblica"
-              checked={form.is_pubblica}
+              checked={form?.is_pubblica || false}
               onChange={handleChange}
             />
             {' '}Lega Pubblica
           </Label>
-          {!form.is_pubblica && (
+          {!form?.is_pubblica || false && (
             <Input
               name="password"
               type="password"
               placeholder="Password (obbligatoria per leghe private) *"
               value={form.password}
               onChange={handleChange}
-              required={!form.is_pubblica}
+              required={!form?.is_pubblica || false}
               style={{ marginTop: '0.5rem' }}
             />
           )}

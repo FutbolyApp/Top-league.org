@@ -495,7 +495,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
           </InfoCard>
           <InfoCard>
             <InfoLabel>Tipo</InfoLabel>
-            <InfoValue>{lega.is_pubblica ? 'Pubblica' : 'Privata'}</InfoValue>
+            <InfoValue>{lega?.is_pubblica || false? 'Pubblica' : 'Privata'}</InfoValue>
           </InfoCard>
           <InfoCard>
             <InfoLabel>Squadre</InfoLabel>

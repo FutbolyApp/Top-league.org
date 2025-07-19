@@ -566,8 +566,8 @@ const UniscitiLega = () => {
                     <Td>{lega.admin_nome || 'N/A'}</Td>
                     <Td>{lega?.modalita || 'N/A'}</Td>
                     <Td>
-                      <StatusBadge $status={lega.is_pubblica ? 'pubblica' : 'privata'}>
-                        {lega.is_pubblica ? 'Pubblica' : 'Privata'}
+                      <StatusBadge $status={lega?.is_pubblica || false? 'pubblica' : 'privata'}>
+                        {lega?.is_pubblica || false? 'Pubblica' : 'Privata'}
                       </StatusBadge>
                     </Td>
                     <Td>{lega.squadre_assegnate || 0}/{lega.numero_squadre_totali || 0}</Td>
