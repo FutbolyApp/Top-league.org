@@ -230,4 +230,95 @@ router.get('/database-status', async (req, res) => {
   }
 });
 
+// Endpoint semplice per assegnare squadre al SuperAdmin
+router.post('/assign-squadre', async (req, res) => {
+  console.log('🔧 DEBUG: Assigning squadre to SuperAdmin');
+  
+  try {
+    await initializeDatabase();
+    const db = getDb();
+    
+    if (!db) {
+      return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    // 1. Trova il SuperAdmin
+    const superAdminResult = await db.query(`
+      SELECT id, nome, cognome, email, ruolo 
+      FROM users 
+      WHERE ruolo = 'SuperAdmin' 
+      LIMIT 1
+    `);
+    
+    if (superAdminResult.rows.length === 0) {
+      return res.status(404).json({ error: 'No SuperAdmin found' });
+    }
+    
+    const superAdminId = superAdminResult.rows[0].id;
+    console.log(`SuperAdmin found: ${superAdminResult.rows[0].nome} (ID: ${superAdminId})`);
+    
+    // 2. Aggiorna password
+    const password_hash = await bcrypt.hash('admin123', 10);
+    await db.query(`
+      UPDATE users 
+      SET password_hash = $1 
+      WHERE id = $2
+    `, [password_hash, superAdminId]);
+    console.log('Password updated to admin123');
+    
+    // 3. Trova squadre non assegnate
+    const unassignedSquadre = await db.query(`
+      SELECT id, nome, lega_id 
+      FROM squadre 
+      WHERE proprietario_id IS NULL OR is_orfana = true
+      LIMIT 10
+    `);
+    
+    console.log(`Found ${unassignedSquadre.rows.length} unassigned squadre`);
+    
+    // 4. Assegna le prime 5 squadre al SuperAdmin
+    const squadreToAssign = unassignedSquadre.rows.slice(0, 5);
+    let assignedCount = 0;
+    
+    for (const squadra of squadreToAssign) {
+      await db.query(`
+        UPDATE squadre 
+        SET proprietario_id = $1, is_orfana = false 
+        WHERE id = $2
+      `, [superAdminId, squadra.id]);
+      
+      console.log(`Assigned squadra ${squadra.nome} to SuperAdmin`);
+      assignedCount++;
+    }
+    
+    // 5. Verifica finale
+    const superAdminSquadre = await db.query(`
+      SELECT COUNT(*) as count 
+      FROM squadre 
+      WHERE proprietario_id = $1
+    `, [superAdminId]);
+    
+    console.log('Squadre assignment completed');
+    
+    res.json({ 
+      success: true,
+      message: 'Squadre assigned successfully',
+      assigned: assignedCount,
+      totalSquadre: superAdminSquadre.rows[0].count,
+      credentials: {
+        email: 'admin@topleague.com',
+        password: 'admin123',
+        role: 'SuperAdmin'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Squadre assignment failed:', error);
+    res.status(500).json({ 
+      error: 'Squadre assignment failed', 
+      details: error.message 
+    });
+  }
+});
+
 export default router; 
