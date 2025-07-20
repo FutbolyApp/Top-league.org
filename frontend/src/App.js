@@ -53,6 +53,8 @@ import TokenExpiredHandler from './components/TokenExpiredHandler';
 import AuthRedirect from './components/AuthRedirect';
 import './index.css';
 
+console.log('🚀 TopLeague Frontend v1.0.5 - Build:', new Date().toISOString());
+
 function AppRoutes() {
   return (
     <>
