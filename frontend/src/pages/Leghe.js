@@ -492,15 +492,28 @@ const Leghe = () => {
       setLoading(true);
       setError('');
       try {
+        console.log('🔍 Leghe: Starting fetchData');
+        console.log('🔍 Leghe: Token available:', !!token);
+        
         const [legheRes, richiesteRes, squadreRes] = await Promise.all([
           getLeghe(token),
           getRichiesteUtente(token),
           getSquadreByUtente(token)
         ]);
+        
+        console.log('🔍 Leghe: Leghe response:', legheRes);
+        console.log('🔍 Leghe: Richieste response:', richiesteRes);
+        console.log('🔍 Leghe: Squadre response:', squadreRes);
+        
         setLeghe(legheRes.leghe);
         setRichiesteUtente(richiesteRes.richieste || []);
         setSquadre(squadreRes.squadre || []);
+        
+        console.log('🔍 Leghe: Leghe set:', legheRes.leghe?.length || 0);
+        console.log('🔍 Leghe: Richieste set:', richiesteRes.richieste?.length || 0);
+        console.log('🔍 Leghe: Squadre set:', squadreRes.squadre?.length || 0);
       } catch (err) {
+        console.error('❌ Leghe: Error in fetchData:', err);
         setError(err.message);
       }
       setLoading(false);
@@ -566,17 +579,30 @@ const Leghe = () => {
 
   // Funzione per filtrare le leghe
   const filterLeghe = (legheToFilter) => {
+    console.log('🔍 Leghe: filterLeghe chiamata con:', legheToFilter?.length || 0, 'leghe');
+    console.log('🔍 Leghe: filters:', filters);
+    
     return legheToFilter.filter(lega => {
+      console.log('🔍 Leghe: Controllando lega:', lega.nome);
+      
       // Filtro per mostrare solo le leghe dell'utente (quando abilitato)
       if (filters.soloMieLeghe) {
         const isAdmin = isAdminOfLega(lega);
         const hasTeam = hasTeamInLega(lega);
-        if (!isAdmin && !hasTeam) return false;
+        console.log('🔍 Leghe: soloMieLeghe=true, isAdmin:', isAdmin, 'hasTeam:', hasTeam);
+        if (!isAdmin && !hasTeam) {
+          console.log('🔍 Leghe: Nascondendo lega (non è dell\'utente):', lega.nome);
+          return false;
+        }
       } else {
         // Di default, mostra solo le leghe dove l'utente NON ha fatto accesso
         const isAdmin = isAdminOfLega(lega);
         const hasTeam = hasTeamInLega(lega);
-        if (isAdmin || hasTeam) return false;
+        console.log('🔍 Leghe: soloMieLeghe=false, isAdmin:', isAdmin, 'hasTeam:', hasTeam);
+        if (isAdmin || hasTeam) {
+          console.log('🔍 Leghe: Nascondendo lega (utente ha accesso):', lega.nome);
+          return false;
+        }
       }
       
       // Filtro per tipo (pubblica/privata)
