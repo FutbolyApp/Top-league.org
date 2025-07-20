@@ -372,14 +372,14 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
           getTorneiLega(id, token)
         ]);
         
-        setLega(resLega.lega);
-        if (setCurrentLeague) setCurrentLeague(resLega.lega);
+        setLega(resLega?.data?.lega || resLega?.lega);
+        if (setCurrentLeague) setCurrentLeague(resLega?.data?.lega || resLega?.lega);
         if (setCurrentTeam) setCurrentTeam(null);
         
-        setSquadre(resSquadre.squadre);
+        setSquadre(resSquadre?.data?.squadre || resSquadre?.squadre || []);
         
         // Aggiungi i tornei reali al filtro
-        const torneiReali = resTornei.tornei || [];
+        const torneiReali = resTornei?.data?.tornei || resTornei?.tornei || [];
         const torneiOptions = [
           { id: 'all', name: 'Tutti i Tornei' },
           ...torneiReali?.map(torneo => ({

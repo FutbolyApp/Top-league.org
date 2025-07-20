@@ -265,11 +265,11 @@ const UniscitiLega = () => {
           getLeghe(token),
           getRichiesteUtente(token)
         ]);
-        setLeghe(legheRes.leghe);
-        setFilteredLeghe(legheRes.leghe);
-        setRichiesteUtente(richiesteRes.richieste || []);
+        setLeghe(legheRes?.data?.leghe || legheRes?.leghe || []);
+        setFilteredLeghe(legheRes?.data?.leghe || legheRes?.leghe || []);
+        setRichiesteUtente(richiesteRes?.data?.richieste || richiesteRes?.richieste || []);
         const squadreRes = await getSquadreByUtente(token);
-        setSquadre(squadreRes.squadre);
+        setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
       } catch (err) {
         setError(err.message);
       }
@@ -410,10 +410,10 @@ const UniscitiLega = () => {
         getRichiesteUtente(token),
         getSquadreByUtente(token)
       ]);
-      setLeghe(legheRes.leghe);
-      setFilteredLeghe(legheRes.leghe);
-      setRichiesteUtente(richiesteRes.richieste || []);
-      setSquadre(squadreRes.squadre || []);
+      setLeghe(legheRes?.data?.leghe || legheRes?.leghe || []);
+      setFilteredLeghe(legheRes?.data?.leghe || legheRes?.leghe || []);
+      setRichiesteUtente(richiesteRes?.data?.richieste || richiesteRes?.richieste || []);
+      setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
     } catch (err) {
       console.error('Errore nel ricaricamento dati:', err);
     }

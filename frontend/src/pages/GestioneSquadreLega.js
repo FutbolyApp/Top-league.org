@@ -250,11 +250,11 @@ const GestioneSquadreLega = () => {
         console.log('🔍 Lega details:', legaRes.lega);
         
         // Gestisci sia il formato {ok: true, data: {...}} che il formato diretto
-        const legaData = legaRes.data ? legaRes.data : legaRes;
-        const squadreData = squadreRes.data ? squadreRes.data : squadreRes;
+        const legaData = legaRes?.data || legaRes;
+        const squadreData = squadreRes?.data || squadreRes;
         
-        setLega(legaData.lega);
-        setSquadre(squadreData.squadre || []);
+        setLega(legaData?.lega);
+        setSquadre(squadreData?.squadre || []);
         
         console.log('🔍 Squadre set:', squadreData.squadre || []);
       } catch (err) {

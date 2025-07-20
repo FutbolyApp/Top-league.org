@@ -603,8 +603,8 @@ const GestioneTornei = () => {
         getTorneiLega(legaId, token),
         getSquadreByLega(legaId, token)
       ]);
-      setTornei(torneiRes.tornei || []);
-      setSquadre(squadreRes.squadre || []);
+      setTornei(torneiRes?.data?.tornei || torneiRes?.tornei || []);
+      setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
     } catch (error) {
       console.error('Errore caricamento dati:', error);
       setErrorMessage('Errore nel caricamento dei dati. Riprova più tardi.');

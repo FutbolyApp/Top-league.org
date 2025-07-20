@@ -469,17 +469,18 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
       setError('');
       try {
         const res = await getGiocatoreById(id, token);
-        setGiocatore(res.giocatore);
+        setGiocatore(res?.giocatore);
         
         // Carica la squadra del giocatore
-        if (res.giocatore.squadra_id) {
-          const squadraRes = await getSquadraById(res.giocatore.squadra_id, token);
-          setSquadra(squadraRes.squadra);
+        if (res?.giocatore?.squadra_id) {
+          const squadraRes = await getSquadraById(res?.giocatore?.squadra_id, token);
+          setSquadra(squadraRes?.data?.squadra || squadraRes?.squadra);
           
           // Carica tutte le squadre della lega per le offerte
-          if (squadraRes.squadra.lega_id) {
-            const squadreRes = await getSquadreByLega(squadraRes.squadra.lega_id, token);
-        setSquadre(squadreRes.squadre);
+          if (squadraRes?.data?.squadra?.lega_id || squadraRes?.squadra?.lega_id) {
+            const legaId = squadraRes?.data?.squadra?.lega_id || squadraRes?.squadra?.lega_id;
+            const squadreRes = await getSquadreByLega(legaId, token);
+            setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
           }
         }
       } catch (err) {

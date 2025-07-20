@@ -248,11 +248,12 @@ const OfferteManager = () => {
     try {
       setLoading(true);
       const legheRes = await getLeghe(token);
-      setLeghe(legheRes.leghe);
+      const leghe = legheRes?.data?.leghe || legheRes?.leghe || [];
+      setLeghe(leghe);
       
-      if (legheRes.leghe.length > 0) {
-        setSelectedLega(legheRes.leghe[0].id);
-        await fetchOfferte(legheRes.leghe[0].id);
+      if (leghe.length > 0) {
+        setSelectedLega(leghe[0]?.id);
+        await fetchOfferte(leghe[0]?.id);
       }
     } catch (err) {
       setError(err.message);

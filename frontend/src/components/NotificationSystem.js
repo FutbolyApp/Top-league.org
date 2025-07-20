@@ -298,7 +298,7 @@ export const NotificationProvider = ({ children }) => {
         
         try {
             const response = await getNotificheShared(token, user.id);
-            const notifiche = response.notifiche || [];
+            const notifiche = response?.data?.notifiche || response?.notifiche || [];
             
             // Normalizza le notifiche per gestire entrambi i campi (letta e letto)
             const notificheNormalizzate = notifiche.map(n => ({

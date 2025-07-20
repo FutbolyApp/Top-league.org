@@ -342,18 +342,19 @@ const ScrapingManager = () => {
     const loadLeghe = async () => {
       try {
         const response = await getLegheAdmin(token);
-        setLeghe(response.leghe || []);
+        const leghe = response?.data?.leghe || response?.leghe || [];
+        setLeghe(leghe);
         
         // Se abbiamo un legaId nell'URL, selezionalo automaticamente
         if (legaId) {
-          const lega = response.leghe?.find(l => l.id.toString() === legaId);
+          const lega = leghe?.find(l => l?.id?.toString() === legaId);
           if (lega) {
-            setSelectedLega(lega.id.toString());
+            setSelectedLega(lega?.id?.toString());
             // Pre-compila gli URL se la lega ha dati di scraping
-            if (lega.fantacalcio_url) {
-              setLeagueUrl(lega.fantacalcio_url);
+            if (lega?.fantacalcio_url) {
+              setLeagueUrl(lega?.fantacalcio_url);
               // Pre-compila tutti gli URL di scraping basati sull'URL base
-              const baseUrl = lega.fantacalcio_url.replace(/\/$/, '');
+              const baseUrl = lega?.fantacalcio_url?.replace(/\/$/, '');
               setScrapingUrls({
                 rose: `${baseUrl}/rose`,
                 classifica: `${baseUrl}/classifica`,
@@ -361,14 +362,14 @@ const ScrapingManager = () => {
               });
             }
             // Pre-compila le credenziali se la lega le ha configurate
-            if (lega.fantacalcio_username && lega.fantacalcio_password) {
+            if (lega?.fantacalcio_username && lega?.fantacalcio_password) {
               // Controlla se ci sono già credenziali salvate dall'utente
               const savedCredentials = localStorage.getItem('scraping_credentials');
               if (!savedCredentials) {
                 // Solo se non ci sono credenziali salvate, usa quelle della lega
                 setCredentials({
-                  username: lega.fantacalcio_username,
-                  password: lega.fantacalcio_password
+                  username: lega?.fantacalcio_username,
+                  password: lega?.fantacalcio_password
                 });
               }
             }

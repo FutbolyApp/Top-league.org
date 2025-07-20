@@ -475,8 +475,9 @@ const AreaAdmin = () => {
       console.log('🔍 Loading admin leghe for user:', user?.id, user?.username);
       const legheData = await getLegheAdmin(token);
       console.log('🔍 Leghe data received:', legheData);
-      console.log('🔍 Leghe array:', legheData.leghe || []);
-      setLeghe(legheData.leghe || []);
+      const leghe = legheData?.data?.leghe || legheData?.leghe || [];
+      console.log('🔍 Leghe array:', leghe);
+      setLeghe(leghe);
       
       // Carica le richieste
       const richiesteData = await api.get('/leghe/richieste/admin', token);

@@ -283,11 +283,12 @@ const DashboardAvanzata = () => {
     try {
       setLoading(true);
       const legheRes = await getLeghe(token);
-      setLeghe(legheRes.leghe);
+      const leghe = legheRes?.data?.leghe || legheRes?.leghe || [];
+      setLeghe(leghe);
       
-      if (legheRes.leghe.length > 0) {
-        setSelectedLega(legheRes.leghe[0]);
-        await fetchLegaData(legheRes.leghe[0].id);
+      if (leghe.length > 0) {
+        setSelectedLega(leghe[0]);
+        await fetchLegaData(leghe[0]?.id);
       }
     } catch (err) {
       setError(err.message);
@@ -303,8 +304,8 @@ const DashboardAvanzata = () => {
         getGiocatoriByLega(legaId, token)
       ]);
       
-      setSquadre(squadreRes.squadre);
-      setGiocatori(giocatoriRes.giocatori);
+      setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
+      setGiocatori(giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || []);
     } catch (err) {
       setError(err.message);
     }

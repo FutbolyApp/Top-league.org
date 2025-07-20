@@ -144,13 +144,14 @@ const GestioneCredenziali = () => {
     const loadLega = async () => {
       try {
         const response = await getLegheAdmin(token);
-        const lega = response.leghe?.find(l => l.id.toString() === legaId);
+        const leghe = response?.data?.leghe || response?.leghe || [];
+        const lega = leghe?.find(l => l?.id?.toString() === legaId);
         
         if (lega) {
           setLegaData(lega);
           setCredentials({
-            username: lega.fantacalcio_username || '',
-            password: lega.fantacalcio_password || ''
+            username: lega?.fantacalcio_username || '',
+            password: lega?.fantacalcio_password || ''
           });
         } else {
           showErrorModal('Lega Non Trovata', 'La lega richiesta non è stata trovata.');
@@ -199,7 +200,8 @@ const GestioneCredenziali = () => {
         
         // Ricarica i dati della lega
         const legheResponse = await getLegheAdmin(token);
-        const updatedLega = legheResponse.leghe?.find(l => l.id.toString() === legaId);
+        const leghe = legheResponse?.data?.leghe || legheResponse?.leghe || [];
+        const updatedLega = leghe?.find(l => l?.id?.toString() === legaId);
         if (updatedLega) {
           setLegaData(updatedLega);
         }
@@ -233,7 +235,8 @@ const GestioneCredenziali = () => {
     try {
       // Ricarica i dati freschi dal database
       const legheResponse = await getLegheAdmin(token);
-      const freshLegaData = legheResponse.leghe?.find(l => l.id.toString() === legaId);
+      const leghe = legheResponse?.data?.leghe || legheResponse?.leghe || [];
+      const freshLegaData = leghe?.find(l => l?.id?.toString() === legaId);
       
       if (!freshLegaData) {
         throw new Error('Impossibile caricare i dati aggiornati della lega');

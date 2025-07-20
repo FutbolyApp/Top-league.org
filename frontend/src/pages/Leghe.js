@@ -506,13 +506,13 @@ const Leghe = () => {
         console.log('🔍 Leghe: Squadre response:', squadreRes);
         
         // Gestisci sia il formato {ok: true, data: {...}} che il formato diretto
-        const legheData = legheRes.data ? legheRes.data : legheRes;
-        const richiesteData = richiesteRes.data ? richiesteRes.data : richiesteRes;
-        const squadreData = squadreRes.data ? squadreRes.data : squadreRes;
+        const legheData = legheRes?.data || legheRes;
+        const richiesteData = richiesteRes?.data || richiesteRes;
+        const squadreData = squadreRes?.data || squadreRes;
         
-        setLeghe(legheData.leghe);
-        setRichiesteUtente(richiesteData.richieste || []);
-        setSquadre(squadreData.squadre || []);
+        setLeghe(legheData?.leghe || []);
+        setRichiesteUtente(richiesteData?.richieste || []);
+        setSquadre(squadreData?.squadre || []);
         
         console.log('🔍 Leghe: Leghe set:', legheData.leghe?.length || 0);
         console.log('🔍 Leghe: Richieste set:', richiesteData.richieste?.length || 0);
@@ -703,9 +703,9 @@ const Leghe = () => {
         getRichiesteUtente(token),
         getSquadreByUtente(token)
       ]);
-      setLeghe(legheRes.leghe);
-      setRichiesteUtente(richiesteRes.richieste || []);
-      setSquadre(squadreRes.squadre || []);
+      setLeghe(legheRes?.data?.leghe || legheRes?.leghe || []);
+      setRichiesteUtente(richiesteRes?.data?.richieste || richiesteRes?.richieste || []);
+      setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
     } catch (err) {
       console.error('Errore nel ricaricamento dati:', err);
     }

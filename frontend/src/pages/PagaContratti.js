@@ -381,11 +381,12 @@ const PagaContratti = () => {
       setError('');
       try {
         const res = await getLeghe(token);
-        setLeghe(res.leghe);
+        setLeghe(res?.data?.leghe || res?.leghe || []);
         
-        if ((res.leghe?.length || 0) > 0) {
-          setSelectedLega(res.leghe[0].id);
-          await fetchSquadre(res.leghe[0].id);
+        const leghe = res?.data?.leghe || res?.leghe || [];
+        if ((leghe?.length || 0) > 0) {
+          setSelectedLega(leghe[0]?.id);
+          await fetchSquadre(leghe[0]?.id);
         }
       } catch (err) {
         setError(err.message);
@@ -398,11 +399,12 @@ const PagaContratti = () => {
   const fetchSquadre = async (legaId) => {
     try {
       const res = await getSquadreByLega(legaId, token);
-      setSquadre(res.squadre);
+      setSquadre(res?.data?.squadre || res?.squadre || []);
       
-      if ((res.squadre?.length || 0) > 0) {
-        setSelectedSquadra(res.squadre[0].id);
-        await fetchGiocatori(res.squadre[0].id);
+      const squadre = res?.data?.squadre || res?.squadre || [];
+      if ((squadre?.length || 0) > 0) {
+        setSelectedSquadra(squadre[0]?.id);
+        await fetchGiocatori(squadre[0]?.id);
       }
     } catch (err) {
       setError(err.message);
@@ -412,7 +414,7 @@ const PagaContratti = () => {
   const fetchGiocatori = async (squadraId) => {
     try {
       const res = await getGiocatoriBySquadra(squadraId, token);
-      setGiocatori(res.giocatori || []);
+      setGiocatori(res?.data?.giocatori || res?.giocatori || []);
     } catch (err) {
       setError(err.message);
     }

@@ -640,9 +640,10 @@ const ProponiOfferta = () => {
         ]);
         
         // Filtra le squadre escludendo la squadra dell'utente (non invia offerte a se stesso)
-        const filteredSquadre = squadreRes?.squadre?.filter(s => s?.id !== parseInt(squadraId)) || [];
+        const squadre = squadreRes?.data?.squadre || squadreRes?.squadre || [];
+        const filteredSquadre = squadre?.filter(s => s?.id !== parseInt(squadraId)) || [];
         setSquadre(filteredSquadre);
-        setGiocatori(giocatoriRes.giocatori);
+        setGiocatori(giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || []);
         
         // Estrai i tornei unici dalle squadre
         const uniqueTornei = [...new Set(filteredSquadre.map(s => s.torneo || 'N/A'))];

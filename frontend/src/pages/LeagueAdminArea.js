@@ -306,16 +306,18 @@ const LeagueAdminArea = () => {
           getChangeHistory(legaId, token)
         ]);
         
-        setLega(legaRes.lega);
-        setSubadmins(subadminsRes.subadmins || []);
-        setPendingChanges(pendingRes.changes || []);
-        setChangeHistory(historyRes.changes || []);
+        setLega(legaRes?.data?.lega || legaRes?.lega);
+        setSubadmins(subadminsRes?.data?.subadmins || subadminsRes?.subadmins || []);
+        setPendingChanges(pendingRes?.data?.changes || pendingRes?.changes || []);
+        setChangeHistory(historyRes?.data?.changes || historyRes?.changes || []);
         
         // Raccogli tutti gli ID delle squadre dalle modifiche per recuperare i dati originali
+        const pendingChanges = pendingRes?.data?.changes || pendingRes?.changes || [];
+        const historyChanges = historyRes?.data?.changes || historyRes?.changes || [];
         const squadraIds = new Set();
-        [...(pendingRes.changes || []), ...(historyRes.changes || [])].forEach(change => {
-          if (change.action_data && change.action_data.squadreModifiche) {
-            Object.keys(change.action_data.squadreModifiche).forEach(squadraId => {
+        [...pendingChanges, ...historyChanges].forEach(change => {
+          if (change?.action_data && change?.action_data?.squadreModifiche) {
+            Object.keys(change?.action_data?.squadreModifiche).forEach(squadraId => {
               squadraIds.add(parseInt(squadraId));
             });
           }
@@ -364,7 +366,7 @@ const LeagueAdminArea = () => {
       console.log('Ricarico lista subadmin...');
       const subadminsRes = await getSubadminsByLega(legaId, token);
       console.log('Nuova lista subadmin:', subadminsRes);
-      setSubadmins(subadminsRes.subadmins || []);
+      setSubadmins(subadminsRes?.data?.subadmins || subadminsRes?.subadmins || []);
     } catch (err) {
       console.error('Errore nell\'aggiunta del subadmin:', err);
       alert(`Errore nell'aggiunta del subadmin: ${err.message}`);
@@ -379,7 +381,7 @@ const LeagueAdminArea = () => {
         
         // Ricarica i dati
         const subadminsRes = await getSubadminsByLega(legaId, token);
-        setSubadmins(subadminsRes.subadmins || []);
+        setSubadmins(subadminsRes?.data?.subadmins || subadminsRes?.subadmins || []);
       } catch (err) {
         alert(`Errore nella rimozione del subadmin: ${err.message}`);
       }

@@ -370,14 +370,13 @@ const GiocatoriManager = () => {
       setLoading(true);
       setError('');
       try {
-        const [legheRes] = await Promise.all([
-          getLeghe(token)
-        ]);
-        setLeghe(legheRes.leghe);
+        const legheRes = await getLeghe(token);
+        setLeghe(legheRes?.data?.leghe || legheRes?.leghe || []);
         
-        if (legheRes.leghe.length > 0) {
-          setSelectedLega(legheRes.leghe[0].id);
-          await fetchGiocatori(legheRes.leghe[0].id);
+        const leghe = legheRes?.data?.leghe || legheRes?.leghe || [];
+        if (leghe.length > 0) {
+          setSelectedLega(leghe[0]?.id);
+          await fetchGiocatori(leghe[0]?.id);
         }
       } catch (err) {
         setError(err.message);

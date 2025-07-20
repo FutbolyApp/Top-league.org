@@ -218,9 +218,9 @@ const LeagueSubadminArea = () => {
           getTorneiLega(legaId, token)
         ]);
         
-        setLega(legaRes.lega);
-        setSquadre(squadreRes.squadre || []);
-        setTornei(torneiRes || []);
+        setLega(legaRes?.data?.lega || legaRes?.lega);
+        setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
+        setTornei(torneiRes?.data || torneiRes || []);
       } catch (err) {
         setError(err.message);
       }
