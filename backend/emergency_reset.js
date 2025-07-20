@@ -49,8 +49,8 @@ async function emergencyReset() {
     // 3. CREA LEGA DI TEST
     console.log('\n🏆 CREATING TEST LEAGUE...');
     const legaResult = await db.query(`
-      INSERT INTO leghe (nome, admin_id, is_pubblica, modalita, max_squadre, descrizione)
-      VALUES ('Test League', $1, true, 'Classic Serie A', 20, 'Lega di test per verificare funzionalità')
+      INSERT INTO leghe (nome, admin_id, is_pubblica, modalita, max_squadre)
+      VALUES ('Test League', $1, true, 'Classic Serie A', 20)
       RETURNING id
     `, [superAdminId]);
     

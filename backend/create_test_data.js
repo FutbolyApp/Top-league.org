@@ -38,9 +38,8 @@ async function createTestData() {
     
     // 2. Crea una lega di test
     const legaResult = await db.query(`
-      INSERT INTO leghe (nome, descrizione, admin_id, modalita, max_squadre, is_pubblica, password)
-      VALUES ('TopLeague Test', 'Lega di test per verificare il funzionamento', $1, 'Classic Serie A', 20, true, null)
-      ON CONFLICT (nome) DO NOTHING
+      INSERT INTO leghe (nome, admin_id, modalita, max_squadre, is_pubblica, password)
+      VALUES ('Test League', $1, 'Classic Serie A', 20, true, 'test123')
       RETURNING id
     `, [userId]);
     

@@ -78,8 +78,8 @@ async function fixProductionDatabase() {
     if (legaResult.rows.length === 0) {
       console.log('Creating new Test League...');
       legaResult = await db.query(`
-        INSERT INTO leghe (nome, admin_id, is_pubblica, modalita, max_squadre, descrizione)
-        VALUES ('Test League', $1, true, 'Classic Serie A', 20, 'Lega di test per verificare funzionalità')
+        INSERT INTO leghe (nome, admin_id, is_pubblica, modalita, max_squadre)
+        VALUES ('Test League', $1, true, 'Classic Serie A', 20)
         RETURNING id
       `, [superAdminId]);
       
