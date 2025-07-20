@@ -741,7 +741,7 @@ const Leghe = () => {
       stato: 'tutti',
       squadreMin: '',
       squadreMax: '',
-      soloMieLeghe: true
+      soloMieLeghe: false
     });
   };
 
