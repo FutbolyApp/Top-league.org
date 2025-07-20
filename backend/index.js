@@ -28,6 +28,7 @@ import backupRouter from './routes/backup.js';
 import quotazioniRoutes from './routes/quotazioni.js';
 import richiesteAdminRoutes from './routes/richiesteAdmin.js';
 import schemaRouter from './routes/schema.js';
+import debugRouter from './routes/debug.js';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -244,6 +245,7 @@ app.use('/api/backup', backupRouter);
 app.use('/api/quotazioni', quotazioniRoutes);
 app.use('/api/richieste-admin', richiesteAdminRoutes);
 app.use('/api/schema', schemaRouter);
+app.use('/api/debug', debugRouter);
 
 // Error handling
 app.use((err, req, res, next) => {
