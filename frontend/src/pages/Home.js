@@ -508,6 +508,7 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [legheAdmin, setLegheAdmin] = useState([]);
+  const [legheUser, setLegheUser] = useState([]); // Aggiungo stato per leghe utente
   const [squadre, setSquadre] = useState([]);
   const [notifiche, setNotifiche] = useState([]);
   const [sortFieldLeghe, setSortFieldLeghe] = useState('nome');
@@ -545,11 +546,18 @@ const Home = () => {
         const legheRes = await getLegheUserShared(token, user.id);
         setLegheAdmin(legheRes?.data?.leghe || legheRes?.leghe || []);
         
+        // Carica leghe utente (a cui partecipa)
+        const legheUserRes = await getLegheUserShared(token, user.id);
+        const allLeghe = legheUserRes?.data?.leghe || legheUserRes?.leghe || [];
+        // Filtra solo le leghe a cui l'utente partecipa (non quelle che amministra)
+        const userLeghe = allLeghe.filter(lega => lega?.admin_id !== user?.id);
+        setLegheUser(userLeghe);
+        
         // Carica squadre dell'utente
         const squadreRes = await getSquadreUtenteShared(token, user.id);
         setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
         
-        // Carica notifiche
+        // Carica notifiche (solo per utenti normali, non admin)
         const notificheRes = await getNotificheShared(token, user.id);
         setNotifiche(notificheRes?.data?.notifiche || notificheRes?.notifiche || []);
         
@@ -650,6 +658,28 @@ const Home = () => {
   const getNotificheCount = (squadraId) => {
     return notifiche?.filter(n => n.squadra_id === squadraId).length;
   };
+
+  // Funzione per gestire il click su una notifica
+  const handleNotificationClick = async (notifica) => {
+    try {
+      // Marca come letta
+      await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/notifiche/${notifica.id}/read`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Rimuovi dalla lista locale
+      setNotifiche(prev => prev.filter(n => n.id !== notifica.id));
+    } catch (error) {
+      console.error('Errore nel marcare notifica come letta:', error);
+    }
+  };
+
+  // Conta notifiche non lette
+  const unreadNotificationsCount = notifiche?.filter(n => !n.letta).length || 0;
 
   const getMovimentiByLega = (legaId) => {
     return movimenti
@@ -949,15 +979,70 @@ const Home = () => {
         </Section>
       )}
 
-      {(notifiche?.length || 0) > 0 && (
+      {/* Leghe a cui partecipi */}
+      {(legheUser?.length || 0) > 0 && (
         <Section>
-          <SectionTitle>Notifiche Recenti</SectionTitle>
+          <SectionTitle>Le Tue Leghe</SectionTitle>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Nome Lega</Th>
+                <Th>Modalità</Th>
+                <Th>Tipo</Th>
+                <Th>Squadre</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {legheUser?.map(lega => (
+                <tr key={lega.id}>
+                  <Td>
+                    <StyledLink to={`/lega/${lega.id}`}>
+                      {lega?.nome || 'Nome'}
+                    </StyledLink>
+                  </Td>
+                  <Td>{lega?.modalita || 'N/A'}</Td>
+                  <Td>
+                    <StatusBadge $status={lega?.is_pubblica || false? 'pubblica' : 'privata'}>
+                      {lega?.is_pubblica || false? 'Pubblica' : 'Privata'}
+                    </StatusBadge>
+                  </Td>
+                  <Td>{lega.squadre_assegnate || 0}/{lega.numero_squadre_totali || 0}</Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </Section>
+      )}
+
+      {/* Notifiche recenti (solo per utenti normali, non admin) */}
+      {(notifiche?.length || 0) > 0 && (legheAdmin?.length || 0) === 0 && (
+        <Section>
+          <SectionTitle>
+            Notifiche Recenti
+            {unreadNotificationsCount > 0 && (
+              <span style={{ 
+                backgroundColor: '#007bff', 
+                color: 'white', 
+                borderRadius: '50%', 
+                padding: '2px 8px', 
+                fontSize: '0.8rem', 
+                marginLeft: '10px' 
+              }}>
+                {unreadNotificationsCount}
+              </span>
+            )}
+          </SectionTitle>
           {notifiche.slice(0, 5).map(notifica => (
-            <div key={notifica.id} style={{ 
-              padding: '1rem', 
-              borderBottom: '1px solid #e5e5e7',
-              backgroundColor: notifica.letta ? 'transparent' : '#f8f9fa'
-            }}>
+            <div 
+              key={notifica.id} 
+              style={{ 
+                padding: '1rem', 
+                borderBottom: '1px solid #e5e5e7',
+                backgroundColor: notifica.letta ? 'transparent' : '#f8f9fa',
+                cursor: 'pointer'
+              }}
+              onClick={() => handleNotificationClick(notifica)}
+            >
               <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>
                 {notifica.titolo}
               </div>
