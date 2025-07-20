@@ -203,12 +203,12 @@ const DashboardAvanzata = () => {
         getNotificheUtente(token)
       ]);
 
-      setSquadra(squadraData.squadra);
-      setGiocatori(giocatoriData.giocatori);
-      setBilancio(bilancioData.bilancio);
-      setTransazioni(transazioniData.transazioni);
-      setReport(reportData);
-      setNotifiche(notificheData.notifiche);
+      setSquadra(squadraData?.data?.squadra || squadraData?.squadra);
+      setGiocatori(giocatoriData?.data?.giocatori || giocatoriData?.giocatori);
+      setBilancio(bilancioData?.data?.bilancio || bilancioData?.bilancio);
+      setTransazioni(transazioniData?.data?.transazioni || transazioniData?.transazioni);
+      setReport(reportData?.data || reportData);
+      setNotifiche(notificheData?.data?.notifiche || notificheData?.notifiche);
     } catch (error) {
       console.error('Errore caricamento dashboard:', error);
     } finally {

@@ -542,22 +542,25 @@ const ModificaSquadraCompleta = () => {
           getGiocatoriBySquadra(id, token)
         ]);
         
-        setSquadra(squadraRes.squadra);
-        setGiocatori(giocatoriRes.giocatori || []);
+        const squadra = squadraRes?.data?.squadra || squadraRes?.squadra;
+        const giocatori = giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || [];
+        
+        setSquadra(squadra);
+        setGiocatori(giocatori);
         
         // Popola il form con i dati della squadra
         setFormData({
-          nome: squadraRes.squadra?.nome || 'Nome' || '',
-          casse_societarie: squadraRes.squadra.casse_societarie || 0,
-          club_level: squadraRes.squadra.club_level || 1,
-          is_orfana: squadraRes.squadra.is_orfana || false,
-          note: squadraRes.squadra.note || ''
+          nome: squadra?.nome || 'Nome' || '',
+          casse_societarie: squadra?.casse_societarie || 0,
+          club_level: squadra?.club_level || 1,
+          is_orfana: squadra?.is_orfana || false,
+          note: squadra?.note || ''
         });
 
         // Carica le squadre della lega per il trasferimento
-        if (squadraRes?.squadra?.lega_id) {
+        if (squadra?.lega_id) {
           try {
-            const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/squadre/lega/${squadraRes.squadra.lega_id}`, {
+            const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/squadre/lega/${squadra.lega_id}`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {

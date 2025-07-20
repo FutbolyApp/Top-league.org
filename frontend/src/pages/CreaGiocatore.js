@@ -272,7 +272,8 @@ const CreaGiocatore = () => {
       setError('');
       try {
         const squadraRes = await getSquadraById(id, token);
-        setSquadra(squadraRes.squadra);
+        const squadra = squadraRes?.data?.squadra || squadraRes?.squadra;
+        setSquadra(squadra);
       } catch (err) {
         setError(err.message);
       }

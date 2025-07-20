@@ -503,7 +503,8 @@ const RequestGiocatoriModification = () => {
         for (const squadra of squadreRes.squadre || []) {
           try {
             const giocatoriRes = await getGiocatoriBySquadra(squadra.id, token);
-            giocatoriData[squadra.id] = giocatoriRes.giocatori || [];
+            const giocatori = giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || [];
+            giocatoriData[squadra.id] = giocatori;
           } catch (err) {
             console.error(`Errore caricamento giocatori squadra ${squadra.id}:`, err);
             giocatoriData[squadra.id] = [];

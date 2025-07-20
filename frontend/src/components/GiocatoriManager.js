@@ -359,7 +359,8 @@ const GiocatoriManager = () => {
       // Per ora carichiamo tutti i giocatori della lega
       // In futuro potremmo implementare una paginazione
       const res = await getGiocatoriByIds([], token); // Array vuoto per tutti
-      setGiocatori(res.giocatori || []);
+      const giocatori = res?.data?.giocatori || res?.giocatori || [];
+      setGiocatori(giocatori);
     } catch (err) {
       setError(err.message);
     }

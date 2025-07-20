@@ -338,9 +338,9 @@ const RequestSquadreModification = () => {
           getGiocatoriByLega(legaId, token)
         ]);
         
-        setLega(legaRes.lega);
-        setSquadre(squadreRes.squadre || []);
-        setGiocatori(giocatoriRes.giocatori || []);
+        setLega(legaRes?.data?.lega || legaRes?.lega);
+        setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
+        setGiocatori(giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || []);
       } catch (err) {
         setError(err.message);
       }

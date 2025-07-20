@@ -277,12 +277,14 @@ const OfferteManager = () => {
       
       if (giocatoriIds.length > 0) {
         const giocatoriRes = await getGiocatoriByIds(giocatoriIds, token);
-        setGiocatori(giocatoriRes.giocatori);
+        const giocatori = giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || [];
+        setGiocatori(giocatori);
       }
       
       if (squadreIds.length > 0) {
         const squadreRes = await getSquadreByIds(squadreIds, token);
-        setSquadre(squadreRes.squadre);
+        const squadre = squadreRes?.data?.squadre || squadreRes?.squadre || [];
+        setSquadre(squadre);
       }
     } catch (err) {
       setError(err.message);

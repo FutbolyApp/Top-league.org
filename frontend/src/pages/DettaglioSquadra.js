@@ -701,7 +701,8 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
       setRequestMessage('');
       // Ricarica i dati della squadra
       const res = await getSquadraById(id, token);
-      setSquadra(res.squadra);
+      const squadra = res?.data?.squadra || res?.squadra;
+      setSquadra(squadra);
     } catch (err) {
       setError(err.message);
     }

@@ -184,7 +184,8 @@ const NotificheManager = () => {
     try {
       const token = localStorage.getItem('token');
       const data = await api.get('/notifiche', token);
-      setNotifiche(data.notifiche || []);
+      const notifiche = data?.data?.notifiche || data?.notifiche || [];
+      setNotifiche(notifiche);
     } catch (error) {
       setError('Errore di connessione');
     } finally {

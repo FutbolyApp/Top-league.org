@@ -284,17 +284,20 @@ const AreaManager = () => {
         console.log('🔍 AreaManager: Notifiche response:', notificheRes);
         
         // Gestisci sia il formato {ok: true, data: {...}} che il formato diretto
-        const squadreData = squadreRes.data ? squadreRes.data : squadreRes;
-        const notificheData = notificheRes.data ? notificheRes.data : notificheRes;
+        const squadreData = squadreRes?.data || squadreRes;
+        const notificheData = notificheRes?.data || notificheRes;
         
-        setSquadre(squadreData.squadre || []);
-        setNotifiche(notificheData.notifiche || []);
+        const squadre = squadreData?.squadre || [];
+        const notifiche = notificheData?.notifiche || [];
         
-        console.log('🔍 AreaManager: Squadre set:', squadreData.squadre?.length || 0);
-        console.log('🔍 AreaManager: Notifiche set:', notificheData.notifiche?.length || 0);
+        setSquadre(squadre);
+        setNotifiche(notifiche);
+        
+        console.log('🔍 AreaManager: Squadre set:', squadre?.length || 0);
+        console.log('🔍 AreaManager: Notifiche set:', notifiche?.length || 0);
         
         // Carica movimenti di mercato per ogni lega
-        const movimentiPromises = squadreData.squadre?.map(squadra => {
+        const movimentiPromises = squadre?.map(squadra => {
           // Controllo di sicurezza per squadra e lega_id
           if (!squadra || !squadra?.lega_id) {
             console.warn('🔍 AreaManager: Squadra o lega_id undefined, skipping');
@@ -304,7 +307,7 @@ const AreaManager = () => {
         }) || [];
         
         const movimentiResults = await Promise.all(movimentiPromises);
-        const allMovimenti = movimentiResults.flatMap(res => res.movimenti || []);
+        const allMovimenti = movimentiResults.flatMap(res => res?.data?.movimenti || res?.movimenti || []);
         setMovimenti(allMovimenti);
         
         console.log('🔍 AreaManager: Movimenti loaded:', allMovimenti.length);
