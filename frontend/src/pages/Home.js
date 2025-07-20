@@ -543,23 +543,24 @@ const Home = () => {
         
         // Carica leghe admin
         const legheRes = await getLegheUserShared(token, user.id);
-        setLegheAdmin(legheRes.leghe || []);
+        setLegheAdmin(legheRes?.data?.leghe || legheRes?.leghe || []);
         
         // Carica squadre dell'utente
         const squadreRes = await getSquadreUtenteShared(token, user.id);
-        setSquadre(squadreRes.squadre || []);
+        setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
         
         // Carica notifiche
         const notificheRes = await getNotificheShared(token, user.id);
-        setNotifiche(notificheRes.notifiche || []);
+        setNotifiche(notificheRes?.data?.notifiche || notificheRes?.notifiche || []);
         
         // Carica movimenti di mercato per tutte le squadre
-        const movimentiPromises = squadreRes.squadre?.map(squadra => 
+        const squadreData = squadreRes?.data?.squadre || squadreRes?.squadre || [];
+        const movimentiPromises = squadreData?.map(squadra => 
           getMovimentiMercato(squadra.lega_id, token)
         ) || [];
         
         const movimentiResults = await Promise.all(movimentiPromises);
-        const allMovimenti = movimentiResults.flatMap(res => res.movimenti || []);
+        const allMovimenti = movimentiResults.flatMap(res => res?.data?.movimenti || res?.movimenti || []);
         setMovimenti(allMovimenti);
         
       } catch (err) {
