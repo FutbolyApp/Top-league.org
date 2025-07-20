@@ -505,13 +505,18 @@ const Leghe = () => {
         console.log('🔍 Leghe: Richieste response:', richiesteRes);
         console.log('🔍 Leghe: Squadre response:', squadreRes);
         
-        setLeghe(legheRes.leghe);
-        setRichiesteUtente(richiesteRes.richieste || []);
-        setSquadre(squadreRes.squadre || []);
+        // Gestisci sia il formato {ok: true, data: {...}} che il formato diretto
+        const legheData = legheRes.data ? legheRes.data : legheRes;
+        const richiesteData = richiesteRes.data ? richiesteRes.data : richiesteRes;
+        const squadreData = squadreRes.data ? squadreRes.data : squadreRes;
         
-        console.log('🔍 Leghe: Leghe set:', legheRes.leghe?.length || 0);
-        console.log('🔍 Leghe: Richieste set:', richiesteRes.richieste?.length || 0);
-        console.log('🔍 Leghe: Squadre set:', squadreRes.squadre?.length || 0);
+        setLeghe(legheData.leghe);
+        setRichiesteUtente(richiesteData.richieste || []);
+        setSquadre(squadreData.squadre || []);
+        
+        console.log('🔍 Leghe: Leghe set:', legheData.leghe?.length || 0);
+        console.log('🔍 Leghe: Richieste set:', richiesteData.richieste?.length || 0);
+        console.log('🔍 Leghe: Squadre set:', squadreData.squadre?.length || 0);
       } catch (err) {
         console.error('❌ Leghe: Error in fetchData:', err);
         setError(err.message);
