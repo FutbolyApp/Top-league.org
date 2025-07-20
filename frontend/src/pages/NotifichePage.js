@@ -523,7 +523,22 @@ const NotifichePage = () => {
     }
     loadNotifications();
     loadUserLeagues();
+    // Marca tutte le notifiche come lette quando si arriva alla pagina
+    markAllAsReadOnPageLoad();
   }, [user, token]);
+
+  const markAllAsReadOnPageLoad = async () => {
+    try {
+      // Marca tutte le notifiche non lette come lette
+      const unreadNotifications = notifications.filter(n => !n.letta);
+      if (unreadNotifications.length > 0) {
+        await Promise.all(unreadNotifications.map(n => markAsRead(n.id)));
+        console.log('✅ Tutte le notifiche marcate come lette');
+      }
+    } catch (error) {
+      console.error('❌ Errore nel marcare le notifiche come lette:', error);
+    }
+  };
 
   const loadNotifications = async () => {
     try {

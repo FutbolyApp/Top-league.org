@@ -765,8 +765,8 @@ const Home = () => {
         </div>
       </ActionsSection>
 
-      {/* Area Manager con scheda espandibile */}
-      {squadre?.length || 0 > 0 && (
+      {/* Area Manager (squadre dell'utente) */}
+      {(squadre?.length || 0) > 0 && (
         <Section>
           <SectionTitle>Area Manager</SectionTitle>
           <Table>
@@ -776,30 +776,22 @@ const Home = () => {
                 <Th>Club Level</Th>
                 <Th>Torneo</Th>
                 <Th>Ingaggi</Th>
-                <Th>Crediti Residui</Th>
+                <Th>Casse Societarie</Th>
                 <Th>Valore Attuale</Th>
                 <Th>Giocatori</Th>
-                <Th> </Th>
+                <Th>Azioni</Th>
               </tr>
             </thead>
             <tbody>
-              {sortedSquadre?.map(squadra => {
-                // Controllo di sicurezza per squadra
-                if (!squadra) {
-                  console.warn('🔍 Home: Squadra undefined, skipping');
-                  return null;
-                }
-                
-                const movimentiLega = getMovimentiByLega(squadra?.lega_id);
-                const notificheCount = getNotificheCount(squadra?.id);
-                const isExpanded = expandedSquadra === squadra?.id;
+              {squadre?.map(squadra => {
                 let valoreAttuale = 0;
                 let ingaggi = 0;
                 let numGiocatori = 0;
-                if (Array.isArray(squadra?.giocatori) && (squadra.giocatori?.length || 0) > 0) {
-                  valoreAttuale = squadra.giocatori?.reduce((sum, g) => sum + (parseInt(g?.quotazione_attuale) || 0), 0);
-                  ingaggi = squadra.giocatori?.reduce((sum, g) => sum + (parseInt(g?.costo_attuale) || 0), 0);
-                  numGiocatori = squadra.giocatori?.length || 0;
+                
+                if (Array.isArray(squadra?.giocatori) && squadra?.giocatori?.length > 0) {
+                  valoreAttuale = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g?.quotazione_attuale) || 0), 0);
+                  ingaggi = squadra.giocatori.reduce((sum, g) => sum + (parseInt(g?.costo_attuale) || 0), 0);
+                  numGiocatori = squadra.giocatori.length;
                 } else if (typeof squadra?.numero_giocatori === 'number') {
                   numGiocatori = squadra.numero_giocatori;
                 }
@@ -807,94 +799,60 @@ const Home = () => {
                 const logoUrl = squadra.logo_url;
                 const torneoNome = squadra.torneo_nome || 'N/A';
                 const casseSocietarie = squadra?.casse_societarie || 0;
+                const notificheCount = getNotificheCount(squadra?.id);
                 
                 return (
-                  <React.Fragment key={squadra.id}>
-                    <tr>
-                      <Td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          {squadra?.logo_url ? (
-                            <img src={squadra.logo_url} alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
-                          ) : (
-                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iMTYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iI0U1RTVFNyIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxwYXRoIGQ9Ik0xNiA4QzE4LjIwOTEgOCAyMCA5Ljc5MDg2IDIwIDEyQzIwIDE0LjIwOTEgMTguMjA5MSAxNiAxNiAxNkMxMy43OTA5IDE2IDEyIDE0LjIwOTEgMTIgMTJDMTIgOS43OTA4NiAxMy43OTA5IDggMTYgOFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTggMjRDMTAuMjA5MSAyNCAxMiAyMi4yMDkxIDEyIDIwQzEyIDE3Ljc5MDkgMTAuMjA5MSAxNiA4IDE2QzUuNzkwODYgMTYgNCAxNy43OTA5IDQgMjBDNCAyMi4yMDkxIDUuNzkwODYgMjQgOCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTI0IDI0QzI2LjIwOTEgMjQgMjggMjIuMjA5MSAyOCAyMEMyOCAxNy43OTA5IDI2LjIwOTEgMTYgMjQgMTZDMjEuNzkwOSAxNiAyMCAxNy43OTA5IDIwIDIwQzIwIDIyLjIwOTEgMjEuNzkwOSAyNCAyNCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+" alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
-                          )}
-                          <span style={{ fontWeight: 600, cursor: 'pointer', color: '#FF8C42' }} onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}>{squadra?.nome || 'Nome'}</span>
-                        </div>
-                      </Td>
-                      <Td>{squadra.club_level || 1}</Td>
-                      <Td>{torneoNome}</Td>
-                      <Td>FM {ingaggi.toLocaleString()}</Td>
-                      <Td><MoneyValue>{casseSocietarie.toLocaleString() || 0} FM</MoneyValue></Td>
-                      <Td>FM {valoreAttuale.toLocaleString()}</Td>
-                      <Td>{numGiocatori}/{maxGiocatori}</Td>
-                      <Td>
-                        <ManagerButton onClick={() => handleToggleExpanded(squadra.id)}>
-                          {isExpanded ? 'Chiudi' : 'Gestisci'}
-                        </ManagerButton>
-                      </Td>
-                    </tr>
-                    {isExpanded && (
-                      <ExpandedRow>
-                        <ExpandedCell colSpan="8">
-                          <ExpandedContent>
-                            <ActionButtons>
-                              <ActionButton 
-                                onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}
-                              >
-                                Visualizza
-                              </ActionButton>
-                              <ActionButton 
-                                onClick={() => navigate(`/notifiche?squadra=${squadra.id}`)}
-                              >
-                                Notifiche ({notificheCount})
-                              </ActionButton>
-                              <ActionButton 
-                                onClick={() => navigate(`/proponi-offerta?squadra=${squadra.id}`)}
-                              >
-                                Proponi Offerta
-                              </ActionButton>
-                              <ActionButton 
-                                onClick={() => navigate(`/richiesta-admin?squadra=${squadra.id}`)}
-                              >
-                                Richiesta Admin
-                              </ActionButton>
-                              <ActionButton 
-                                onClick={() => navigate(`/log-squadra/${squadra.id}`)}
-                              >
-                                Log
-                              </ActionButton>
-                            </ActionButtons>
-
-                            <MarketMovements>
-                              <MarketTitle>📢 Ultime 5 Notifiche</MarketTitle>
-                              {notifiche?.filter(n => n.squadra_id === squadra.id).slice(0, 5).length === 0 ? (
-                                <MovementItem>Nessuna notifica recente</MovementItem>
-                              ) : (
-                                notifiche?.filter(n => n.squadra_id === squadra.id).slice(0, 5).map((notifica, index) => (
-                                  <MovementItem key={index}>
-                                    {notifica.titolo}: {notifica.messaggio} - {new Date(notifica.created_at).toLocaleDateString()}
-                                  </MovementItem>
-                                ))
-                              )}
-                            </MarketMovements>
-
-                            <MarketMovements>
-                              <MarketTitle>📈 Ultimi 5 Movimenti di Mercato</MarketTitle>
-                              {(movimentiLega?.length || 0) === 0 ? (
-                                <MovementItem>Nessun movimento recente</MovementItem>
-                              ) : (
-                                movimentiLega?.map((movimento, index) => (
-                                  <MovementItem key={index}>
-                                    {movimento.giocatore_nome} si è {movimento.tipo === 'trasferimento' ? 'trasferito' : 'prestato'} da {movimento.squadra_mittente} a {movimento.squadra_destinataria} il {new Date(movimento.data).toLocaleDateString()} per {formatMoney(movimento.valore)}
-                                  </MovementItem>
-                                ))
-                              )}
-                            </MarketMovements>
-                          </ExpandedContent>
-                        </ExpandedCell>
-                      </ExpandedRow>
-                    )}
-                  </React.Fragment>
+                  <tr key={squadra.id}>
+                    <Td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {logoUrl ? (
+                          <img 
+                            src={`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/uploads/${logoUrl}`} 
+                            alt="logo" 
+                            style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} 
+                          />
+                        ) : (
+                          <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iMTYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iI0U1RTVFNyIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxwYXRoIGQ9Ik0xNiA4QzE4LjIwOTEgOCAyMCA5Ljc5MDg2IDIwIDEyQzIwIDE0LjIwOTEgMTguMjA5MSAxNiAxNiAxNkMxMy43OTA5IDE2IDEyIDE0LjIwOTEgMTIgMTJDMTIgOS43OTA4NiAxMy43OTA5IDggMTYgOFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTggMjRDMTAuMjA5MSAyNCAxMiAyMi4yMDkxIDEyIDIwQzEyIDE3Ljc5MDkgMTAuMjA5MSAxNiA4IDE2QzUuNzkwODYgMTYgNCAxNy43OTA5IDQgMjBDNCAyMi4yMDkxIDUuNzkwODYgMjQgOCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTI0IDI0QzI2LjIwOTEgMjQgMjggMjIuMjA5MSAyOCAyMEMyOCAxNy43OTA5IDI2LjIwOTEgMTYgMjQgMTZDMjEuNzkwOSAxNiAyMCAxNy43OTA5IDIwIDIwQzIwIDIyLjIwOTEgMjEuNzkwOSAyNCAyNCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+" alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+                        )}
+                        <span style={{ fontWeight: 600, cursor: 'pointer', color: '#FF8C42' }} onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}>{squadra?.nome || 'Nome'}</span>
+                      </div>
+                    </Td>
+                    <Td>{squadra.club_level || 1}</Td>
+                    <Td>{torneoNome}</Td>
+                    <Td>FM {ingaggi.toLocaleString()}</Td>
+                    <Td>FM {casseSocietarie.toLocaleString()}</Td>
+                    <Td>FM {valoreAttuale.toLocaleString()}</Td>
+                    <Td>{numGiocatori}/{maxGiocatori}</Td>
+                    <Td>
+                      <ActionButtons>
+                        <ActionButton 
+                          onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}
+                        >
+                          Visualizza
+                        </ActionButton>
+                        <ActionButton 
+                          onClick={() => navigate(`/notifiche?squadra=${squadra.id}`)}
+                        >
+                          Notifiche ({notificheCount})
+                        </ActionButton>
+                        <ActionButton 
+                          onClick={() => navigate(`/proponi-offerta?squadra=${squadra.id}`)}
+                        >
+                          Proponi Offerta
+                        </ActionButton>
+                        <ActionButton 
+                          onClick={() => navigate(`/richiesta-admin?squadra=${squadra.id}`)}
+                        >
+                          Richiesta Admin
+                        </ActionButton>
+                        <ActionButton 
+                          onClick={() => navigate(`/log-squadra/${squadra.id}`)}
+                        >
+                          Log
+                        </ActionButton>
+                      </ActionButtons>
+                    </Td>
+                  </tr>
                 );
               })}
             </tbody>
