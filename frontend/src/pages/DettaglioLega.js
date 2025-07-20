@@ -383,7 +383,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
         const torneiOptions = [
           { id: 'all', name: 'Tutti i Tornei' },
           ...torneiReali?.map(torneo => ({
-            id: torneo.id.toString(),
+            id: torneo?.id?.toString() || '',
             name: torneo?.nome || 'Nome'
           })),
           { id: 'na', name: 'N/A (Senza Torneo)' }
@@ -406,10 +406,10 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
     const totalSquadre = squadre?.length || 0;
     const squadreConProprietario = squadre?.filter(s => s.proprietario_id).length;
     const squadreOrfane = squadre?.filter(s => s.is_orfana).length;
-    const valoreTotale = squadre?.reduce((sum, s) => sum + (s.valore_squadra || 0), 0);
-    const casseTotali = squadre?.reduce((sum, s) => sum + (s.casse_societarie || 0), 0);
-    const costoSalarialeTotale = squadre?.reduce((sum, s) => sum + (s.costo_salariale_totale || 0), 0);
-    const costoSalarialeAnnual = squadre?.reduce((sum, s) => sum + (s.costo_salariale_annuale || 0), 0);
+    const valoreTotale = squadre?.reduce((sum, s) => sum + (s?.valore_squadra || 0), 0);
+    const casseTotali = squadre?.reduce((sum, s) => sum + (s?.casse_societarie || 0), 0);
+    const costoSalarialeTotale = squadre?.reduce((sum, s) => sum + (s?.costo_salariale_totale || 0), 0);
+    const costoSalarialeAnnual = squadre?.reduce((sum, s) => sum + (s?.costo_salariale_annuale || 0), 0);
 
     return {
       totalSquadre,
@@ -495,7 +495,7 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
           </InfoCard>
           <InfoCard>
             <InfoLabel>Tipo</InfoLabel>
-            <InfoValue>{lega?.is_pubblica || false? 'Pubblica' : 'Privata'}</InfoValue>
+            <InfoValue>{lega?.is_pubblica ? 'Pubblica' : 'Privata'}</InfoValue>
           </InfoCard>
           <InfoCard>
             <InfoLabel>Squadre</InfoLabel>
@@ -508,10 +508,10 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
         </LeagueInfo>
 
         <LeagueFeatures>
-          {lega?.roster_ab || false && <FeatureTag $active>Roster A/B</FeatureTag>}
-          {lega?.cantera || false && <FeatureTag $active>Cantera</FeatureTag>}
-          {lega?.contratti || false && <FeatureTag $active>Contratti</FeatureTag>}
-          {lega?.triggers || false && <FeatureTag $active>Triggers</FeatureTag>}
+          {lega?.roster_ab && <FeatureTag $active>Roster A/B</FeatureTag>}
+          {lega?.cantera && <FeatureTag $active>Cantera</FeatureTag>}
+          {lega?.contratti && <FeatureTag $active>Contratti</FeatureTag>}
+          {lega?.triggers && <FeatureTag $active>Triggers</FeatureTag>}
         </LeagueFeatures>
       </Header>
 
@@ -594,23 +594,23 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
                       </span>
                     )}
                   </TableCell>
-                  <TableCell>{squadra.club_level || 1}</TableCell>
+                  <TableCell>{squadra?.club_level || 1}</TableCell>
                   <TableCell>
                     {squadra?.tornei && (squadra.tornei?.length || 0) > 0 
                       ? squadra.tornei?.map(torneo => torneo?.nome || 'Nome').join(', ')
-                      : "N/A"
+                      : 'Nessun torneo'
                     }
                   </TableCell>
                   <TableCell>
-                    <MoneyValue>{formatMoney(squadra.valore_squadra)}</MoneyValue>
+                    <MoneyValue>{formatMoney(squadra?.valore_squadra || 0)}</MoneyValue>
                   </TableCell>
                   <TableCell>
-                    <MoneyValue>{formatMoney(squadra.casse_societarie)}</MoneyValue>
+                    <MoneyValue>{formatMoney(squadra?.casse_societarie || 0)}</MoneyValue>
                   </TableCell>
                   <TableCell>
-                    <CostValue>{formatMoney(squadra.valore_attuale_qa || 0)}</CostValue>
+                    <CostValue>{formatMoney(squadra?.valore_attuale_qa || 0)}</CostValue>
                   </TableCell>
-                  <TableCell>{squadra.giocatori?.length || 0}</TableCell>
+                  <TableCell>{squadra?.giocatori?.length || 0}</TableCell>
                 </tr>
               ))}
             </tbody>

@@ -1186,7 +1186,7 @@ const ModificaSquadraCompleta = () => {
                 <PlayerName>{giocatore?.nome || 'Nome'}</PlayerName>
                 <PlayerRole>{giocatore?.ruolo || 'Ruolo'}</PlayerRole>
                 <PlayerTeam>{giocatore.squadra_reale}</PlayerTeam>
-                <PlayerValue>{giocatore.costo_attuale?.toLocaleString() || 0} FM</PlayerValue>
+                <PlayerValue>{giocatore?.costo_attuale?.toLocaleString() || 0} FM</PlayerValue>
               </PlayerInfo>
               
               <PlayerActions>
@@ -1249,7 +1249,7 @@ const ModificaSquadraCompleta = () => {
                           value={squadra.id}
                           disabled={isFull}
                         >
-                          {squadra?.nome || 'Nome'} (Giocatori: {squadra.num_giocatori || 0}/{maxPlayersModal}, Casse: {squadra.casse_societarie?.toLocaleString() || 0} FM)
+                          {squadra?.nome || 'Nome'} (Giocatori: {squadra?.num_giocatori || 0}/{maxPlayersModal}, Casse: {squadra?.casse_societarie?.toLocaleString() || 0} FM)
                           {isFull ? ' - COMPLETA' : ''}
                         </option>
                       );

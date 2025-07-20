@@ -560,31 +560,31 @@ const TorneoDetail = () => {
           ) : (
             <SquadreGrid>
               {torneo.squadre_partecipanti?.map((squadra, index) => (
-                <SquadraCard key={squadra.id || index}>
+                <SquadraCard key={squadra?.id || index}>
                   <SquadraHeader>
-                    <SquadraName>{squadra.nome}</SquadraName>
+                    <SquadraName>{squadra?.nome}</SquadraName>
                     <SquadraOwner>
-                      {squadra.proprietario_username || 'Non assegnata'}
+                      {squadra?.proprietario_username || 'Non assegnata'}
                     </SquadraOwner>
                   </SquadraHeader>
                   
                   <SquadraStats>
                     <StatItem>
                       <StatLabel>Valore Squadra</StatLabel>
-                      <StatValue>FM {squadra.valore_squadra?.toLocaleString() || '0'}</StatValue>
+                      <StatValue>FM {squadra?.valore_squadra?.toLocaleString() || '0'}</StatValue>
                     </StatItem>
                     <StatItem>
                       <StatLabel>Casse Societarie</StatLabel>
-                      <StatValue>FM {squadra.casse_societarie?.toLocaleString() || '0'}</StatValue>
+                      <StatValue>FM {squadra?.casse_societarie?.toLocaleString() || '0'}</StatValue>
                     </StatItem>
                     <StatItem>
                       <StatLabel>Giocatori</StatLabel>
-                      <StatValue>{squadra.numero_giocatori || 'N/A'}</StatValue>
+                      <StatValue>{squadra?.numero_giocatori || 'N/A'}</StatValue>
                     </StatItem>
                     <StatItem>
                       <StatLabel>Stato</StatLabel>
                       <StatValue>
-                        {squadra.is_orfana ? 'Disponibile' : 'Assegnata'}
+                        {squadra?.is_orfana ? 'Disponibile' : 'Assegnata'}
                       </StatValue>
                     </StatItem>
                   </SquadraStats>

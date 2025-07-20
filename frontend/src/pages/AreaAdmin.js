@@ -486,7 +486,7 @@ const AreaAdmin = () => {
       console.log('Richieste data:', richiesteData.data);
       
       // Verifica che richiesteData.data.richieste esista prima di usare forEach
-      if (richiesteData && richiesteData.data && richiesteData.data.richieste && Array.isArray(richiesteData.data.richieste)) {
+      if (richiesteData && richiesteData?.data && richiesteData?.data?.richieste && Array.isArray(richiesteData?.data?.richieste)) {
       // Debug: controlla se le richieste admin hanno lega_id
         richiesteData.data.richieste.forEach((richiesta, index) => {
         if (richiesta.tipo_richiesta === 'admin') {
@@ -700,7 +700,7 @@ const AreaAdmin = () => {
           } else {
             // Fallback per richieste esistenti senza dettagli
             if (data.giocatori_selezionati && Array.isArray(data.giocatori_selezionati)) {
-              data.giocatori_selezionati.forEach((giocatoreId, index) => {
+              data.giocatori_selezionati?.forEach((giocatoreId, index) => {
                 const costoDimezzato = data.costi_dimezzati[giocatoreId];
                 if (costoDimezzato !== undefined) {
                   details.push(`  • Giocatore ${index + 1}: ${costoDimezzato} FM`);

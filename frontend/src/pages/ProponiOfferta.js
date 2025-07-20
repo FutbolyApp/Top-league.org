@@ -629,7 +629,7 @@ const ProponiOfferta = () => {
         
         if (!squadraRes.ok) throw new Error(squadraData.error || 'Errore caricamento squadra');
         
-        const legaId = squadraData.squadra.lega_id;
+        const legaId = squadraData?.squadra?.lega_id;
         setLegaId(legaId);
         setUserSquadra(squadraData.squadra);
         
@@ -640,7 +640,7 @@ const ProponiOfferta = () => {
         ]);
         
         // Filtra le squadre escludendo la squadra dell'utente (non invia offerte a se stesso)
-        const filteredSquadre = squadreRes.squadre.filter(s => s.id !== parseInt(squadraId));
+        const filteredSquadre = squadreRes?.squadre?.filter(s => s?.id !== parseInt(squadraId)) || [];
         setSquadre(filteredSquadre);
         setGiocatori(giocatoriRes.giocatori);
         
@@ -711,14 +711,14 @@ const ProponiOfferta = () => {
     const offerValue = parseFloat(offerAmount);
     
     // Controlla se l'utente ha abbastanza fondi
-    if (offerValue > userSquadra.casse_societarie) {
+    if (offerValue > userSquadra?.casse_societarie) {
       alert('Non hai abbastanza fondi nelle casse societarie per questa offerta');
       return;
     }
 
     // Controlla i limiti di giocatori per trasferimento
     if (offerType === 'trasferimento') {
-      const userTeamPlayers = giocatori.filter(g => g.squadra_id === userSquadra.id).length;
+      const userTeamPlayers = giocatori.filter(g => g.squadra_id === userSquadra?.id).length;
       const maxPlayers = 25;
       
       if (userTeamPlayers + 1 > maxPlayers) {
@@ -736,7 +736,7 @@ const ProponiOfferta = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          giocatore_id: selectedPlayer.id,
+          giocatore_id: selectedPlayer?.id,
           tipo: offerType,
           valore_offerta: offerValue,
           richiesta_fm: 0,
@@ -808,13 +808,13 @@ const ProponiOfferta = () => {
     const moneyToReceiveValue = parseFloat(moneyToReceive) || 0;
 
     // Controlla se l'utente ha abbastanza fondi solo se offre denaro
-    if (moneyToOfferValue > 0 && moneyToOfferValue > userSquadra.casse_societarie) {
+    if (moneyToOfferValue > 0 && moneyToOfferValue > userSquadra?.casse_societarie) {
       alert('Non hai abbastanza fondi nelle casse societarie per questa offerta');
       return;
     }
 
     // Controlla se la squadra destinataria ha abbastanza fondi solo se richiede denaro
-    if (moneyToReceiveValue > 0 && moneyToReceiveValue > selectedTeam.casse_societarie) {
+    if (moneyToReceiveValue > 0 && moneyToReceiveValue > selectedTeam?.casse_societarie) {
       alert('La squadra destinataria non ha abbastanza fondi per questa offerta');
       return;
     }
@@ -828,7 +828,7 @@ const ProponiOfferta = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          giocatore_id: selectedPlayer.id,
+          giocatore_id: selectedPlayer?.id,
           tipo: 'scambio',
           valore_offerta: moneyToOfferValue,
           richiesta_fm: moneyToReceiveValue,

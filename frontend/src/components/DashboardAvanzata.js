@@ -451,9 +451,9 @@ const DashboardAvanzata = () => {
                       <tr key={squadra.id}>
                         <PositionCell>{squadra.posizione}</PositionCell>
                         <TableCell>{squadra.nome}</TableCell>
-                        <TableCell>FM {squadra.casse_societarie?.toLocaleString() || 0}</TableCell>
-                        <TableCell>FM {squadra.valore_squadra?.toLocaleString() || 0}</TableCell>
-                        <TableCell>FM {squadra.costo_attuale?.toLocaleString() || 0}</TableCell>
+                        <TableCell>FM {squadra?.casse_societarie?.toLocaleString() || 0}</TableCell>
+                        <TableCell>FM {squadra?.valore_squadra?.toLocaleString() || 0}</TableCell>
+                        <TableCell>FM {squadra?.costo_attuale?.toLocaleString() || 0}</TableCell>
                         <TableCell>{giocatori.filter(g => g.squadra_id === squadra.id).length}</TableCell>
                         <TableCell>
                           <TeamStatus $orphan={squadra.is_orfana}>
@@ -484,7 +484,7 @@ const DashboardAvanzata = () => {
                         {giocatore.ruolo} • {giocatore.squadra_reale}
                       </PlayerDetails>
                       <PlayerDetails>
-                        FM {giocatore.costo_attuale?.toLocaleString() || 0}
+                        FM {giocatore?.costo_attuale?.toLocaleString() || 0}
                       </PlayerDetails>
                     </PlayerCard>
                   ))}

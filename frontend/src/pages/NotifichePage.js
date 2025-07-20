@@ -587,7 +587,7 @@ const NotifichePage = () => {
     try {
       const response = await api.get('/leghe/user-leagues', token);
       if (response.ok) {
-        setUserLeagues(response.data.leghe || []);
+        setUserLeagues(response?.data?.leghe || []);
       } else {
         console.error('Errore nel caricamento delle leghe:', response);
       }
@@ -846,10 +846,10 @@ const NotifichePage = () => {
         // Continua con altri filtri
       } else if (filter === 'non_lette' && notification.letta) return false;
       else if (filter === 'lette' && !notification.letta) return false;
-      else if (filter === 'richieste' && !notification.tipo.includes('richiesta')) return false;
+      else if (filter === 'richieste' && !notification?.tipo?.includes('richiesta')) return false;
       else if (filter === 'trasferimenti' && !['trasferimento', 'prestito', 'scambio'].includes(notification.tipo)) return false;
-      else if (filter === 'pagamenti' && !notification.tipo.includes('pagamento')) return false;
-      else if (filter === 'offerte' && !notification.tipo.includes('offerta')) return false;
+      else if (filter === 'pagamenti' && !notification?.tipo?.includes('pagamento')) return false;
+      else if (filter === 'offerte' && !notification?.tipo?.includes('offerta')) return false;
       else if (filter === 'admin' && notification.tipo !== 'richiesta_admin') return false;
       else if (filter !== 'tutte') return false;
 
@@ -1263,22 +1263,22 @@ const NotifichePage = () => {
                 <MarketDetailTitle>📋 Dettagli Offerta</MarketDetailTitle>
                 <MarketDetailGrid>
                   <MarketDetailItem>
-                    <MarketDetailLabel>Proprietario del calciatore ({selectedMarketNotification.dati_aggiuntivi?.giocatore_nome || 'N/A'} {selectedMarketNotification.dati_aggiuntivi?.giocatore_cognome || ''}):</MarketDetailLabel>
-                    <MarketDetailValue>{selectedMarketNotification.dati_aggiuntivi?.proprietario_destinatario || 'N/A'} della squadra {selectedMarketNotification.dati_aggiuntivi?.squadra_destinatario || 'N/A'}</MarketDetailValue>
+                    <MarketDetailLabel>Proprietario del calciatore ({selectedMarketNotification?.dati_aggiuntivi?.giocatore_nome || 'N/A'} {selectedMarketNotification?.dati_aggiuntivi?.giocatore_cognome || ''}):</MarketDetailLabel>
+                    <MarketDetailValue>{selectedMarketNotification?.dati_aggiuntivi?.proprietario_destinatario || 'N/A'} della squadra {selectedMarketNotification?.dati_aggiuntivi?.squadra_destinatario || 'N/A'}</MarketDetailValue>
                   </MarketDetailItem>
-                                      {selectedMarketNotification.dati_aggiuntivi?.giocatore_scambio_nome && (
+                                      {selectedMarketNotification?.dati_aggiuntivi?.giocatore_scambio_nome && (
                   <MarketDetailItem>
-                        <MarketDetailLabel>Proprietario del calciatore ({selectedMarketNotification.dati_aggiuntivi.giocatore_scambio_nome} {selectedMarketNotification.dati_aggiuntivi.giocatore_scambio_cognome || ''}):</MarketDetailLabel>
-                        <MarketDetailValue>{selectedMarketNotification.dati_aggiuntivi.proprietario_mittente || 'N/A'} della squadra {selectedMarketNotification.dati_aggiuntivi.squadra_mittente || 'N/A'}</MarketDetailValue>
+                        <MarketDetailLabel>Proprietario del calciatore ({selectedMarketNotification?.dati_aggiuntivi?.giocatore_scambio_nome} {selectedMarketNotification?.dati_aggiuntivi?.giocatore_scambio_cognome || ''}):</MarketDetailLabel>
+                        <MarketDetailValue>{selectedMarketNotification?.dati_aggiuntivi?.proprietario_mittente || 'N/A'} della squadra {selectedMarketNotification?.dati_aggiuntivi?.squadra_mittente || 'N/A'}</MarketDetailValue>
                   </MarketDetailItem>
                     )}
                   <MarketDetailItem>
                       <MarketDetailLabel>Offerta fatta da:</MarketDetailLabel>
-                      <MarketDetailValue>{selectedMarketNotification.dati_aggiuntivi?.proprietario_mittente || 'N/A'} della squadra {selectedMarketNotification.dati_aggiuntivi?.squadra_mittente || 'N/A'}</MarketDetailValue>
+                      <MarketDetailValue>{selectedMarketNotification?.dati_aggiuntivi?.proprietario_mittente || 'N/A'} della squadra {selectedMarketNotification?.dati_aggiuntivi?.squadra_mittente || 'N/A'}</MarketDetailValue>
                   </MarketDetailItem>
                     <MarketDetailItem>
                       <MarketDetailLabel>Ricevuta da:</MarketDetailLabel>
-                      <MarketDetailValue>{selectedMarketNotification.dati_aggiuntivi?.proprietario_destinatario || 'N/A'} della squadra {selectedMarketNotification.dati_aggiuntivi?.squadra_destinatario || 'N/A'}</MarketDetailValue>
+                      <MarketDetailValue>{selectedMarketNotification?.dati_aggiuntivi?.proprietario_destinatario || 'N/A'} della squadra {selectedMarketNotification?.dati_aggiuntivi?.squadra_destinatario || 'N/A'}</MarketDetailValue>
                     </MarketDetailItem>
                 </MarketDetailGrid>
               </MarketDetailsSection>
@@ -1289,19 +1289,19 @@ const NotifichePage = () => {
                   <MarketDetailItem>
                     <MarketDetailLabel>Tipo di Offerta:</MarketDetailLabel>
                     <MarketDetailValue>
-                      {selectedMarketNotification.dati_aggiuntivi?.tipo_offerta === 'trasferimento' ? '🔄 Trasferimento' :
-                       selectedMarketNotification.dati_aggiuntivi?.tipo_offerta === 'prestito' ? '📤 Prestito' :
-                       selectedMarketNotification.dati_aggiuntivi?.tipo_offerta === 'scambio' ? '🔄 Scambio' :
-                       selectedMarketNotification.dati_aggiuntivi?.tipo_offerta || 'N/A'}
+                      {selectedMarketNotification?.dati_aggiuntivi?.tipo_offerta === 'trasferimento' ? '🔄 Trasferimento' :
+                       selectedMarketNotification?.dati_aggiuntivi?.tipo_offerta === 'prestito' ? '📤 Prestito' :
+                       selectedMarketNotification?.dati_aggiuntivi?.tipo_offerta === 'scambio' ? '🔄 Scambio' :
+                       selectedMarketNotification?.dati_aggiuntivi?.tipo_offerta || 'N/A'}
                     </MarketDetailValue>
                   </MarketDetailItem>
                   <MarketDetailItem>
-                    <MarketDetailLabel>Valore Offerto da ({selectedMarketNotification.dati_aggiuntivi?.squadra_mittente || 'N/A'}):</MarketDetailLabel>
-                    <MarketDetailValue>FM {selectedMarketNotification.dati_aggiuntivi?.valore ?? 0}</MarketDetailValue>
+                    <MarketDetailLabel>Valore Offerto da ({selectedMarketNotification?.dati_aggiuntivi?.squadra_mittente || 'N/A'}):</MarketDetailLabel>
+                    <MarketDetailValue>FM {selectedMarketNotification?.dati_aggiuntivi?.valore ?? 0}</MarketDetailValue>
                   </MarketDetailItem>
                   <MarketDetailItem>
-                    <MarketDetailLabel>Valore Richiesto da ({selectedMarketNotification.dati_aggiuntivi?.squadra_destinatario || 'N/A'}):</MarketDetailLabel>
-                    <MarketDetailValue>FM {selectedMarketNotification.dati_aggiuntivi?.richiesta_fm ?? 0}</MarketDetailValue>
+                    <MarketDetailLabel>Valore Richiesto da ({selectedMarketNotification?.dati_aggiuntivi?.squadra_destinatario || 'N/A'}):</MarketDetailLabel>
+                    <MarketDetailValue>FM {selectedMarketNotification?.dati_aggiuntivi?.richiesta_fm ?? 0}</MarketDetailValue>
                   </MarketDetailItem>
                 </MarketDetailGrid>
               </MarketDetailsSection>
@@ -1311,13 +1311,13 @@ const NotifichePage = () => {
                 <MarketImpactGrid>
                   <MarketImpactItem>
                     <MarketImpactLabel>Squadra Mittente:</MarketImpactLabel>
-                    <MarketImpactBefore>Prima: FM {selectedMarketNotification.dati_aggiuntivi?.casse_mittente_prima ?? 'N/A'}</MarketImpactBefore>
-                    <MarketImpactAfter>Dopo: FM {selectedMarketNotification.dati_aggiuntivi?.casse_mittente_dopo ?? 'N/A'}</MarketImpactAfter>
+                    <MarketImpactBefore>Prima: FM {selectedMarketNotification?.dati_aggiuntivi?.casse_mittente_prima ?? 'N/A'}</MarketImpactBefore>
+                    <MarketImpactAfter>Dopo: FM {selectedMarketNotification?.dati_aggiuntivi?.casse_mittente_dopo ?? 'N/A'}</MarketImpactAfter>
                   </MarketImpactItem>
                   <MarketImpactItem>
                     <MarketImpactLabel>Squadra Destinataria:</MarketImpactLabel>
-                    <MarketImpactBefore>Prima: FM {selectedMarketNotification.dati_aggiuntivi?.casse_destinatario_prima ?? 'N/A'}</MarketImpactBefore>
-                    <MarketImpactAfter>Dopo: FM {selectedMarketNotification.dati_aggiuntivi?.casse_destinatario_dopo ?? 'N/A'}</MarketImpactAfter>
+                    <MarketImpactBefore>Prima: FM {selectedMarketNotification?.dati_aggiuntivi?.casse_destinatario_prima ?? 'N/A'}</MarketImpactBefore>
+                    <MarketImpactAfter>Dopo: FM {selectedMarketNotification?.dati_aggiuntivi?.casse_destinatario_dopo ?? 'N/A'}</MarketImpactAfter>
                   </MarketImpactItem>
                 </MarketImpactGrid>
               </MarketDetailsSection>
@@ -1369,10 +1369,10 @@ const NotifichePage = () => {
                   fontWeight: '600',
                   fontSize: '14px'
                 }}>
-                  {selectedMarketNotification.messaggio.includes(' - ACCETTATA') || 
-                   selectedMarketNotification.messaggio.includes('Hai accettato l\'offerta') ||
-                   selectedMarketNotification.messaggio.includes('La tua offerta è stata accettata') ||
-                   selectedMarketNotification.messaggio.includes('è stata accettata') ? 
+                  {selectedMarketNotification?.messaggio?.includes(' - ACCETTATA') || 
+                   selectedMarketNotification?.messaggio?.includes('Hai accettato l\'offerta') ||
+                   selectedMarketNotification?.messaggio?.includes('La tua offerta è stata accettata') ||
+                   selectedMarketNotification?.messaggio?.includes('è stata accettata') ? 
                     '✅ Offerta già accettata' : 
                     '❌ Offerta già rifiutata'
                   }

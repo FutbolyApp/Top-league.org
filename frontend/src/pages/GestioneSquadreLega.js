@@ -376,7 +376,7 @@ const GestioneSquadreLega = () => {
                     </DetailItem>
                     <DetailItem>
                       <DetailLabel>Valore</DetailLabel>
-                      <DetailValue>FM {squadra.valore_squadra?.toLocaleString() || 0}</DetailValue>
+                      <DetailValue>FM {squadra?.valore_squadra?.toLocaleString() || 0}</DetailValue>
                     </DetailItem>
                   </TeamDetails>
                 </TeamInfo>
