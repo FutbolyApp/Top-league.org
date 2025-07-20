@@ -158,11 +158,16 @@ router.post('/upgrade-club-level', requireAuth, async (req, res) => {
 router.get('/utente', requireAuth, async (req, res) => {
   try {
     const utente_id = req.user.id;
+    console.log('🔍 GET /squadre/utente - User ID:', utente_id);
+    console.log('🔍 User role:', req.user.ruolo);
+    
     const db = getDb();
     if (!db) {
+      console.error('❌ Database non disponibile');
       return res.status(503).json({ error: 'Database non disponibile' });
     }
     
+    console.log('🔍 Eseguendo query squadre per utente...');
     const squadreResult = await db.query(`
       SELECT s.*, 
              u.username as proprietario_username,
@@ -185,6 +190,25 @@ router.get('/utente', requireAuth, async (req, res) => {
       WHERE s.proprietario_id = $1
       ORDER BY s.nome
     `, [utente_id]);
+    
+    console.log(`✅ Query eseguita. Trovate ${squadreResult.rows.length} squadre per utente ${utente_id}`);
+    
+    // Debug: mostra le squadre trovate
+    if (squadreResult.rows.length > 0) {
+      console.log('📋 Squadre trovate:');
+      squadreResult.rows.forEach((squadra, index) => {
+        console.log(`  ${index + 1}. ${squadra.nome} (ID: ${squadra.id}) - Lega: ${squadra.lega_nome} - Proprietario: ${squadra.proprietario_id}`);
+      });
+    } else {
+      console.log('⚠️ Nessuna squadra trovata per questo utente');
+      
+      // Debug: controlla tutte le squadre nel database
+      const allSquadre = await db.query('SELECT id, nome, proprietario_id, lega_id FROM squadre LIMIT 10');
+      console.log('🔍 Tutte le squadre nel database:');
+      allSquadre.rows.forEach(s => {
+        console.log(`  - ${s.nome} (ID: ${s.id}) - Proprietario: ${s.proprietario_id} - Lega: ${s.lega_id}`);
+      });
+    }
     
     // Per ogni squadra, ottieni i giocatori
     const squadreConGiocatori = await Promise.all(squadreResult.rows.map(async (squadra) => {
