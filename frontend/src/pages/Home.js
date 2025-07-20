@@ -549,9 +549,8 @@ const Home = () => {
         // Carica leghe utente (a cui partecipa)
         const legheUserRes = await getLegheUserShared(token, user.id);
         const allLeghe = legheUserRes?.data?.leghe || legheUserRes?.leghe || [];
-        // Filtra solo le leghe a cui l'utente partecipa (non quelle che amministra)
-        const userLeghe = allLeghe.filter(lega => lega?.admin_id !== user?.id);
-        setLegheUser(userLeghe);
+        // Mostra tutte le leghe (incluso quelle che amministra)
+        setLegheUser(allLeghe);
         
         // Carica squadre dell'utente
         const squadreRes = await getSquadreUtenteShared(token, user.id);
@@ -657,25 +656,6 @@ const Home = () => {
 
   const getNotificheCount = (squadraId) => {
     return notifiche?.filter(n => n.squadra_id === squadraId).length;
-  };
-
-  // Funzione per gestire il click su una notifica
-  const handleNotificationClick = async (notifica) => {
-    try {
-      // Marca come letta
-      await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/notifiche/${notifica.id}/read`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      // Rimuovi dalla lista locale
-      setNotifiche(prev => prev.filter(n => n.id !== notifica.id));
-    } catch (error) {
-      console.error('Errore nel marcare notifica come letta:', error);
-    }
   };
 
   // Conta notifiche non lette
@@ -1020,14 +1000,18 @@ const Home = () => {
           <SectionTitle>
             Notifiche Recenti
             {unreadNotificationsCount > 0 && (
-              <span style={{ 
-                backgroundColor: '#007bff', 
-                color: 'white', 
-                borderRadius: '50%', 
-                padding: '2px 8px', 
-                fontSize: '0.8rem', 
-                marginLeft: '10px' 
-              }}>
+              <span 
+                style={{ 
+                  backgroundColor: '#007bff', 
+                  color: 'white', 
+                  borderRadius: '50%', 
+                  padding: '2px 8px', 
+                  fontSize: '0.8rem', 
+                  marginLeft: '10px',
+                  cursor: 'pointer'
+                }}
+                onClick={() => navigate('/notifiche')}
+              >
                 {unreadNotificationsCount}
               </span>
             )}
@@ -1041,7 +1025,7 @@ const Home = () => {
                 backgroundColor: notifica.letta ? 'transparent' : '#f8f9fa',
                 cursor: 'pointer'
               }}
-              onClick={() => handleNotificationClick(notifica)}
+              onClick={() => navigate('/notifiche')}
             >
               <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>
                 {notifica.titolo}
