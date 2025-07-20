@@ -358,12 +358,22 @@ const SuperAdminDashboard = () => {
       }
 
       try {
+        console.log('🔍 SuperAdminDashboard: Starting fetchData');
+        console.log('🔍 SuperAdminDashboard: Token available:', !!token);
+        
         const [legheRes, subadminsRes] = await Promise.all([
           getAllLegheAdmin(token),
           getAllSubadmins(token)
         ]);
+        
+        console.log('🔍 SuperAdminDashboard: Leghe response:', legheRes);
+        console.log('🔍 SuperAdminDashboard: Subadmins response:', subadminsRes);
+        
         setLeghe(legheRes.data.leghe);
         setSubadmins(subadminsRes.data.subadmins || []);
+        
+        console.log('🔍 SuperAdminDashboard: Leghe set:', legheRes.data.leghe?.length || 0);
+        console.log('🔍 SuperAdminDashboard: Subadmins set:', subadminsRes.data.subadmins?.length || 0);
         
         // Carica utenti separatamente con gestione errori migliorata
         try {
@@ -644,6 +654,13 @@ const SuperAdminDashboard = () => {
   const totalSquadreAssegnate = leghe?.reduce((sum, lega) => sum + (lega.squadre_con_proprietario || 0), 0) || 0;
   const totalGiocatori = leghe?.reduce((sum, lega) => sum + (lega.numero_giocatori || 0), 0) || 0;
   const leghePubbliche = leghe?.filter(lega => lega?.is_pubblica).length || 0;
+
+  console.log('🔍 SuperAdminDashboard: Stats calculated:');
+  console.log('🔍 SuperAdminDashboard: - Total Leghe:', totalLeghe);
+  console.log('🔍 SuperAdminDashboard: - Total Squadre:', totalSquadre);
+  console.log('🔍 SuperAdminDashboard: - Total Squadre Assegnate:', totalSquadreAssegnate);
+  console.log('🔍 SuperAdminDashboard: - Total Giocatori:', totalGiocatori);
+  console.log('🔍 SuperAdminDashboard: - Leghe Pubbliche:', leghePubbliche);
 
   return (
     <Container>
