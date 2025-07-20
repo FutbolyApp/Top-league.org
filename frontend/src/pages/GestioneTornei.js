@@ -591,10 +591,6 @@ const GestioneTornei = () => {
     informazioni_utente: ''
   });
 
-  useEffect(() => {
-    loadData();
-  }, [legaId, loadData]);
-
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -612,6 +608,10 @@ const GestioneTornei = () => {
       setLoading(false);
     }
   }, [legaId, token]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -805,11 +805,11 @@ const GestioneTornei = () => {
               Tornei Esistenti
             </CardTitle>
             
-            {tornei?.length || 0 === 0 ? (
+            {tornei?.length === 0 ? (
               <EmptyState>
                 <h3>Nessun torneo creato</h3>
                 <p>Crea il tuo primo torneo per iniziare a competere!</p>
-                <CreateButton onClick={handleShowForm} disabled={squadre?.length || 0 === 0}>
+                <CreateButton onClick={handleShowForm} disabled={squadre?.length === 0}>
                   Crea Primo Torneo
                 </CreateButton>
               </EmptyState>
@@ -817,9 +817,9 @@ const GestioneTornei = () => {
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                   <span style={{ color: '#718096', fontSize: '0.9rem' }}>
-                    {tornei?.length || 0} torneo{tornei?.length || 0 !== 1 ? 'i' : ''} trovato{tornei?.length || 0 !== 1 ? 'i' : ''}
+                    {tornei?.length || 0} torneo{tornei?.length !== 1 ? 'i' : ''} trovato{tornei?.length !== 1 ? 'i' : ''}
                   </span>
-                  <CreateButton onClick={handleShowForm} disabled={squadre?.length || 0 === 0}>
+                  <CreateButton onClick={handleShowForm} disabled={squadre?.length === 0}>
                     + Nuovo Torneo
                   </CreateButton>
                 </div>
