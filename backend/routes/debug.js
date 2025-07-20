@@ -321,4 +321,65 @@ router.post('/assign-squadre', async (req, res) => {
   }
 });
 
+// Endpoint per eseguire query SQL dirette
+router.post('/execute-sql', async (req, res) => {
+  console.log('🔧 DEBUG: Executing direct SQL');
+  
+  try {
+    await initializeDatabase();
+    const db = getDb();
+    
+    if (!db) {
+      return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    // 1. Aggiorna password SuperAdmin
+    await db.query(`
+      UPDATE users 
+      SET password_hash = $1 
+      WHERE ruolo = 'SuperAdmin'
+    `, [await bcrypt.hash('admin123', 10)]);
+    
+    // 2. Assegna le prime 5 squadre non assegnate al SuperAdmin
+    const result = await db.query(`
+      UPDATE squadre 
+      SET proprietario_id = (SELECT id FROM users WHERE ruolo = 'SuperAdmin' LIMIT 1), 
+          is_orfana = false 
+      WHERE id IN (
+        SELECT id FROM squadre 
+        WHERE proprietario_id IS NULL OR is_orfana = true 
+        LIMIT 5
+      )
+    `);
+    
+    // 3. Conta quante squadre ha ora il SuperAdmin
+    const superAdminSquadre = await db.query(`
+      SELECT COUNT(*) as count 
+      FROM squadre 
+      WHERE proprietario_id = (SELECT id FROM users WHERE ruolo = 'SuperAdmin' LIMIT 1)
+    `);
+    
+    console.log('Direct SQL execution completed');
+    
+    res.json({ 
+      success: true,
+      message: 'SQL executed successfully',
+      squadreAssigned: result.rowCount,
+      totalSquadre: superAdminSquadre.rows[0].count,
+      credentials: {
+        email: 'admin@topleague.com',
+        password: 'admin123',
+        role: 'SuperAdmin'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Direct SQL execution failed:', error);
+    res.status(500).json({ 
+      error: 'Direct SQL execution failed', 
+      details: error.message 
+    });
+  }
+});
+
 export default router; 
