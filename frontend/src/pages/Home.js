@@ -511,6 +511,7 @@ const Home = () => {
   const [legheUser, setLegheUser] = useState([]); // Aggiungo stato per leghe utente
   const [squadre, setSquadre] = useState([]);
   const [notifiche, setNotifiche] = useState([]);
+  const [notificheRimosse, setNotificheRimosse] = useState(false); // Nuovo stato per tracciare se le notifiche sono state rimosse
   const [sortFieldLeghe, setSortFieldLeghe] = useState('nome');
   const [sortDirectionLeghe, setSortDirectionLeghe] = useState('asc');
   const [sortFieldSquadre, setSortFieldSquadre] = useState('nome');
@@ -557,8 +558,10 @@ const Home = () => {
         setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
         
         // Carica notifiche (solo per utenti normali, non admin)
-        const notificheRes = await getNotificheShared(token, user.id);
-        setNotifiche(notificheRes?.data?.notifiche || notificheRes?.notifiche || []);
+        if (!notificheRimosse) {
+          const notificheRes = await getNotificheShared(token, user.id);
+          setNotifiche(notificheRes?.data?.notifiche || notificheRes?.notifiche || []);
+        }
         
         // Carica movimenti di mercato per tutte le squadre
         const squadreData = squadreRes?.data?.squadre || squadreRes?.squadre || [];
@@ -582,7 +585,18 @@ const Home = () => {
     };
     
     loadData();
-  }, [user, token]);
+  }, [user, token, notificheRimosse]);
+
+  // Reset notifiche quando l'utente torna alla home
+  useEffect(() => {
+    const handleFocus = () => {
+      // Se l'utente torna alla home, resetta lo stato delle notifiche
+      setNotificheRimosse(false);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
 
   // Funzione per gestire l'ordinamento delle leghe
   const handleSortLeghe = (field) => {
@@ -973,6 +987,7 @@ const Home = () => {
                 onClick={() => {
                   navigate('/notifiche');
                   setNotifiche([]); // Rimuovi tutte le notifiche dopo il click
+                  setNotificheRimosse(true); // Marca come rimosse
                 }}
               >
                 {unreadNotificationsCount}
@@ -991,6 +1006,7 @@ const Home = () => {
               onClick={() => {
                 navigate('/notifiche');
                 setNotifiche([]); // Rimuovi tutte le notifiche dopo il click
+                setNotificheRimosse(true); // Marca come rimosse
               }}
             >
               <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>
