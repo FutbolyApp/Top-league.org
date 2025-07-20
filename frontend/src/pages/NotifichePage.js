@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { useAuth } from '../components/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../api/config.js';
+import { useNotification } from '../components/NotificationSystem';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -498,6 +499,7 @@ const MarketActionButton = styled.button`
 const NotifichePage = () => {
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const { showNotification } = useNotification();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -515,6 +517,12 @@ const NotifichePage = () => {
   const [offerProcessed, setOfferProcessed] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [archivingNotifications, setArchivingNotifications] = useState(false);
+  
+  // Stati per i popup delle richieste admin
+  const [showRequestResponseModal, setShowRequestResponseModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [responseMessage, setResponseMessage] = useState('');
+  const [processingResponse, setProcessingResponse] = useState(false);
 
   useEffect(() => {
     if (!user || !token) {
@@ -538,6 +546,48 @@ const NotifichePage = () => {
     } catch (error) {
       console.error('❌ Errore nel marcare le notifiche come lette:', error);
     }
+  };
+
+  // Funzione per gestire la risposta a una richiesta admin
+  const handleAdminRequestResponse = async (richiesta, risposta) => {
+    try {
+      setProcessingResponse(true);
+      
+      const response = await api.post(`/richieste-admin/${richiesta.id}/gestisci`, {
+        azione: risposta === 'accetta' ? 'accepted' : 'rejected',
+        note_admin: responseMessage,
+        valore_costo: richiesta.dati_richiesta?.valore_costo || 0
+      }, token);
+
+      if (response.ok) {
+        showNotification(
+          `Richiesta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo!`,
+          'success'
+        );
+        
+        // Ricarica le notifiche
+        await loadNotifications();
+        
+        // Chiudi i popup
+        setShowRequestResponseModal(false);
+        setSelectedRequest(null);
+        setResponseMessage('');
+      } else {
+        showNotification('Errore durante la gestione della richiesta', 'error');
+      }
+    } catch (error) {
+      console.error('Errore gestione richiesta admin:', error);
+      showNotification('Errore durante la gestione della richiesta', 'error');
+    } finally {
+      setProcessingResponse(false);
+    }
+  };
+
+  // Funzione per aprire il popup di risposta
+  const openResponseModal = (richiesta) => {
+    setSelectedRequest(richiesta);
+    setResponseMessage('');
+    setShowRequestResponseModal(true);
   };
 
   const loadNotifications = async () => {
@@ -671,7 +721,8 @@ const NotifichePage = () => {
         navigate('/gestione-richieste');
         break;
       case 'richiesta_admin':
-        navigate('/gestione-richieste-admin');
+        // Apri il popup per gestire la richiesta admin
+        openResponseModal(notification);
         break;
       case 'risposta_richiesta_admin':
         navigate('/area-admin');
@@ -1426,6 +1477,90 @@ const NotifichePage = () => {
                 disabled={archivingNotifications}
               >
                 {archivingNotifications ? 'Archiviazione...' : 'Conferma Archiviazione'}
+              </MarketActionButton>
+            </MarketModalFooter>
+          </MarketModalContent>
+        </MarketModal>
+      )}
+
+      {/* Modal per gestione richieste admin */}
+      {showRequestResponseModal && selectedRequest && (
+        <MarketModal onClick={() => setShowRequestResponseModal(false)}>
+          <MarketModalContent onClick={(e) => e.stopPropagation()}>
+            <MarketModalHeader>
+              <MarketModalTitle>📋 Gestione Richiesta Admin</MarketModalTitle>
+              <MarketModalCloseButton onClick={() => setShowRequestResponseModal(false)}>✕</MarketModalCloseButton>
+            </MarketModalHeader>
+            
+            <MarketModalBody>
+              <div style={{ marginBottom: '1rem' }}>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: '#1e293b' }}>
+                  Richiesta di: {selectedRequest.dati_aggiuntivi?.utente_nome || 'Utente'}
+                </h3>
+                <p style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>
+                  <strong>Tipo:</strong> {selectedRequest.dati_aggiuntivi?.tipo_richiesta || 'N/A'}
+                </p>
+                <p style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>
+                  <strong>Data:</strong> {formatTime(selectedRequest.created_at)}
+                </p>
+                {selectedRequest.dati_aggiuntivi?.descrizione && (
+                  <p style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>
+                    <strong>Descrizione:</strong> {selectedRequest.dati_aggiuntivi.descrizione}
+                  </p>
+                )}
+                {selectedRequest.dati_aggiuntivi?.dettagli && (
+                  <div style={{ margin: '0 0 0.5rem 0' }}>
+                    <strong style={{ color: '#64748b' }}>Dettagli:</strong>
+                    <pre style={{ 
+                      background: '#f8f9fa', 
+                      padding: '0.5rem', 
+                      borderRadius: '4px', 
+                      fontSize: '0.9rem',
+                      color: '#495057',
+                      whiteSpace: 'pre-wrap',
+                      margin: '0.5rem 0 0 0'
+                    }}>
+                      {JSON.stringify(selectedRequest.dati_aggiuntivi.dettagli, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1e293b' }}>
+                  Note (opzionale):
+                </label>
+                <textarea
+                  value={responseMessage}
+                  onChange={(e) => setResponseMessage(e.target.value)}
+                  placeholder="Inserisci una nota per la risposta..."
+                  style={{
+                    width: '100%',
+                    minHeight: '80px',
+                    padding: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '0.9rem',
+                    fontFamily: 'inherit'
+                  }}
+                />
+              </div>
+            </MarketModalBody>
+            
+            <MarketModalFooter>
+              <MarketActionButton 
+                $variant="danger" 
+                onClick={() => handleAdminRequestResponse(selectedRequest, 'rifiuta')}
+                disabled={processingResponse}
+              >
+                {processingResponse ? 'Elaborazione...' : 'Rifiuta Richiesta'}
+              </MarketActionButton>
+              <MarketActionButton 
+                $variant="success" 
+                onClick={() => handleAdminRequestResponse(selectedRequest, 'accetta')}
+                disabled={processingResponse}
+              >
+                {processingResponse ? 'Elaborazione...' : 'Accetta Richiesta'}
               </MarketActionButton>
             </MarketModalFooter>
           </MarketModalContent>
