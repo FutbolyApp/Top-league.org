@@ -1,7 +1,7 @@
 // Forza nuovo deploy - fix finale URL API
 // Ultima revisione: tutti gli URL localhost rimossi
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
 import { NotificationProvider } from './components/NotificationSystem';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -56,6 +56,13 @@ import './index.css';
 console.log('🚀 TopLeague Frontend v1.0.5 - Build:', new Date().toISOString());
 
 function AppRoutes() {
+  const location = useLocation();
+  
+  useEffect(() => {
+    console.log('🔍 App: Current location:', location.pathname);
+    console.log('🔍 App: Preventing unwanted redirects');
+  }, [location]);
+
   return (
     <>
       <Navigation />
