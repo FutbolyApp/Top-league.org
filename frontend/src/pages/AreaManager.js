@@ -283,14 +283,18 @@ const AreaManager = () => {
         console.log('🔍 AreaManager: Squadre response:', squadreRes);
         console.log('🔍 AreaManager: Notifiche response:', notificheRes);
         
-        setSquadre(squadreRes.squadre || []);
-        setNotifiche(notificheRes.notifiche || []);
+        // Gestisci sia il formato {ok: true, data: {...}} che il formato diretto
+        const squadreData = squadreRes.data ? squadreRes.data : squadreRes;
+        const notificheData = notificheRes.data ? notificheRes.data : notificheRes;
         
-        console.log('🔍 AreaManager: Squadre set:', squadreRes.squadre?.length || 0);
-        console.log('🔍 AreaManager: Notifiche set:', notificheRes.notifiche?.length || 0);
+        setSquadre(squadreData.squadre || []);
+        setNotifiche(notificheData.notifiche || []);
+        
+        console.log('🔍 AreaManager: Squadre set:', squadreData.squadre?.length || 0);
+        console.log('🔍 AreaManager: Notifiche set:', notificheData.notifiche?.length || 0);
         
         // Carica movimenti di mercato per ogni lega
-        const movimentiPromises = squadreRes.squadre?.map(squadra => 
+        const movimentiPromises = squadreData.squadre?.map(squadra => 
           getMovimentiMercato(squadra.lega_id, token)
         ) || [];
         
