@@ -411,15 +411,20 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
     setError('');
     try {
       const res = await getSquadraById(id, token);
-      setSquadra(res.squadra);
+      console.log('fetchSquadra: risposta API:', res);
       
-      if (setCurrentTeam) setCurrentTeam(res.squadra);
+      // Gestisci sia la risposta diretta che quella wrappata
+      const squadra = res?.data?.squadra || res?.squadra;
+      setSquadra(squadra);
+      
+      if (setCurrentTeam) setCurrentTeam(squadra);
       
       // Carica la lega per il contesto
-      if (res?.squadra?.lega_id) {
-        const legaRes = await getLegaById(res.squadra.lega_id, token);
-        setLega(legaRes?.data?.lega || legaRes?.lega);
-        if (setCurrentLeague) setCurrentLeague(legaRes?.data?.lega || legaRes?.lega);
+      if (squadra?.lega_id) {
+        const legaRes = await getLegaById(squadra.lega_id, token);
+        const lega = legaRes?.data?.lega || legaRes?.lega;
+        setLega(lega);
+        if (setCurrentLeague) setCurrentLeague(lega);
         
         // Carica le squadre dell'utente per verificare se ha già una squadra in questa lega
         try {
@@ -428,13 +433,14 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
           setUserSquadre(squadre);
           
           // Verifica se l'utente ha già una squadra in questa lega
-          const hasSquadra = squadre?.some(s => s?.lega_id === res?.squadra?.lega_id);
+          const hasSquadra = squadre?.some(s => s?.lega_id === squadra?.lega_id);
           setHasSquadraInLega(hasSquadra);
         } catch (err) {
           console.error('Errore nel caricamento squadre utente:', err);
         }
       }
     } catch (err) {
+      console.error('fetchSquadra: errore:', err);
       setError(err.message);
     }
     setLoading(false);

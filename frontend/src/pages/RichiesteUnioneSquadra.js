@@ -175,7 +175,8 @@ const RichiesteUnioneSquadra = () => {
     try {
       setLoading(true);
       const response = await getRichiesteUnioneSquadra(legaId, token);
-      setRichieste(response.richieste || []);
+      const richieste = response?.data?.richieste || response?.richieste || [];
+      setRichieste(richieste);
     } catch (err) {
       setError(err.message);
     } finally {

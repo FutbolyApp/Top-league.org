@@ -249,11 +249,12 @@ const RichiestaAdmin = () => {
   const loadSquadre = async () => {
     try {
       const response = await getSquadreByUtente(token);
-      setSquadre(response.squadre || []);
-      if (response.squadre && response.squadre?.length || 0 > 0) {
-        setSelectedSquadra(response.squadre[0]);
-        loadGiocatori(response.squadre[0].id);
-        loadRichieste(response.squadre[0].id);
+      const squadre = response?.data?.squadre || response?.squadre || [];
+      setSquadre(squadre);
+      if (squadre && squadre?.length || 0 > 0) {
+        setSelectedSquadra(squadre[0]);
+        loadGiocatori(squadre[0].id);
+        loadRichieste(squadre[0].id);
       }
     } catch (error) {
       console.error('Errore caricamento squadre:', error);
@@ -263,7 +264,8 @@ const RichiestaAdmin = () => {
   const loadGiocatori = async (squadra_id) => {
     try {
       const response = await getGiocatoriBySquadra(squadra_id, token);
-      setGiocatori(response.giocatori || []);
+      const giocatori = response?.data?.giocatori || response?.giocatori || [];
+      setGiocatori(giocatori);
     } catch (error) {
       console.error('Errore caricamento giocatori:', error);
     }
@@ -272,7 +274,8 @@ const RichiestaAdmin = () => {
   const loadRichieste = async (squadra_id) => {
     try {
       const response = await getRichiesteBySquadra(squadra_id, token);
-      setRichieste(response.richieste || []);
+      const richieste = response?.data?.richieste || response?.richieste || [];
+      setRichieste(richieste);
     } catch (error) {
       console.error('Errore caricamento richieste:', error);
     }

@@ -172,7 +172,8 @@ const GestioneRichiesteAdmin = () => {
     try {
       setLoading(true);
       const response = await getRichiestePendingByLega(legaId, token);
-      setRichieste(response.richieste || []);
+      const richieste = response?.data?.richieste || response?.richieste || [];
+      setRichieste(richieste);
     } catch (error) {
       console.error('Errore caricamento richieste:', error);
     } finally {

@@ -595,13 +595,19 @@ const GestioneSquadra = () => {
     try {
       const response = await getMyTeamByLeague(legaId, token);
       console.log('fetchSquadra: risposta API:', response);
-      setSquadra(response.squadra);
-      console.log('fetchSquadra: squadra impostata:', response.squadra);
+      
+      // Gestisci sia la risposta diretta che quella wrappata
+      const squadra = response?.data?.squadra || response?.squadra;
+      setSquadra(squadra);
+      console.log('fetchSquadra: squadra impostata:', squadra);
+      
       // Ottieni configurazioni della lega se disponibili
-      if (response.config) {
-        setLeagueConfig(response.config);
+      const config = response?.data?.config || response?.config;
+      if (config) {
+        setLeagueConfig(config);
       }
     } catch (err) {
+      console.error('fetchSquadra: errore:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -671,7 +677,8 @@ const GestioneSquadra = () => {
       setLoadingLogs(true);
       try {
         const response = await getLogRinnoviGiocatore(player.id, token);
-        setRenewalLogs(response.log || []);
+        const logs = response?.data?.log || response?.log || [];
+        setRenewalLogs(logs);
       } catch (err) {
         console.log('Errore caricamento log rinnovi:', err);
         setRenewalLogs([]);

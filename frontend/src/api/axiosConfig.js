@@ -38,7 +38,7 @@ export const apiRequest = async (method, url, data, token) => {
   try {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const response = await api({ method, url, data, headers });
-    return response.data;
+    return { ok: true, data: response.data };
   } catch (error) {
     throw new Error(error.customMessage || error.message || 'Errore sconosciuto');
   }
