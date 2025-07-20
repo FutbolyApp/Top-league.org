@@ -177,7 +177,7 @@ router.post('/create', requireAuth, (req, res, next) => {
             nome: sq.nome,
             casse_societarie: sq.casseSocietarie || 0,
             valore_squadra: sq.valoreRosa || 0,
-            is_orfana: 1
+            is_orfana: true
           });
           
           console.log('✅ Squadra creata:', sq.nome, 'ID:', squadraId, 'Casse:', sq.casseSocietarie, 'Valore:', sq.valoreRosa);
