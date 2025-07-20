@@ -249,10 +249,14 @@ const GestioneSquadreLega = () => {
         console.log('🔍 Squadre response:', squadreRes);
         console.log('🔍 Lega details:', legaRes.lega);
         
-        setLega(legaRes.lega);
-        setSquadre(squadreRes.squadre || []);
+        // Gestisci sia il formato {ok: true, data: {...}} che il formato diretto
+        const legaData = legaRes.data ? legaRes.data : legaRes;
+        const squadreData = squadreRes.data ? squadreRes.data : squadreRes;
         
-        console.log('🔍 Squadre set:', squadreRes.squadre || []);
+        setLega(legaData.lega);
+        setSquadre(squadreData.squadre || []);
+        
+        console.log('🔍 Squadre set:', squadreData.squadre || []);
       } catch (err) {
         console.error('❌ Error fetching data:', err);
         setError(err.message);

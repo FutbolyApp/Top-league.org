@@ -314,14 +314,23 @@ const ModificaLega = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    console.log('🔍 ModificaLega: Starting handleSubmit');
+    console.log('🔍 ModificaLega: Form data:', formData);
+    console.log('🔍 ModificaLega: Token available:', !!token);
+    
+    if (!validateForm()) {
+      console.log('🔍 ModificaLega: Form validation failed');
+      return;
+    }
     
     setSaving(true);
     setError('');
     setSuccess('');
     
     try {
+      console.log('🔍 ModificaLega: Calling updateLega with id:', id);
       await updateLega(id, formData, token);
+      console.log('🔍 ModificaLega: updateLega successful');
       setSuccess('Lega aggiornata con successo!');
       
       // Torna alla dashboard appropriata dopo 2 secondi
@@ -334,6 +343,7 @@ const ModificaLega = () => {
       }, 2000);
       
     } catch (err) {
+      console.error('🔍 ModificaLega: Error during update:', err);
       // Gestione specifica per nome duplicato
       if (err.message && err.message.includes('Nome lega duplicato')) {
         setError('Esiste già una lega con questo nome. Scegli un nome diverso.');
