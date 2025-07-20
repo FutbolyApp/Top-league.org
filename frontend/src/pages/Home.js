@@ -768,6 +768,12 @@ const Home = () => {
             </thead>
             <tbody>
               {sortedSquadre?.map(squadra => {
+                // Controllo di sicurezza per squadra
+                if (!squadra) {
+                  console.warn('🔍 Home: Squadra undefined, skipping');
+                  return null;
+                }
+                
                 const movimentiLega = getMovimentiByLega(squadra.lega_id);
                 const notificheCount = getNotificheCount(squadra.id);
                 const isExpanded = expandedSquadra === squadra.id;
@@ -784,6 +790,8 @@ const Home = () => {
                 const maxGiocatori = squadra?.max_giocatori || 30;
                 const logoUrl = squadra.logo_url;
                 const torneoNome = squadra.torneo_nome || 'N/A';
+                const casseSocietarie = squadra?.casse_societarie || 0;
+                
                 return (
                   <React.Fragment key={squadra.id}>
                     <tr>
@@ -798,7 +806,7 @@ const Home = () => {
                       <Td>{squadra.club_level || 1}</Td>
                       <Td>{torneoNome}</Td>
                       <Td>FM {ingaggi.toLocaleString()}</Td>
-                      <Td><MoneyValue>{squadra.casse_societarie?.toLocaleString() || 0} FM</MoneyValue></Td>
+                      <Td><MoneyValue>{casseSocietarie.toLocaleString() || 0} FM</MoneyValue></Td>
                       <Td>FM {valoreAttuale.toLocaleString()}</Td>
                       <Td>{numGiocatori}/{maxGiocatori}</Td>
                       <Td>

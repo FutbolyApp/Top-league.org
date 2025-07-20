@@ -454,8 +454,8 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
     // Valore Squadra: somma di quotazione_attuale di tutti i giocatori
     const valoreSquadra = squadra.giocatori?.reduce((sum, g) => sum + (g.quotazione_attuale || 0), 0) || 0;
     
-    // Casse Societarie: dalla squadra
-    const casseSocietarie = squadra.casse_societarie || 0;
+    // Casse Societarie: dalla squadra con controllo di sicurezza
+    const casseSocietarie = squadra?.casse_societarie || 0;
     
     // Ingaggio totale: somma di costo_attuale di tutti i giocatori
     const ingaggioTotale = squadra.giocatori?.reduce((sum, g) => sum + (g.costo_attuale || 0), 0) || 0;
