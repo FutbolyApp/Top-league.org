@@ -630,8 +630,11 @@ const ProponiOfferta = () => {
         if (!squadraRes.ok) throw new Error(squadraData.error || 'Errore caricamento squadra');
         
         const legaId = squadraData?.squadra?.lega_id;
+        if (!legaId) {
+          throw new Error('Lega ID non trovato per questa squadra');
+        }
         setLegaId(legaId);
-        setUserSquadra(squadraData.squadra);
+        setUserSquadra(squadraData?.squadra);
         
         // Poi carica tutte le squadre e giocatori della lega
         const [squadreRes, giocatoriRes] = await Promise.all([

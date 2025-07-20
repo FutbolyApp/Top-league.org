@@ -416,18 +416,19 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
       if (setCurrentTeam) setCurrentTeam(res.squadra);
       
       // Carica la lega per il contesto
-      if (res.squadra.lega_id) {
+      if (res?.squadra?.lega_id) {
         const legaRes = await getLegaById(res.squadra.lega_id, token);
-        setLega(legaRes.lega);
-        if (setCurrentLeague) setCurrentLeague(legaRes.lega);
+        setLega(legaRes?.data?.lega || legaRes?.lega);
+        if (setCurrentLeague) setCurrentLeague(legaRes?.data?.lega || legaRes?.lega);
         
         // Carica le squadre dell'utente per verificare se ha già una squadra in questa lega
         try {
           const squadreRes = await getSquadreByUtente(token);
-          setUserSquadre(squadreRes.squadre || []);
+          const squadre = squadreRes?.data?.squadre || squadreRes?.squadre || [];
+          setUserSquadre(squadre);
           
           // Verifica se l'utente ha già una squadra in questa lega
-          const hasSquadra = squadreRes.squadre?.some(s => s.lega_id === res.squadra.lega_id);
+          const hasSquadra = squadre?.some(s => s?.lega_id === res?.squadra?.lega_id);
           setHasSquadraInLega(hasSquadra);
         } catch (err) {
           console.error('Errore nel caricamento squadre utente:', err);

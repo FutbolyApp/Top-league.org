@@ -767,7 +767,7 @@ const LeagueAdminArea = () => {
               </ChangeHeader>
               <ChangeDescription>
                 <SubadminInfo>Subadmin: {change.username}</SubadminInfo>
-                <strong>Lega:</strong> <LeagueLink onClick={() => navigate(`/lega/${change.lega_id}`)}>{change.lega_nome}</LeagueLink><br/>
+                <strong>Lega:</strong> <LeagueLink onClick={() => navigate(`/lega/${change?.lega_id}`)}>{change?.lega_nome}</LeagueLink><br/>
                 <strong>Descrizione:</strong><br/>
                 <pre style={{ 
                   background: '#f8f9fa', 

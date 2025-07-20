@@ -492,10 +492,10 @@ const AreaAdmin = () => {
         richiesteData.data.richieste.forEach((richiesta, index) => {
         if (richiesta.tipo_richiesta === 'admin') {
           console.log(`Richiesta admin ${index}:`, {
-            id: richiesta.id,
-            lega_id: richiesta.lega_id,
-            lega_nome: richiesta.lega_nome,
-            squadra_nome: richiesta.squadra_nome
+            id: richiesta?.id,
+            lega_id: richiesta?.lega_id,
+            lega_nome: richiesta?.lega_nome,
+            squadra_nome: richiesta?.squadra_nome
           });
         }
       });

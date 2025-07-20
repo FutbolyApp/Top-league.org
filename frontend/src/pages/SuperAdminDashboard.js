@@ -497,7 +497,7 @@ const SuperAdminDashboard = () => {
   };
 
   const getSubadminsForLega = (legaId) => {
-    return subadmins?.filter(sub => sub.lega_id === legaId);
+    return subadmins?.filter(sub => sub?.lega_id === legaId);
   };
 
   const fetchUsers = async () => {

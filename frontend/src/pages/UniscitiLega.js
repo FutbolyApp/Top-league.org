@@ -284,7 +284,7 @@ const UniscitiLega = () => {
     if (lega.is_iscritto) return false;
     
     // Se ha già una richiesta per questa lega (qualsiasi stato), non può richiedere
-    const hasRequest = richiesteUtente.some(richiesta => richiesta.lega_id === lega.id);
+    const hasRequest = richiesteUtente.some(richiesta => richiesta?.lega_id === lega?.id);
     if (hasRequest) return false;
     
     // Se non ci sono squadre disponibili, non può richiedere
@@ -299,7 +299,7 @@ const UniscitiLega = () => {
   };
 
   const hasTeamInLega = (lega) => {
-    return squadre.some(squadra => squadra.lega_id === lega.id);
+    return squadre.some(squadra => squadra?.lega_id === lega?.id);
   };
 
   // Funzione per ottenere il messaggio di stato per una lega
@@ -308,7 +308,7 @@ const UniscitiLega = () => {
       return 'Hai già una squadra in questa lega';
     }
     
-    const richiesta = richiesteUtente.find(r => r.lega_id === lega.id);
+    const richiesta = richiesteUtente.find(r => r?.lega_id === lega?.id);
     if (richiesta) {
       switch (richiesta.stato) {
         case 'in_attesa':

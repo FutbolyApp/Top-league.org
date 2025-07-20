@@ -854,7 +854,7 @@ const NotifichePage = () => {
       else if (filter !== 'tutte') return false;
 
       // Filtro per lega
-      if (selectedLeague && notification.lega_id !== parseInt(selectedLeague)) return false;
+      if (selectedLeague && notification?.lega_id !== parseInt(selectedLeague)) return false;
 
       // Filtro per mese/anno
       if (selectedMonth || selectedYear) {

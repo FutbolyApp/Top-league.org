@@ -601,7 +601,7 @@ const SubadminArea = () => {
                   <ChangeDate>{formatDate(change.created_at)}</ChangeDate>
                 </ChangeHeader>
                 <ChangeDescription>
-                  <strong>Lega:</strong> <LeagueLink onClick={() => handleLeagueClick(change.lega_id)}>{change.lega_nome}</LeagueLink><br/>
+                  <strong>Lega:</strong> <LeagueLink onClick={() => handleLeagueClick(change?.lega_id)}>{change?.lega_nome}</LeagueLink><br/>
                   <strong>Modifiche:</strong><br/>
                   <pre style={{ 
                     background: '#f8f9fa', 

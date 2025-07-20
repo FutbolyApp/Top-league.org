@@ -555,9 +555,14 @@ const Home = () => {
         
         // Carica movimenti di mercato per tutte le squadre
         const squadreData = squadreRes?.data?.squadre || squadreRes?.squadre || [];
-        const movimentiPromises = squadreData?.map(squadra => 
-          getMovimentiMercato(squadra.lega_id, token)
-        ) || [];
+        const movimentiPromises = squadreData?.map(squadra => {
+          // Controllo di sicurezza per squadra e lega_id
+          if (!squadra || !squadra?.lega_id) {
+            console.warn('🔍 Home: Squadra o lega_id undefined, skipping');
+            return Promise.resolve([]);
+          }
+          return getMovimentiMercato(squadra.lega_id, token);
+        }) || [];
         
         const movimentiResults = await Promise.all(movimentiPromises);
         const allMovimenti = movimentiResults.flatMap(res => res?.data?.movimenti || res?.movimenti || []);
@@ -775,9 +780,9 @@ const Home = () => {
                   return null;
                 }
                 
-                const movimentiLega = getMovimentiByLega(squadra.lega_id);
-                const notificheCount = getNotificheCount(squadra.id);
-                const isExpanded = expandedSquadra === squadra.id;
+                const movimentiLega = getMovimentiByLega(squadra?.lega_id);
+                const notificheCount = getNotificheCount(squadra?.id);
+                const isExpanded = expandedSquadra === squadra?.id;
                 let valoreAttuale = 0;
                 let ingaggi = 0;
                 let numGiocatori = 0;
@@ -802,7 +807,7 @@ const Home = () => {
                         ) : (
                           <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iMTYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iI0U1RTVFNyIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxwYXRoIGQ9Ik0xNiA4QzE4LjIwOTEgOCAyMCA5Ljc5MDg2IDIwIDEyQzIwIDE0LjIwOTEgMTguMjA5MSAxNiAxNiAxNkMxMy43OTA5IDE2IDEyIDE0LjIwOTEgMTIgMTJDMTIgOS43OTA4NiAxMy43OTA5IDggMTYgOFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTggMjRDMTAuMjA5MSAyNCAxMiAyMi4yMDkxIDEyIDIwQzEyIDE3Ljc5MDkgMTAuMjA5MSAxNiA4IDE2QzUuNzkwODYgMTYgNCAxNy43OTA5IDQgMjBDNCAyMi4yMDkxIDUuNzkwODYgMjQgOCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTI0IDI0QzI2LjIwOTEgMjQgMjggMjIuMjA5MSAyOCAyMEMyOCAxNy43OTA5IDI2LjIwOTEgMTYgMjQgMTZDMjEuNzkwOSAxNiAyMCAxNy43OTA5IDIwIDIwQzIwIDIyLjIwOTEgMjEuNzkwOSAyNCAyNCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+" alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
                         )}
-                        <span style={{ fontWeight: 600, cursor: 'pointer', color: '#FF8C42' }} onClick={() => navigate(`/gestione-squadra/${squadra.lega_id}`)}>{squadra?.nome || 'Nome'}</span>
+                        <span style={{ fontWeight: 600, cursor: 'pointer', color: '#FF8C42' }} onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}>{squadra?.nome || 'Nome'}</span>
                       </Td>
                       <Td>{squadra.club_level || 1}</Td>
                       <Td>{torneoNome}</Td>
@@ -822,7 +827,7 @@ const Home = () => {
                           <ExpandedContent>
                             <ActionButtons>
                               <ActionButton 
-                                onClick={() => navigate(`/gestione-squadra/${squadra.lega_id}`)}
+                                onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}
                               >
                                 Visualizza
                               </ActionButton>

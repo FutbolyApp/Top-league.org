@@ -571,6 +571,10 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
   const fetchUserTeam = async () => {
     try {
       // Ottieni la squadra dell'utente nella lega del giocatore
+      if (!giocatore?.lega_id) {
+        console.warn('🔍 DettaglioGiocatore: giocatore.lega_id undefined, skipping');
+        return;
+      }
       const userTeamRes = await api.get(`/squadre/my-team/${giocatore.lega_id}`, token);
       if (userTeamRes.ok) {
         const userTeamData = await userTeamRes.json();

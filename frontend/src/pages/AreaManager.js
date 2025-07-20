@@ -294,9 +294,14 @@ const AreaManager = () => {
         console.log('🔍 AreaManager: Notifiche set:', notificheData.notifiche?.length || 0);
         
         // Carica movimenti di mercato per ogni lega
-        const movimentiPromises = squadreData.squadre?.map(squadra => 
-          getMovimentiMercato(squadra.lega_id, token)
-        ) || [];
+        const movimentiPromises = squadreData.squadre?.map(squadra => {
+          // Controllo di sicurezza per squadra e lega_id
+          if (!squadra || !squadra?.lega_id) {
+            console.warn('🔍 AreaManager: Squadra o lega_id undefined, skipping');
+            return Promise.resolve([]);
+          }
+          return getMovimentiMercato(squadra.lega_id, token);
+        }) || [];
         
         const movimentiResults = await Promise.all(movimentiPromises);
         const allMovimenti = movimentiResults.flatMap(res => res.movimenti || []);
@@ -386,9 +391,9 @@ const AreaManager = () => {
                   return null;
                 }
                 
-                const movimentiLega = getMovimentiByLega(squadra.lega_id);
-                const notificheCount = getNotificheCount(squadra.id);
-                const isExpanded = expandedSquadra === squadra.id;
+                const movimentiLega = getMovimentiByLega(squadra?.lega_id);
+                const notificheCount = getNotificheCount(squadra?.id);
+                const isExpanded = expandedSquadra === squadra?.id;
                 let valoreAttuale = 0;
                 let ingaggi = 0;
                 let numGiocatori = 0;

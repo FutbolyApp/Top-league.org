@@ -555,14 +555,14 @@ const ModificaSquadraCompleta = () => {
         });
 
         // Carica le squadre della lega per il trasferimento
-        if (squadraRes.squadra.lega_id) {
+        if (squadraRes?.squadra?.lega_id) {
           try {
             const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/squadre/lega/${squadraRes.squadra.lega_id}`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
               const data = await response.json();
-              setSquadreLega(data.squadre || []);
+              setSquadreLega(data?.squadre || []);
             }
           } catch (err) {
             console.error('Errore nel caricamento delle squadre della lega:', err);
