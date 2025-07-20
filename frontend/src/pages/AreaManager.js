@@ -271,13 +271,23 @@ const AreaManager = () => {
       setLoading(true);
       setError('');
       try {
+        console.log('🔍 AreaManager: Starting fetchData');
+        console.log('🔍 AreaManager: Token available:', !!token);
+        console.log('🔍 AreaManager: User ID:', user?.id);
+        
         const [squadreRes, notificheRes] = await Promise.all([
           getSquadreUtenteShared(token, user.id),
           getNotificheShared(token, user.id)
         ]);
         
+        console.log('🔍 AreaManager: Squadre response:', squadreRes);
+        console.log('🔍 AreaManager: Notifiche response:', notificheRes);
+        
         setSquadre(squadreRes.squadre || []);
         setNotifiche(notificheRes.notifiche || []);
+        
+        console.log('🔍 AreaManager: Squadre set:', squadreRes.squadre?.length || 0);
+        console.log('🔍 AreaManager: Notifiche set:', notificheRes.notifiche?.length || 0);
         
         // Carica movimenti di mercato per ogni lega
         const movimentiPromises = squadreRes.squadre?.map(squadra => 
@@ -287,7 +297,10 @@ const AreaManager = () => {
         const movimentiResults = await Promise.all(movimentiPromises);
         const allMovimenti = movimentiResults.flatMap(res => res.movimenti || []);
         setMovimenti(allMovimenti);
+        
+        console.log('🔍 AreaManager: Movimenti loaded:', allMovimenti.length);
       } catch (err) {
+        console.error('❌ AreaManager: Error in fetchData:', err);
         setError(err.message);
       }
       setLoading(false);
