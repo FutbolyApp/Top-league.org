@@ -17,12 +17,15 @@ async function createTestData() {
     console.log('✅ Database connected');
     
     // 1. Crea un utente di test se non esiste
+    const bcrypt = await import('bcryptjs');
+    const password_hash = await bcrypt.default.hash('admin123', 10);
+    
     const userResult = await db.query(`
       INSERT INTO users (nome, cognome, username, email, password_hash, ruolo)
-      VALUES ('Admin', 'Test', 'admin', 'admin@topleague.com', '$2a$10$test', 'SuperAdmin')
+      VALUES ('Admin', 'Test', 'admin', 'admin@topleague.com', $1, 'SuperAdmin')
       ON CONFLICT (email) DO NOTHING
       RETURNING id
-    `);
+    `, [password_hash]);
     
     let userId = userResult.rows[0]?.id;
     console.log('👤 User ID:', userId);
