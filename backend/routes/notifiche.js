@@ -52,7 +52,7 @@ router.get('/admin/:legaId', requireAuth, async (req, res) => {
     // Verifica che l'utente sia admin della lega
     const legaResult = await db.query('SELECT id FROM leghe WHERE id = $1 AND admin_id = $2', [legaId, adminId]);
     
-    if (legaResult.rows?.length || 0 === 0) {
+    if ((legaResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
     
@@ -86,7 +86,7 @@ router.post('/admin', requireAuth, async (req, res) => {
     // Ottieni admin della lega
     const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [lega_id]);
     
-    if (legaResult.rows?.length || 0 === 0) {
+    if ((legaResult.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Lega non trovata' });
     }
     
@@ -200,7 +200,7 @@ router.put('/archivia', requireAuth, async (req, res) => {
     const { notifica_ids } = req.body;
     const db = getDb();
     
-    if (!notifica_ids || !Array.isArray(notifica_ids) || notifica_ids?.length || 0 === 0) {
+    if (!notifica_ids || !Array.isArray(notifica_ids) || (notifica_ids?.length || 0) === 0) {
       return res.status(400).json({ error: 'Lista notifiche richiesta' });
     }
     

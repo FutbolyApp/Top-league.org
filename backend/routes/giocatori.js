@@ -31,7 +31,7 @@ router.get('/:giocatoreId', requireAuth, async (req, res) => {
       WHERE g.id = $1
     `, [giocatoreId]);
     
-    if (result.rows?.length || 0 === 0) return res.status(404).json({ error: 'Giocatore non trovato' });
+    if ((result.rows?.length || 0) === 0) return res.status(404).json({ error: 'Giocatore non trovato' });
     res.json({ giocatore: result.rows[0] });
   } catch (err) {
     console.error('Errore DB:', err);

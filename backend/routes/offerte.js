@@ -305,7 +305,7 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
       [offerta_id, giocatore_id]
     );
 
-    if (offerta.rows?.length || 0 === 0) {
+    if ((offerta.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Offerta non trovata' });
     }
 
@@ -511,7 +511,7 @@ router.post('/rifiuta/:offerta_id', authenticateToken, async (req, res) => {
       [offerta_id, giocatore_id]
     );
 
-    if (offerta.rows?.length || 0 === 0) {
+    if ((offerta.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Offerta non trovata' });
     }
 
@@ -577,7 +577,7 @@ router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
       [offertaId]
     );
 
-    if (offerta.rows?.length || 0 === 0) {
+    if ((offerta.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Offerta non trovata' });
     }
     const offertaData = offerta.rows[0];
@@ -730,7 +730,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
       [giocatore_id, utente_id]
     );
 
-    if (squadraUtente.rows?.length || 0 === 0) {
+    if ((squadraUtente.rows?.length || 0) === 0) {
       return res.status(400).json({ error: 'Squadra non trovata o giocatore non nella tua lega' });
     }
     const squadraUtenteData = squadraUtente.rows[0];
@@ -741,7 +741,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
       [giocatore_id]
     );
 
-    if (giocatoreTarget.rows?.length || 0 === 0) {
+    if ((giocatoreTarget.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato' });
     }
     const giocatoreTargetData = giocatoreTarget.rows[0];
@@ -772,7 +772,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
         [giocatore_scambio_id, squadraUtenteData.id]
       );
 
-      if (giocatoreScambio.rows?.length || 0 === 0) {
+      if ((giocatoreScambio.rows?.length || 0) === 0) {
         return res.status(400).json({ error: 'Giocatore scambio non trovato nella tua squadra' });
       }
     }
@@ -1026,7 +1026,7 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
       [giocatoreId, squadraId]
     );
 
-    if (giocatore.rows?.length || 0 === 0) {
+    if ((giocatore.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato nella squadra specificata' });
     }
 

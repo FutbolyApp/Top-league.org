@@ -21,7 +21,7 @@ router.post('/paga/:giocatoreId', requireAuth, async (req, res) => {
       [giocatoreId]
     );
 
-    if (giocatoreResult.rows?.length || 0 === 0) {
+    if ((giocatoreResult.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato' });
     }
 
@@ -105,7 +105,7 @@ router.post('/paga-multipli', requireAuth, async (req, res) => {
       [userId]
     );
 
-    if (squadreResult.rows?.length || 0 === 0) {
+    if ((squadreResult.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Nessuna squadra trovata' });
     }
 
@@ -241,7 +241,7 @@ router.post('/rinnova/:giocatoreId', requireAuth, async (req, res) => {
       [giocatoreId]
     );
 
-    if (giocatoreResult.rows?.length || 0 === 0) {
+    if ((giocatoreResult.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato' });
     }
 
@@ -325,7 +325,7 @@ router.post('/impostazioni/:giocatoreId', requireAuth, async (req, res) => {
     );
 
     if ((giocatoreResult.rows?.length || 0) === 0) {
-      return res.status(404).json({ error: 'Giocatore non trovato o non autorizzato' });
+      return res.status(404).json({ error: 'Giocatore non trovato' });
     }
 
     const giocatore = giocatoreResult.rows[0];

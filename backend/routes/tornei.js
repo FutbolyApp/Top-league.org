@@ -13,7 +13,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     // Verifica che l'utente sia admin della lega
     const legaResult = await db.query('SELECT id FROM leghe WHERE id = $1 AND admin_id = $2', [lega_id, admin_id]);
-    if (legaResult.rows?.length || 0 === 0) {
+    if ((legaResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -52,7 +52,7 @@ router.put('/:torneoId', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const torneoResult = await db.query('SELECT t.* FROM tornei t JOIN leghe l ON t.lega_id = l.id WHERE t.id = $1 AND l.admin_id = $2', [torneoId, admin_id]);
-    if (torneoResult.rows?.length || 0 === 0) {
+    if ((torneoResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -66,7 +66,7 @@ router.put('/:torneoId', requireAuth, async (req, res) => {
     // Aggiorna squadre partecipanti
     await db.query('DELETE FROM tornei_squadre WHERE torneo_id = $1', [torneoId]);
 
-    if (squadre_partecipanti && squadre_partecipanti?.length || 0 > 0) {
+    if (squadre_partecipanti && (squadre_partecipanti?.length || 0) > 0) {
       for (const squadraId of squadre_partecipanti) {
         await db.query(`
           INSERT INTO tornei_squadre (torneo_id, squadra_id)
@@ -91,7 +91,7 @@ router.delete('/:torneoId', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const torneoResult = await db.query('SELECT t.* FROM tornei t JOIN leghe l ON t.lega_id = l.id WHERE t.id = $1 AND l.admin_id = $2', [torneoId, admin_id]);
-    if (torneoResult.rows?.length || 0 === 0) {
+    if ((torneoResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -159,7 +159,7 @@ router.get('/:torneoId', requireAuth, async (req, res) => {
     const db = getDb();
     
     const torneoResult = await db.query('SELECT * FROM tornei WHERE id = $1', [torneoId]);
-    if (torneoResult.rows?.length || 0 === 0) {
+    if ((torneoResult.rows?.length || 0) === 0) {
       console.log(`Torneo ${torneoId} non trovato`);
       return res.status(404).json({ error: 'Torneo non trovato' });
     }
@@ -214,7 +214,7 @@ router.post('/:torneoId/calcola-giornata', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const torneoResult = await db.query('SELECT t.* FROM tornei t JOIN leghe l ON t.lega_id = l.id WHERE t.id = $1 AND l.admin_id = $2', [torneoId, admin_id]);
-    if (torneoResult.rows?.length || 0 === 0) {
+    if ((torneoResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -241,7 +241,7 @@ router.post('/:torneoId/aggiorna-classifica', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const torneoResult = await db.query('SELECT t.* FROM tornei t JOIN leghe l ON t.lega_id = l.id WHERE t.id = $1 AND l.admin_id = $2', [torneoId, admin_id]);
-    if (torneoResult.rows?.length || 0 === 0) {
+    if ((torneoResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 

@@ -1394,7 +1394,7 @@ router.post('/playwright-classifica', requireAuth, async (req, res) => {
             [lega_id]
         );
 
-        if (legaResult.rows?.length || 0 === 0) {
+        if ((legaResult.rows?.length || 0) === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Lega non trovata nel database'
@@ -1510,7 +1510,7 @@ router.post('/playwright-formazioni', requireAuth, async (req, res) => {
             [lega_id]
         );
 
-        if (legaResult.rows?.length || 0 === 0) {
+        if ((legaResult.rows?.length || 0) === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Lega non trovata nel database'
@@ -1612,7 +1612,7 @@ router.post('/playwright-completo', requireAuth, async (req, res) => {
             [lega_id]
         );
 
-        if (legaResult.rows?.length || 0 === 0) {
+        if ((legaResult.rows?.length || 0) === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Lega non trovata nel database'
@@ -1697,7 +1697,7 @@ router.post('/tournaments', async (req, res) => {
             [lega_id]
         );
 
-        if (legaResult.rows?.length || 0 === 0) {
+        if ((legaResult.rows?.length || 0) === 0) {
             console.log('❌ [TOURNAMENTS] Lega non trovata nel database');
             return res.status(400).json({
                 success: false,

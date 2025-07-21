@@ -17,7 +17,7 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
 
     // Verifica che l'utente sia proprietario della squadra
     const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
-    if (squadraResult.rows?.length || 0 === 0) {
+    if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -56,7 +56,7 @@ router.get('/squadra/:squadraId/transazioni', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
-    if (squadraResult.rows?.length || 0 === 0) {
+    if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -138,7 +138,7 @@ router.post('/squadra/:squadraId/transazione', requireAuth, async (req, res) => 
 
     // Verifica autorizzazione
     const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
-    if (squadraResult.rows?.length || 0 === 0) {
+    if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -193,7 +193,7 @@ router.get('/squadra/:squadraId/report', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
-    if (squadraResult.rows?.length || 0 === 0) {
+    if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -287,7 +287,7 @@ router.put('/squadra/:squadraId/budget', requireAuth, async (req, res) => {
       WHERE s.id = $1 AND l.admin_id = $2
     `, [squadraId, userId]);
     
-    if (squadraResult.rows?.length || 0 === 0) {
+    if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
@@ -318,7 +318,7 @@ router.get('/squadra/:squadraId/export', requireAuth, async (req, res) => {
 
     // Verifica autorizzazione
     const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
-    if (squadraResult.rows?.length || 0 === 0) {
+    if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
