@@ -166,7 +166,12 @@ export const NotificationProvider = ({ children }) => {
     useEffect(() => {
         const unviewedNotifications = getUnviewedNotifications();
         
+        console.log('🔍 NotificationSystem: unviewedNotifications:', unviewedNotifications);
+        console.log('🔍 NotificationSystem: showNotification:', showNotification);
+        console.log('🔍 NotificationSystem: viewedNotifications:', viewedNotifications);
+        
         if (unviewedNotifications.length > 0 && !showNotification) {
+            console.log('🔍 NotificationSystem: Showing notification');
             setShowNotification(true);
             
             const timer = setTimeout(() => {
@@ -175,6 +180,7 @@ export const NotificationProvider = ({ children }) => {
             
             return () => clearTimeout(timer);
         } else if (unviewedNotifications.length === 0) {
+            console.log('🔍 NotificationSystem: No unviewed notifications');
             setShowNotification(false);
         }
     }, [notifications, showNotification, viewedNotifications]);
