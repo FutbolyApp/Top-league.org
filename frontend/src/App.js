@@ -55,8 +55,13 @@ import AuthRedirect from './components/AuthRedirect';
 import './index.css';
 
 console.log('🚀 TopLeague Frontend v1.0.5 - Build:', new Date().toISOString());
-console.log('🔍 App: TestNotification import test:', typeof TestNotification);
-console.log('🔍 App: About to render App component');
+
+try {
+  console.log('🔍 App: TestNotification import test:', typeof TestNotification);
+  console.log('🔍 App: About to render App component');
+} catch (error) {
+  console.error('🔍 App: Error in console.log:', error);
+}
 
 function AppRoutes() {
   const location = useLocation();
@@ -127,8 +132,12 @@ function AppRoutes() {
 }
 
 function App() {
-  console.log('🔍 App: App component rendering');
-  console.log('🔍 App: NotificationProvider type:', typeof TestNotification);
+  try {
+    console.log('🔍 App: App component rendering');
+    console.log('🔍 App: NotificationProvider type:', typeof TestNotification);
+  } catch (error) {
+    console.error('🔍 App: Error in App component:', error);
+  }
   
   return (
     <NetworkErrorHandler>
