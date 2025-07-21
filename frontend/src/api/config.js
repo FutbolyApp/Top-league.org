@@ -26,11 +26,6 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       
-      // Non fare retry per errori 404 (Not Found) - sono errori definitivi
-      if (response.status === 404) {
-        throw new Error('Giocatore non trovato');
-      }
-      
       try {
         const errorData = await response.json();
         errorMessage = errorData.message || errorData.error || errorMessage;
@@ -49,18 +44,6 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
       }
       throw new Error(errorMessage);
     }
-    
-    // Emetti evento personalizzato per errori di rete (solo se non è 404)
-    const errorEvent = new CustomEvent('fetch-error', {
-      detail: {
-        error: {
-          status: response.status,
-          message: `HTTP ${response.status}: ${response.statusText}`,
-          url: fullUrl
-        }
-      }
-    });
-    window.dispatchEvent(errorEvent);
     
     // Gestione speciale per errori 401 (token scaduto)
     if (response.status === 401) {
@@ -81,6 +64,11 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
     return { ok: true, data };
   } catch (error) {
     console.error('Request failed:', error);
+    
+    // Non fare retry per errori 404 (Not Found) - sono errori definitivi
+    if (error.message === 'Giocatore non trovato' || error.message.includes('404')) {
+      throw error; // Non fare retry, lancia subito l'errore
+    }
     
     // Emetti evento personalizzato per errori di rete
     const errorEvent = new CustomEvent('fetch-error', {

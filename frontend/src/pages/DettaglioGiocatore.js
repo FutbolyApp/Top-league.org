@@ -629,26 +629,126 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   }
 
-  if (loading) return (
-    <div style={{ padding: '20px', textAlign: 'center' }}>
-      Caricamento giocatore...
-    </div>
-  );
-
-  if (error) return (
-    <div style={{ padding: '20px', textAlign: 'center', color: '#dc3545' }}>
-      Errore: {error}
-    </div>
-  );
-
-  if (!giocatore) return (
-    <div style={{ padding: '20px', textAlign: 'center', color: '#dc3545' }}>
-      Giocatore non trovato
-    </div>
-  );
-
   // Helper per mostrare solo stringhe/numero
   const safeText = (val) => (typeof val === 'string' || typeof val === 'number') ? val : 'N/A';
+
+  // Gestione loading e errori
+  if (loading) {
+    return (
+      <Container>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '50vh',
+          fontSize: '1.2rem',
+          color: '#666'
+        }}>
+          Caricamento giocatore...
+        </div>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container>
+        <BackButton onClick={() => navigate(-1)}>
+          ← Torna indietro
+        </BackButton>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '50vh',
+          textAlign: 'center',
+          padding: '2rem'
+        }}>
+          <div style={{ 
+            fontSize: '1.5rem', 
+            color: '#e74c3c',
+            marginBottom: '1rem',
+            fontWeight: 'bold'
+          }}>
+            ⚠️ Errore
+          </div>
+          <div style={{ 
+            fontSize: '1rem', 
+            color: '#666',
+            marginBottom: '2rem',
+            maxWidth: '500px'
+          }}>
+            {error}
+          </div>
+          <button 
+            onClick={() => navigate('/')}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            Torna alla Home
+          </button>
+        </div>
+      </Container>
+    );
+  }
+
+  if (!giocatore) {
+    return (
+      <Container>
+        <BackButton onClick={() => navigate(-1)}>
+          ← Torna indietro
+        </BackButton>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          height: '50vh',
+          textAlign: 'center',
+          padding: '2rem'
+        }}>
+          <div style={{ 
+            fontSize: '1.5rem', 
+            color: '#e74c3c',
+            marginBottom: '1rem',
+            fontWeight: 'bold'
+          }}>
+            ❌ Giocatore non trovato
+          </div>
+          <div style={{ 
+            fontSize: '1rem', 
+            color: '#666',
+            marginBottom: '2rem',
+            maxWidth: '500px'
+          }}>
+            Il giocatore con ID {id} non esiste o è stato eliminato.
+          </div>
+          <button 
+            onClick={() => navigate('/')}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '1rem'
+            }}
+          >
+            Torna alla Home
+          </button>
+        </div>
+      </Container>
+    );
+  }
 
   return (
     <Container>
