@@ -256,8 +256,8 @@ export const NotificationProvider = ({ children }) => {
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [modal, setModal] = useState(null);
     const [showNotification, setShowNotification] = useState(false);
+    const [modal, setModal] = useState(null);
     const [pollingActive, setPollingActive] = useState(true);
 
     // Stato per tracciare le notifiche già visualizzate in questa sessione
@@ -562,7 +562,7 @@ export const NotificationProvider = ({ children }) => {
     const getNotificationIcon = (type) => {
         switch (type) {
             case 'trasferimento': return '🔄';
-            case 'offerta': return '💰';
+            case 'offerta': return '��';
             case 'sistema': return '⚙️';
             case 'richiesta_ingresso': return '🔐';
             case 'risposta_richiesta': return '✅';

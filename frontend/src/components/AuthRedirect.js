@@ -21,12 +21,12 @@ const AuthRedirect = () => {
     // Solo se l'utente è loggato e c'è un URL di redirect salvato
     if (user && !loading) {
       const redirectUrl = sessionStorage.getItem('redirectAfterLogin');
-      if (redirectUrl) {
+      if (redirectUrl && redirectUrl !== location.pathname + location.search) {
         sessionStorage.removeItem('redirectAfterLogin');
         navigate(redirectUrl);
       }
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, location.pathname, location.search]);
 
   return null;
 };
