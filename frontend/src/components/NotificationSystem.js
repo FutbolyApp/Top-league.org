@@ -256,7 +256,24 @@ export const NotificationProvider = ({ children }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [modal, setModal] = useState(null);
     const [showNotification, setShowNotification] = useState(false);
-    const [pollingActive, setPollingActive] = useState(false);
+    const [pollingActive, setPollingActive] = useState(true);
+
+    // Stato per tracciare le notifiche già visualizzate in questa sessione
+    const [viewedNotifications, setViewedNotifications] = useState(new Set());
+
+    // Funzione per marcare una notifica come visualizzata in questa sessione
+    const markAsViewed = (notificationId) => {
+        setViewedNotifications(prev => new Set([...prev, notificationId]));
+    };
+
+    // Funzione per ottenere solo notifiche non visualizzate in questa sessione
+    const getUnviewedNotifications = () => {
+        return notifications.filter(n => 
+            !n.letta && 
+            n.letto !== 1 && 
+            !viewedNotifications.has(n.id)
+        );
+    };
 
     useEffect(() => {
         if (!user || !token) {
@@ -483,23 +500,6 @@ export const NotificationProvider = ({ children }) => {
             setShowNotification(false);
         }
     }, [notifications, showNotification, viewedNotifications]);
-
-    // Stato per tracciare le notifiche già visualizzate in questa sessione
-    const [viewedNotifications, setViewedNotifications] = useState(new Set());
-
-    // Funzione per marcare una notifica come visualizzata in questa sessione
-    const markAsViewed = (notificationId) => {
-        setViewedNotifications(prev => new Set([...prev, notificationId]));
-    };
-
-    // Funzione per ottenere solo notifiche non visualizzate in questa sessione
-    const getUnviewedNotifications = () => {
-        return notifications.filter(n => 
-            !n.letta && 
-            n.letto !== 1 && 
-            !viewedNotifications.has(n.id)
-        );
-    };
 
     const value = {
         addNotification: (message, type = 'info', duration = 5000) => {
