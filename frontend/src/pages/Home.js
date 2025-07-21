@@ -188,24 +188,45 @@ const ActionButton = styled.button`
 `;
 
 const MarketMovements = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   margin-top: 1.5rem;
 `;
 
 const MarketTitle = styled.h4`
   color: #333;
-  margin-bottom: 1rem;
+  margin: 0 0 1rem 0;
   font-size: 1rem;
   font-weight: 600;
 `;
 
 const MovementItem = styled.div`
-  padding: 0.75rem;
-  background: white;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+  color: #333;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const SelectButton = styled.button`
+  background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
-  margin-bottom: 0.5rem;
-  font-size: 0.85rem;
-  color: #666;
-  border-left: 3px solid #6f42c1;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+  font-size: 0.8rem;
+  
+  &:hover {
+    transform: translateY(-1px);
+  }
 `;
 
 // Stili per utenti autenticati (mantenuti dal codice originale)
@@ -845,54 +866,45 @@ const Home = () => {
                       <Td>FM {valoreAttuale.toLocaleString()}</Td>
                       <Td>{numGiocatori}/{maxGiocatori}</Td>
                       <Td>
-                        <ActionButton 
-                          onClick={() => handleToggleExpanded(squadra.id)}
-                          style={{ 
-                            backgroundColor: '#FF8C42', 
-                            color: 'white',
-                            padding: '0.5rem 1rem',
-                            borderRadius: '8px',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontWeight: '600'
-                          }}
-                        >
+                        <SelectButton onClick={() => handleToggleExpanded(squadra.id)}>
                           {isExpanded ? 'Chiudi' : 'Gestisci'}
-                        </ActionButton>
+                        </SelectButton>
                       </Td>
                     </tr>
                     {isExpanded && (
-                      <tr>
-                        <Td colSpan="8" style={{ padding: '1rem', backgroundColor: '#f8f9fa' }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-                            <ActionButton 
-                              onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}
-                            >
-                              Visualizza
-                            </ActionButton>
-                            <ActionButton 
-                              onClick={() => navigate(`/notifiche?squadra=${squadra.id}`)}
-                            >
-                              Notifiche ({notificheCount})
-                            </ActionButton>
-                            <ActionButton 
-                              onClick={() => navigate(`/proponi-offerta?squadra=${squadra.id}`)}
-                            >
-                              Proponi Offerta
-                            </ActionButton>
-                            <ActionButton 
-                              onClick={() => navigate(`/richiesta-admin?squadra=${squadra.id}`)}
-                            >
-                              Richiesta Admin
-                            </ActionButton>
-                            <ActionButton 
-                              onClick={() => navigate(`/log-squadra/${squadra.id}`)}
-                            >
-                              Log
-                            </ActionButton>
-                          </div>
-                        </Td>
-                      </tr>
+                      <ExpandedRow>
+                        <ExpandedCell colSpan="8">
+                          <ExpandedContent>
+                            <ActionButtons>
+                              <ActionButton 
+                                onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}
+                              >
+                                Visualizza
+                              </ActionButton>
+                              <ActionButton 
+                                onClick={() => navigate(`/notifiche?squadra=${squadra.id}`)}
+                              >
+                                Notifiche ({notificheCount})
+                              </ActionButton>
+                              <ActionButton 
+                                onClick={() => navigate(`/proponi-offerta?squadra=${squadra.id}`)}
+                              >
+                                Proponi Offerta
+                              </ActionButton>
+                              <ActionButton 
+                                onClick={() => navigate(`/richiesta-admin?squadra=${squadra.id}`)}
+                              >
+                                Richiesta Admin
+                              </ActionButton>
+                              <ActionButton 
+                                onClick={() => navigate(`/log-squadra/${squadra.id}`)}
+                              >
+                                Log
+                              </ActionButton>
+                            </ActionButtons>
+                          </ExpandedContent>
+                        </ExpandedCell>
+                      </ExpandedRow>
                     )}
                   </React.Fragment>
                 );
