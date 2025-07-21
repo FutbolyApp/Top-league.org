@@ -3,7 +3,8 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
-import { NotificationProvider } from './components/NotificationSystem';
+// import { NotificationProvider } from './components/NotificationSystem';
+import TestNotification from './components/TestNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
 import { ApiMonitor } from './components/ApiMonitor';
@@ -54,7 +55,7 @@ import AuthRedirect from './components/AuthRedirect';
 import './index.css';
 
 console.log('🚀 TopLeague Frontend v1.0.5 - Build:', new Date().toISOString());
-console.log('🔍 App: NotificationProvider import test:', typeof NotificationProvider);
+console.log('🔍 App: NotificationProvider import test:', typeof TestNotification);
 
 function AppRoutes() {
   const location = useLocation();
@@ -126,19 +127,18 @@ function AppRoutes() {
 
 function App() {
   console.log('🔍 App: App component rendering');
-  console.log('🔍 App: NotificationProvider type:', typeof NotificationProvider);
+  console.log('🔍 App: NotificationProvider type:', typeof TestNotification);
   
   return (
     <NetworkErrorHandler>
       <AuthProvider>
-        <NotificationProvider>
-          <TokenExpiredHandler>
+        <TestNotification />
+        <TokenExpiredHandler>
             <AuthRedirect />
             <AppRoutes />
             <ApiMonitor />
           </TokenExpiredHandler>
-        </NotificationProvider>
-      </AuthProvider>
+        </AuthProvider>
     </NetworkErrorHandler>
   );
 }
