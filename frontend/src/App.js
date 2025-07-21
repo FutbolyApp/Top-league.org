@@ -61,6 +61,12 @@ function AppRoutes() {
   useEffect(() => {
     console.log('🔍 App: Current location:', location.pathname);
     console.log('🔍 App: Preventing unwanted redirects');
+    
+    // Prevenire modifiche indesiderate dell'URL
+    if (location.pathname.includes('?/')) {
+      const cleanPath = location.pathname.replace('?/', '/');
+      window.history.replaceState(null, '', cleanPath);
+    }
   }, [location]);
 
   return (

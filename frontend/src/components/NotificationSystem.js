@@ -478,6 +478,16 @@ export const NotificationProvider = ({ children }) => {
         }
     }, [notifications, showNotification]);
 
+    // Gestisce la rimozione della notifica corrente quando viene marcata come letta
+    useEffect(() => {
+        const unreadNotifications = notifications.filter(n => !n.letta && n.letto !== 1);
+        
+        // Se la notifica corrente è stata marcata come letta, nascondi la notifica
+        if (showNotification && unreadNotifications.length === 0) {
+            setShowNotification(false);
+        }
+    }, [notifications, showNotification]);
+
     const value = {
         addNotification: (message, type = 'info', duration = 5000) => {
             const id = Date.now() + Math.random();
@@ -541,7 +551,7 @@ export const NotificationProvider = ({ children }) => {
                 // Se non ci sono notifiche non lette o la notifica corrente è già stata letta, non mostrare nulla
                 if (!currentNotification || currentNotification.letta || currentNotification.letto === 1) {
                     setShowNotification(false);
-                    return false;
+                    return null;
                 }
                 
                 return (
@@ -562,9 +572,9 @@ export const NotificationProvider = ({ children }) => {
                             
                             <NotificationTitle>
                                 {currentNotification.titolo || 'Notifica'}
-                                {unreadCount > 1 && (
+                                {unreadNotifications.length > 1 && (
                                     <NotificationCounter>
-                                        {unreadCount}
+                                        {unreadNotifications.length}
                                     </NotificationCounter>
                                 )}
                             </NotificationTitle>
