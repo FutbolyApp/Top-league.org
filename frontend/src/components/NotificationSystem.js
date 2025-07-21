@@ -1,9 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext';
-import { api } from '../api/config';
-import { getNotificheShared } from '../api/sharedApi';
 
 console.log('🔍 NotificationSystem: File loaded');
 

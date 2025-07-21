@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
-// import { NotificationProvider } from './components/NotificationSystem';
+import { NotificationProvider } from './components/NotificationSystem';
 import ProtectedRoute from './components/ProtectedRoute';
 import Navigation from './components/Navigation';
 import { ApiMonitor } from './components/ApiMonitor';
@@ -131,13 +131,13 @@ function App() {
   return (
     <NetworkErrorHandler>
       <AuthProvider>
-        {/* <NotificationProvider> */}
+        <NotificationProvider>
           <TokenExpiredHandler>
             <AuthRedirect />
             <AppRoutes />
             <ApiMonitor />
           </TokenExpiredHandler>
-        {/* </NotificationProvider> */}
+        </NotificationProvider>
       </AuthProvider>
     </NetworkErrorHandler>
   );
