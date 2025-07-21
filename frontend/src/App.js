@@ -3,11 +3,10 @@
 import React, { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
-// import { NotificationProvider } from './components/NotificationSystem';
-import TestNotification from './components/TestNotification';
-import ProtectedRoute from './components/ProtectedRoute';
+import { NotificationProvider } from './components/NotificationSystem';
 import Navigation from './components/Navigation';
 import { ApiMonitor } from './components/ApiMonitor';
+import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
@@ -55,13 +54,6 @@ import AuthRedirect from './components/AuthRedirect';
 import './index.css';
 
 console.log('🚀 TopLeague Frontend v1.0.5 - Build:', new Date().toISOString());
-
-try {
-  console.log('🔍 App: TestNotification import test:', typeof TestNotification);
-  console.log('🔍 App: About to render App component');
-} catch (error) {
-  console.error('🔍 App: Error in console.log:', error);
-}
 
 function AppRoutes() {
   const location = useLocation();
@@ -132,23 +124,16 @@ function AppRoutes() {
 }
 
 function App() {
-  try {
-    console.log('🔍 App: App component rendering');
-    console.log('🔍 App: NotificationProvider type:', typeof TestNotification);
-  } catch (error) {
-    console.error('🔍 App: Error in App component:', error);
-  }
-  
   return (
     <NetworkErrorHandler>
       <AuthProvider>
-        <TestNotification>
+        <NotificationProvider>
           <TokenExpiredHandler>
             <AuthRedirect />
             <AppRoutes />
             <ApiMonitor />
           </TokenExpiredHandler>
-        </TestNotification>
+        </NotificationProvider>
       </AuthProvider>
     </NetworkErrorHandler>
   );

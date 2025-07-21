@@ -1044,12 +1044,6 @@ const GestioneTornei = () => {
                   <SubmitButton 
                     type="submit"
                     disabled={(formData.squadre_partecipanti?.length || 0) < 2}
-                    onClick={() => {
-                      console.log('🔍 SubmitButton clicked');
-                      console.log('🔍 formData.squadre_partecipanti:', formData.squadre_partecipanti);
-                      console.log('🔍 formData.squadre_partecipanti.length:', formData.squadre_partecipanti?.length);
-                      console.log('🔍 disabled condition:', (formData.squadre_partecipanti?.length || 0) < 2);
-                    }}
                   >
                     {editingTorneo ? 'Aggiorna Torneo' : 'Crea Torneo'}
                   </SubmitButton>

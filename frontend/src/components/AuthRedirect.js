@@ -28,6 +28,11 @@ const AuthRedirect = () => {
     }
   }, [user, loading, navigate, location.pathname, location.search]);
 
+  // Non fare nulla se l'utente è già loggato
+  if (user && !loading) {
+    return null;
+  }
+
   return null;
 };
 
