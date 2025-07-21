@@ -422,8 +422,11 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
       // Carica i giocatori della squadra
       if (squadra?.id) {
         try {
+          console.log('Caricamento giocatori per squadra ID:', squadra.id);
           const giocatoriRes = await getGiocatoriBySquadra(squadra.id, token);
-          const giocatori = giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || [];
+          console.log('Risposta API giocatori:', giocatoriRes);
+          const giocatori = giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || giocatoriRes?.data || giocatoriRes || [];
+          console.log('Giocatori estratti:', giocatori);
           setSquadra(prevSquadra => ({
             ...prevSquadra,
             giocatori: giocatori

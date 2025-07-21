@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }) => {
   // L'app può funzionare anche senza user inizialmente
 
   return (
-    <AuthContext.Provider value={{ user, token, loginUser, logoutUser, refreshUserData }}>
+    <AuthContext.Provider value={{ user, token, loading, loginUser, logoutUser, refreshUserData }}>
       {children}
     </AuthContext.Provider>
   );

@@ -782,7 +782,23 @@ const Home = () => {
       {/* Area Manager (squadre dell'utente) */}
       {(squadre?.length || 0) > 0 && (
         <Section>
-          <SectionTitle>Area Manager</SectionTitle>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <SectionTitle>Area Manager</SectionTitle>
+            <ActionButton 
+              onClick={() => navigate('/area-manager')}
+              style={{ 
+                backgroundColor: '#FF8C42', 
+                color: 'white',
+                padding: '0.5rem 1rem',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Gestisci
+            </ActionButton>
+          </div>
           <Table>
             <thead>
               <tr>
