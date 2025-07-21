@@ -24,38 +24,16 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
     console.log('Response status:', response.status, 'for URL:', fullUrl);
     
     if (!response.ok) {
-      // Emetti evento personalizzato per errori di rete
-      const errorEvent = new CustomEvent('fetch-error', {
-        detail: {
-          error: {
-            status: response.status,
-            message: `HTTP ${response.status}: ${response.statusText}`,
-            url: fullUrl
-          }
-        }
-      });
-      window.dispatchEvent(errorEvent);
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       
-      // Gestione speciale per errori 401 (token scaduto)
-      if (response.status === 401) {
-        // Emetti evento specifico per token scaduto solo se non siamo già nella pagina di login
-        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-          const tokenExpiredEvent = new CustomEvent('token-expired', {
-            detail: {
-              message: 'Sessione scaduta. Effettua di nuovo il login.',
-              url: fullUrl
-            }
-          });
-          window.dispatchEvent(tokenExpiredEvent);
-        }
-        throw new Error('Token non valido');
+      // Non fare retry per errori 404 (Not Found) - sono errori definitivi
+      if (response.status === 404) {
+        throw new Error('Giocatore non trovato');
       }
       
-      let errorMessage = 'Errore del server';
       try {
-        // Prova a leggere come JSON
-        const errorData = await response.clone().json();
-        errorMessage = errorData.error || errorMessage;
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
       } catch (e) {
         try {
           // Se non è JSON, prova come testo
@@ -71,6 +49,34 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
       }
       throw new Error(errorMessage);
     }
+    
+    // Emetti evento personalizzato per errori di rete (solo se non è 404)
+    const errorEvent = new CustomEvent('fetch-error', {
+      detail: {
+        error: {
+          status: response.status,
+          message: `HTTP ${response.status}: ${response.statusText}`,
+          url: fullUrl
+        }
+      }
+    });
+    window.dispatchEvent(errorEvent);
+    
+    // Gestione speciale per errori 401 (token scaduto)
+    if (response.status === 401) {
+      // Emetti evento specifico per token scaduto solo se non siamo già nella pagina di login
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        const tokenExpiredEvent = new CustomEvent('token-expired', {
+          detail: {
+            message: 'Sessione scaduta. Effettua di nuovo il login.',
+            url: fullUrl
+          }
+        });
+        window.dispatchEvent(tokenExpiredEvent);
+      }
+      throw new Error('Token non valido');
+    }
+    
     const data = await response.json();
     return { ok: true, data };
   } catch (error) {

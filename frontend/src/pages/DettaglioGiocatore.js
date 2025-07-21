@@ -484,7 +484,12 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
           }
         }
       } catch (err) {
-        setError(err.message);
+        console.error('Errore nel caricamento del giocatore:', err);
+        if (err.message === 'Giocatore non trovato') {
+          setError('Giocatore non trovato. Il giocatore potrebbe essere stato eliminato o l\'ID non è corretto.');
+        } else {
+          setError(err.message || 'Errore nel caricamento del giocatore');
+        }
       }
       setLoading(false);
     }
