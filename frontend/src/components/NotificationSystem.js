@@ -422,6 +422,9 @@ export const NotificationProvider = ({ children }) => {
         // Nascondi immediatamente la notifica
         setShowNotification(false);
         
+        // Marca come visualizzata in questa sessione
+        markAsViewed(notification.id);
+        
         // Marca come letta immediatamente nello stato locale
         setNotifications(prev => 
             prev.map(n => 
@@ -441,11 +444,14 @@ export const NotificationProvider = ({ children }) => {
         // Nascondi immediatamente la notifica
         setShowNotification(false);
         
-        // Trova la notifica corrente e marcala come letta
-        const unreadNotifications = notifications.filter(n => !n.letta);
-        const currentNotification = unreadNotifications[0];
+        // Trova la notifica corrente e marcala come visualizzata
+        const unviewedNotifications = getUnviewedNotifications();
+        const currentNotification = unviewedNotifications[0];
         
         if (currentNotification) {
+            // Marca come visualizzata in questa sessione
+            markAsViewed(currentNotification.id);
+            
             // Marca come letta immediatamente nello stato locale
             setNotifications(prev => 
                 prev.map(n => 
@@ -461,9 +467,9 @@ export const NotificationProvider = ({ children }) => {
 
     // Mostra la prima notifica non letta
     useEffect(() => {
-        const unreadNotifications = notifications.filter(n => !n.letta && n.letto !== 1);
+        const unviewedNotifications = getUnviewedNotifications();
         
-        if (unreadNotifications.length > 0 && !showNotification) {
+        if (unviewedNotifications.length > 0 && !showNotification) {
             setShowNotification(true);
             
             // Nascondi automaticamente dopo 8 secondi
@@ -472,21 +478,28 @@ export const NotificationProvider = ({ children }) => {
             }, 8000);
             
             return () => clearTimeout(timer);
-        } else if (unreadNotifications.length === 0) {
-            // Se non ci sono più notifiche non lette, nascondi la notifica
+        } else if (unviewedNotifications.length === 0) {
+            // Se non ci sono più notifiche non visualizzate, nascondi la notifica
             setShowNotification(false);
         }
-    }, [notifications, showNotification]);
+    }, [notifications, showNotification, viewedNotifications]);
 
-    // Gestisce la rimozione della notifica corrente quando viene marcata come letta
-    useEffect(() => {
-        const unreadNotifications = notifications.filter(n => !n.letta && n.letto !== 1);
-        
-        // Se la notifica corrente è stata marcata come letta, nascondi la notifica
-        if (showNotification && unreadNotifications.length === 0) {
-            setShowNotification(false);
-        }
-    }, [notifications, showNotification]);
+    // Stato per tracciare le notifiche già visualizzate in questa sessione
+    const [viewedNotifications, setViewedNotifications] = useState(new Set());
+
+    // Funzione per marcare una notifica come visualizzata in questa sessione
+    const markAsViewed = (notificationId) => {
+        setViewedNotifications(prev => new Set([...prev, notificationId]));
+    };
+
+    // Funzione per ottenere solo notifiche non visualizzate in questa sessione
+    const getUnviewedNotifications = () => {
+        return notifications.filter(n => 
+            !n.letta && 
+            n.letto !== 1 && 
+            !viewedNotifications.has(n.id)
+        );
+    };
 
     const value = {
         addNotification: (message, type = 'info', duration = 5000) => {
@@ -545,11 +558,11 @@ export const NotificationProvider = ({ children }) => {
             {children}
             
             {showNotification && (() => {
-                const unreadNotifications = notifications.filter(n => !n.letta && n.letto !== 1);
-                const currentNotification = unreadNotifications[0];
+                const unviewedNotifications = getUnviewedNotifications();
+                const currentNotification = unviewedNotifications[0];
                 
-                // Se non ci sono notifiche non lette o la notifica corrente è già stata letta, non mostrare nulla
-                if (!currentNotification || currentNotification.letta || currentNotification.letto === 1) {
+                // Se non ci sono notifiche non visualizzate, non mostrare nulla
+                if (!currentNotification) {
                     setShowNotification(false);
                     return null;
                 }
@@ -572,9 +585,9 @@ export const NotificationProvider = ({ children }) => {
                             
                             <NotificationTitle>
                                 {currentNotification.titolo || 'Notifica'}
-                                {unreadNotifications.length > 1 && (
+                                {unviewedNotifications.length > 1 && (
                                     <NotificationCounter>
-                                        {unreadNotifications.length}
+                                        {unviewedNotifications.length}
                                     </NotificationCounter>
                                 )}
                             </NotificationTitle>

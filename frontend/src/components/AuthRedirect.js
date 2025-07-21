@@ -10,7 +10,10 @@ const AuthRedirect = () => {
   useEffect(() => {
     // Solo se non è in caricamento e non c'è un utente, salva l'URL corrente
     if (!loading && !user && location.pathname !== '/login' && location.pathname !== '/register') {
-      sessionStorage.setItem('redirectAfterLogin', location.pathname + location.search);
+      // Pulisci l'URL da eventuali ? prima di salvarlo
+      const cleanPath = location.pathname.replace('?/', '/');
+      const cleanUrl = cleanPath + location.search;
+      sessionStorage.setItem('redirectAfterLogin', cleanUrl);
     }
   }, [user, loading, location.pathname, location.search]);
 
