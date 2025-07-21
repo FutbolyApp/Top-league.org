@@ -250,6 +250,8 @@ const Button = styled.button`
 `;
 
 export const NotificationProvider = ({ children }) => {
+    console.log('🔍 NotificationProvider: Component mounted');
+    
     const { user, token } = useAuth();
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
@@ -308,14 +310,17 @@ export const NotificationProvider = ({ children }) => {
 
     const loadNotifications = async () => {
         if (!user || !token) {
+            console.log('🔍 NotificationSystem: No user or token, clearing notifications');
             setNotifications([]);
             setUnreadCount(0);
             return;
         }
         
         try {
+            console.log('🔍 NotificationSystem: Loading notifications for user:', user.id);
             const response = await getNotificheShared(token, user.id);
             const notifiche = response?.data?.notifiche || response?.notifiche || [];
+            console.log('🔍 NotificationSystem: Raw notifications from API:', notifiche);
             
             // Normalizza le notifiche per gestire entrambi i campi (letta e letto)
             const notificheNormalizzate = notifiche.map(n => ({
@@ -323,6 +328,9 @@ export const NotificationProvider = ({ children }) => {
                 letta: n.letta || n.letto === 1,
                 letto: n.letto || (n.letta ? 1 : 0)
             }));
+            
+            console.log('🔍 NotificationSystem: Normalized notifications:', notificheNormalizzate);
+            console.log('🔍 NotificationSystem: Unread count:', notificheNormalizzate.filter(n => !n.letta).length);
             
             setNotifications(notificheNormalizzate);
             setUnreadCount(notificheNormalizzate.filter(n => !n.letta).length || 0);
