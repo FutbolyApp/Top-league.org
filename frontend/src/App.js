@@ -54,6 +54,7 @@ import AuthRedirect from './components/AuthRedirect';
 import './index.css';
 
 console.log('🚀 TopLeague Frontend v1.0.5 - Build:', new Date().toISOString());
+console.log('🔍 App: NotificationProvider import test:', typeof NotificationProvider);
 
 function AppRoutes() {
   const location = useLocation();
@@ -124,6 +125,9 @@ function AppRoutes() {
 }
 
 function App() {
+  console.log('🔍 App: App component rendering');
+  console.log('🔍 App: NotificationProvider type:', typeof NotificationProvider);
+  
   return (
     <NetworkErrorHandler>
       <AuthProvider>
