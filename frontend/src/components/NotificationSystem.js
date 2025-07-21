@@ -436,11 +436,14 @@ export const NotificationProvider = ({ children }) => {
     };
 
     const handleNotificationClick = (notification) => {
+        console.log('🔍 NotificationSystem: handleNotificationClick called with:', notification);
+        
         // Nascondi immediatamente la notifica
         setShowNotification(false);
         
         // Marca come visualizzata in questa sessione
         markAsViewed(notification.id);
+        console.log('🔍 NotificationSystem: Marked as viewed:', notification.id);
         
         // Marca come letta immediatamente nello stato locale
         setNotifications(prev => 
@@ -458,6 +461,8 @@ export const NotificationProvider = ({ children }) => {
     };
 
     const handleCloseNotification = () => {
+        console.log('🔍 NotificationSystem: handleCloseNotification called');
+        
         // Nascondi immediatamente la notifica
         setShowNotification(false);
         
@@ -466,6 +471,8 @@ export const NotificationProvider = ({ children }) => {
         const currentNotification = unviewedNotifications[0];
         
         if (currentNotification) {
+            console.log('🔍 NotificationSystem: Closing notification:', currentNotification);
+            
             // Marca come visualizzata in questa sessione
             markAsViewed(currentNotification.id);
             
@@ -485,8 +492,12 @@ export const NotificationProvider = ({ children }) => {
     // Mostra la prima notifica non letta
     useEffect(() => {
         const unviewedNotifications = getUnviewedNotifications();
+        console.log('🔍 NotificationSystem: unviewedNotifications:', unviewedNotifications);
+        console.log('🔍 NotificationSystem: showNotification:', showNotification);
+        console.log('🔍 NotificationSystem: viewedNotifications:', Array.from(viewedNotifications));
         
         if (unviewedNotifications.length > 0 && !showNotification) {
+            console.log('🔍 NotificationSystem: Showing notification:', unviewedNotifications[0]);
             setShowNotification(true);
             
             // Nascondi automaticamente dopo 8 secondi
@@ -497,6 +508,7 @@ export const NotificationProvider = ({ children }) => {
             return () => clearTimeout(timer);
         } else if (unviewedNotifications.length === 0) {
             // Se non ci sono più notifiche non visualizzate, nascondi la notifica
+            console.log('🔍 NotificationSystem: No unviewed notifications, hiding');
             setShowNotification(false);
         }
     }, [notifications, showNotification, viewedNotifications]);
