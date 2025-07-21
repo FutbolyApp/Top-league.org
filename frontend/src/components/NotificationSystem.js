@@ -5,6 +5,8 @@ import { useAuth } from './AuthContext';
 import { api } from '../api/config';
 import { getNotificheShared } from '../api/sharedApi';
 
+console.log('🔍 NotificationSystem: File loaded');
+
 const NotificationContext = createContext();
 
 
@@ -251,6 +253,7 @@ const Button = styled.button`
 
 export const NotificationProvider = ({ children }) => {
     console.log('🔍 NotificationProvider: Component mounted');
+    console.log('🔍 NotificationProvider: children:', children);
     
     const { user, token } = useAuth();
     const navigate = useNavigate();

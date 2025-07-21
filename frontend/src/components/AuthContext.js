@@ -5,6 +5,8 @@ import { clearUserCache, verifyUserShared } from '../api/sharedApi';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  console.log('🔍 AuthProvider: Component mounted');
+  
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
