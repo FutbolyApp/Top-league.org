@@ -516,6 +516,7 @@ const Home = () => {
   const [sortDirectionLeghe, setSortDirectionLeghe] = useState('asc');
   const [sortFieldSquadre, setSortFieldSquadre] = useState('nome');
   const [sortDirectionSquadre, setSortDirectionSquadre] = useState('asc');
+  const [expandedSquadre, setExpandedSquadre] = useState([]);
   
   // Stati per la scheda espandibile
   const [expandedSquadra, setExpandedSquadra] = useState(null);
@@ -683,7 +684,11 @@ const Home = () => {
   };
 
   const handleToggleExpanded = (squadraId) => {
-    setExpandedSquadra(expandedSquadra === squadraId ? null : squadraId);
+    setExpandedSquadre(prev => 
+      prev.includes(squadraId) 
+        ? prev.filter(id => id !== squadraId)
+        : [...prev, squadraId]
+    );
   };
 
   // Se l'utente non è autenticato, mostra la landing page calcistica
@@ -782,23 +787,7 @@ const Home = () => {
       {/* Area Manager (squadre dell'utente) */}
       {(squadre?.length || 0) > 0 && (
         <Section>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <SectionTitle>Area Manager</SectionTitle>
-            <ActionButton 
-              onClick={() => navigate('/area-manager')}
-              style={{ 
-                backgroundColor: '#FF8C42', 
-                color: 'white',
-                padding: '0.5rem 1rem',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              Gestisci
-            </ActionButton>
-          </div>
+          <SectionTitle>Area Manager</SectionTitle>
           <Table>
             <thead>
               <tr>
@@ -830,59 +819,82 @@ const Home = () => {
                 const torneoNome = squadra.torneo_nome || 'N/A';
                 const casseSocietarie = squadra?.casse_societarie || 0;
                 const notificheCount = getNotificheCount(squadra?.id);
+                const isExpanded = expandedSquadre.includes(squadra.id);
                 
                 return (
-                  <tr key={squadra.id}>
-                    <Td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {logoUrl ? (
-                          <img 
-                            src={`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/uploads/${logoUrl}`} 
-                            alt="logo" 
-                            style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} 
-                          />
-                        ) : (
-                          <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iMTYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iI0U1RTVFNyIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxwYXRoIGQ9Ik0xNiA4QzE4LjIwOTEgOCAyMCA5Ljc5MDg2IDIwIDEyQzIwIDE0LjIwOTEgMTguMjA5MSAxNiAxNiAxNkMxMy43OTA5IDE2IDEyIDE0LjIwOTEgMTIgMTJDMTIgOS43OTA4NiAxMy43OTA5IDggMTYgOFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTggMjRDMTAuMjA5MSAyNCAxMiAyMi4yMDkxIDEyIDIwQzEyIDE3Ljc5MDkgMTAuMjA5MSAxNiA4IDE2QzUuNzkwODYgMTYgNCAxNy43OTA5IDQgMjBDNCAyMi4yMDkxIDUuNzkwODYgMjQgOCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTI0IDI0QzI2LjIwOTEgMjQgMjggMjIuMjA5MSAyOCAyMEMyOCAxNy43OTA5IDI2LjIwOTEgMTYgMjQgMTZDMjEuNzkwOSAxNiAyMCAxNy43OTA5IDIwIDIwQzIwIDIyLjIwOTEgMjEuNzkwOSAyNCAyNCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+" alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
-                        )}
-                        <span style={{ fontWeight: 600, cursor: 'pointer', color: '#FF8C42' }} onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}>{squadra?.nome || 'Nome'}</span>
-                      </div>
-                    </Td>
-                    <Td>{squadra.club_level || 1}</Td>
-                    <Td>{torneoNome}</Td>
-                    <Td>FM {ingaggi.toLocaleString()}</Td>
-                    <Td>FM {casseSocietarie.toLocaleString()}</Td>
-                    <Td>FM {valoreAttuale.toLocaleString()}</Td>
-                    <Td>{numGiocatori}/{maxGiocatori}</Td>
-                    <Td>
-                      <ActionButtons>
+                  <React.Fragment key={squadra.id}>
+                    <tr>
+                      <Td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          {logoUrl ? (
+                            <img 
+                              src={`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/uploads/${logoUrl}`} 
+                              alt="logo" 
+                              style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} 
+                            />
+                          ) : (
+                            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iMTYiIGZpbGw9IiNGRkZGRkYiIHN0cm9rZT0iI0U1RTVFNyIgc3Ryb2tlLXdpZHRoPSIxIi8+CjxwYXRoIGQ9Ik0xNiA4QzE4LjIwOTEgOCAyMCA5Ljc5MDg2IDIwIDEyQzIwIDE0LjIwOTEgMTguMjA5MSAxNiAxNiAxNkMxMy43OTA5IDE2IDEyIDE0LjIwOTEgMTIgMTJDMTIgOS43OTA4NiAxMy43OTA5IDggMTYgOFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTggMjRDMTAuMjA5MSAyNCAxMiAyMi4yMDkxIDEyIDIwQzEyIDE3Ljc5MDkgMTAuMjA5MSAxNiA4IDE2QzUuNzkwODYgMTYgNCAxNy43OTA5IDQgMjBDNCAyMi4yMDkxIDUuNzkwODYgMjQgOCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPHBhdGggZD0iTTI0IDI0QzI2LjIwOTEgMjQgMjggMjIuMjA5MSAyOCAyMEMyOCAxNy43OTA5IDI2LjIwOTEgMTYgMjQgMTZDMjEuNzkwOSAxNiAyMCAxNy43OTA5IDIwIDIwQzIwIDIyLjIwOTEgMjEuNzkwOSAyNCAyNCAyNFoiIGZpbGw9IiM5OTk5OTkiLz4KPC9zdmc+" alt="logo" style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', background: '#eee' }} />
+                          )}
+                          <span style={{ fontWeight: 600, cursor: 'pointer', color: '#FF8C42' }} onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}>{squadra?.nome || 'Nome'}</span>
+                        </div>
+                      </Td>
+                      <Td>{squadra.club_level || 1}</Td>
+                      <Td>{torneoNome}</Td>
+                      <Td>FM {ingaggi.toLocaleString()}</Td>
+                      <Td>FM {casseSocietarie.toLocaleString()}</Td>
+                      <Td>FM {valoreAttuale.toLocaleString()}</Td>
+                      <Td>{numGiocatori}/{maxGiocatori}</Td>
+                      <Td>
                         <ActionButton 
-                          onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}
+                          onClick={() => handleToggleExpanded(squadra.id)}
+                          style={{ 
+                            backgroundColor: '#FF8C42', 
+                            color: 'white',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '8px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontWeight: '600'
+                          }}
                         >
-                          Visualizza
+                          {isExpanded ? 'Chiudi' : 'Gestisci'}
                         </ActionButton>
-                        <ActionButton 
-                          onClick={() => navigate(`/notifiche?squadra=${squadra.id}`)}
-                        >
-                          Notifiche ({notificheCount})
-                        </ActionButton>
-                        <ActionButton 
-                          onClick={() => navigate(`/proponi-offerta?squadra=${squadra.id}`)}
-                        >
-                          Proponi Offerta
-                        </ActionButton>
-                        <ActionButton 
-                          onClick={() => navigate(`/richiesta-admin?squadra=${squadra.id}`)}
-                        >
-                          Richiesta Admin
-                        </ActionButton>
-                        <ActionButton 
-                          onClick={() => navigate(`/log-squadra/${squadra.id}`)}
-                        >
-                          Log
-                        </ActionButton>
-                      </ActionButtons>
-                    </Td>
-                  </tr>
+                      </Td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <Td colSpan="8" style={{ padding: '1rem', backgroundColor: '#f8f9fa' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                            <ActionButton 
+                              onClick={() => navigate(`/gestione-squadra/${squadra?.lega_id}`)}
+                            >
+                              Visualizza
+                            </ActionButton>
+                            <ActionButton 
+                              onClick={() => navigate(`/notifiche?squadra=${squadra.id}`)}
+                            >
+                              Notifiche ({notificheCount})
+                            </ActionButton>
+                            <ActionButton 
+                              onClick={() => navigate(`/proponi-offerta?squadra=${squadra.id}`)}
+                            >
+                              Proponi Offerta
+                            </ActionButton>
+                            <ActionButton 
+                              onClick={() => navigate(`/richiesta-admin?squadra=${squadra.id}`)}
+                            >
+                              Richiesta Admin
+                            </ActionButton>
+                            <ActionButton 
+                              onClick={() => navigate(`/log-squadra/${squadra.id}`)}
+                            >
+                              Log
+                            </ActionButton>
+                          </div>
+                        </Td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>
