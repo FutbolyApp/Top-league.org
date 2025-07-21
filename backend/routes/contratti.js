@@ -324,7 +324,7 @@ router.post('/impostazioni/:giocatoreId', requireAuth, async (req, res) => {
       [giocatoreId, userId]
     );
 
-    if (giocatoreResult.rows?.length || 0 === 0) {
+    if ((giocatoreResult.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato o non autorizzato' });
     }
 
