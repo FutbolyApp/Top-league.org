@@ -419,6 +419,20 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
       
       if (setCurrentTeam) setCurrentTeam(squadra);
       
+      // Carica i giocatori della squadra
+      if (squadra?.id) {
+        try {
+          const giocatoriRes = await getGiocatoriBySquadra(squadra.id, token);
+          const giocatori = giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || [];
+          setSquadra(prevSquadra => ({
+            ...prevSquadra,
+            giocatori: giocatori
+          }));
+        } catch (err) {
+          console.error('Errore nel caricamento giocatori:', err);
+        }
+      }
+      
       // Carica la lega per il contesto
       if (squadra?.lega_id) {
         const legaRes = await getLegaById(squadra.lega_id, token);

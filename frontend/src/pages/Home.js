@@ -933,41 +933,6 @@ const Home = () => {
         </Section>
       )}
 
-      {/* Area Manager (leghe a cui partecipi) */}
-      {(legheUser?.length || 0) > 0 && (
-        <Section>
-          <SectionTitle>Area Manager</SectionTitle>
-          <Table>
-            <thead>
-              <tr>
-                <Th>Nome Lega</Th>
-                <Th>Modalità</Th>
-                <Th>Tipo</Th>
-                <Th>Squadre</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {legheUser?.map(lega => (
-                <tr key={lega.id}>
-                  <Td>
-                    <StyledLink to={`/lega/${lega.id}`}>
-                      {lega?.nome || 'Nome'}
-                    </StyledLink>
-                  </Td>
-                  <Td>{lega?.modalita || 'N/A'}</Td>
-                  <Td>
-                    <StatusBadge $status={lega?.is_pubblica || false? 'pubblica' : 'privata'}>
-                      {lega?.is_pubblica || false? 'Pubblica' : 'Privata'}
-                    </StatusBadge>
-                  </Td>
-                  <Td>{lega.squadre_assegnate || 0}/{lega.numero_squadre_totali || 0}</Td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Section>
-      )}
-
       {/* Notifiche recenti (solo per utenti normali, non admin) */}
       {(notifiche?.length || 0) > 0 && (legheAdmin?.length || 0) === 0 && (
         <Section>
