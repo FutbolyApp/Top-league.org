@@ -1043,7 +1043,7 @@ const GestioneTornei = () => {
                   </CancelButton>
                   <SubmitButton 
                     type="submit"
-                    disabled={formData.squadre_partecipanti?.length || 0 < 2}
+                    disabled={(formData.squadre_partecipanti?.length || 0) < 2}
                   >
                     {editingTorneo ? 'Aggiorna Torneo' : 'Crea Torneo'}
                   </SubmitButton>

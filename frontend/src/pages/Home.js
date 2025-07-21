@@ -9,6 +9,7 @@ import {
   getNotificheShared, 
   getLegheUserShared 
 } from '../api/sharedApi';
+import { api } from '../api/config';
 // DefaultLogo import removed as it's not used
 
 const Container = styled.div`
@@ -532,7 +533,7 @@ const Home = () => {
   const [legheUser, setLegheUser] = useState([]); // Aggiungo stato per leghe utente
   const [squadre, setSquadre] = useState([]);
   const [notifiche, setNotifiche] = useState([]);
-  const [notificheRimosse, setNotificheRimosse] = useState(false); // Nuovo stato per tracciare se le notifiche sono state rimosse
+  const [movimenti, setMovimenti] = useState([]);
   const [sortFieldLeghe, setSortFieldLeghe] = useState('nome');
   const [sortDirectionLeghe, setSortDirectionLeghe] = useState('asc');
   const [sortFieldSquadre, setSortFieldSquadre] = useState('nome');
@@ -541,7 +542,6 @@ const Home = () => {
   
   // Stati per la scheda espandibile
   const [expandedSquadra, setExpandedSquadra] = useState(null);
-  const [movimenti, setMovimenti] = useState([]);
 
   // --- INIZIO: LOGICA BOOKMARK MOBILE ---
   const [showBookmarkModal, setShowBookmarkModal] = useState(false);
@@ -580,10 +580,8 @@ const Home = () => {
         setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
         
         // Carica notifiche (solo per utenti normali, non admin)
-        if (!notificheRimosse) {
-          const notificheRes = await getNotificheShared(token, user.id);
-          setNotifiche(notificheRes?.data?.notifiche || notificheRes?.notifiche || []);
-        }
+        const notificheRes = await getNotificheShared(token, user.id);
+        setNotifiche(notificheRes?.data?.notifiche || notificheRes?.notifiche || []);
         
         // Carica movimenti di mercato per tutte le squadre
         const squadreData = squadreRes?.data?.squadre || squadreRes?.squadre || [];
@@ -607,13 +605,13 @@ const Home = () => {
     };
     
     loadData();
-  }, [user, token, notificheRimosse]);
+  }, [user, token]);
 
   // Reset notifiche quando l'utente torna alla home
   useEffect(() => {
     const handleFocus = () => {
       // Se l'utente torna alla home, resetta lo stato delle notifiche
-      setNotificheRimosse(false);
+      // setNotificheRimosse(false); // This line is removed
     };
 
     window.addEventListener('focus', handleFocus);
@@ -694,8 +692,48 @@ const Home = () => {
     return notifiche?.filter(n => n.squadra_id === squadraId).length;
   };
 
-  // Conta notifiche non lette
-  const unreadNotificationsCount = notifiche?.filter(n => !n.letta).length || 0;
+  // Calcola il numero di notifiche non lette
+  const unreadNotificationsCount = notifiche?.filter(n => !n.letta && !n.letto).length || 0;
+
+  // Funzione per marcare una notifica come letta
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      await api.put(`/notifiche/${notificationId}/letta`, {}, token);
+      // Aggiorna lo stato locale
+      setNotifiche(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, letta: true, letto: 1 } : n)
+      );
+    } catch (error) {
+      console.error('Errore marcatura notifica come letta:', error);
+    }
+  };
+
+  // Funzione per marcare tutte le notifiche come lette
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await api.put('/notifiche/tutte-lette', {}, token);
+      // Aggiorna lo stato locale
+      setNotifiche(prev => 
+        prev.map(n => ({ ...n, letta: true, letto: 1 }))
+      );
+    } catch (error) {
+      console.error('Errore marcatura tutte notifiche come lette:', error);
+    }
+  };
+
+  // Funzione per gestire il click sul badge blu
+  const handleBadgeClick = async () => {
+    await markAllNotificationsAsRead();
+    navigate('/notifiche');
+  };
+
+  // Funzione per gestire il click su una notifica
+  const handleNotificationClick = async (notifica) => {
+    // Marca la notifica come letta
+    await markNotificationAsRead(notifica.id);
+    // Naviga alla pagina notifiche
+    navigate('/notifiche');
+  };
 
   const getMovimentiByLega = (legaId) => {
     return movimenti
@@ -989,11 +1027,7 @@ const Home = () => {
                   marginLeft: '10px',
                   cursor: 'pointer'
                 }}
-                onClick={() => {
-                  navigate('/notifiche');
-                  setNotifiche([]); // Rimuovi tutte le notifiche dopo il click
-                  setNotificheRimosse(true); // Marca come rimosse
-                }}
+                onClick={handleBadgeClick}
               >
                 {unreadNotificationsCount}
               </span>
@@ -1008,11 +1042,7 @@ const Home = () => {
                 backgroundColor: notifica.letta ? 'transparent' : '#f8f9fa',
                 cursor: 'pointer'
               }}
-              onClick={() => {
-                navigate('/notifiche');
-                setNotifiche([]); // Rimuovi tutte le notifiche dopo il click
-                setNotificheRimosse(true); // Marca come rimosse
-              }}
+              onClick={() => handleNotificationClick(notifica)}
             >
               <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>
                 {notifica.titolo}
