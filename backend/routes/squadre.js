@@ -478,7 +478,7 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
       LEFT JOIN users u ON s.proprietario_id = u.id
       LEFT JOIN giocatori g ON s.id = g.squadra_id
       WHERE s.lega_id = $1
-      GROUP BY s.id
+      GROUP BY s.id, s.nome, s.lega_id, s.proprietario_id, s.is_orfana, s.club_level, s.casse_societarie, s.costo_salariale_totale, s.costo_salariale_annuale, s.valore_squadra, s.created_at, u.username, u.nome, u.cognome
       ORDER BY s.nome
     `, [legaId]);
     
