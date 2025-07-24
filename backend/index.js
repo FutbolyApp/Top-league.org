@@ -105,7 +105,15 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Servi file statici dalla cartella uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-
+// Root route for testing
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'TopLeague Backend API',
+    status: 'running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 
 // Rendi il database accessibile alle route
 app.locals.db = getDb();
