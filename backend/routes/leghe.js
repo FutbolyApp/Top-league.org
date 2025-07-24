@@ -6,7 +6,7 @@ import { createLega, getAllLeghe, getLegaById, updateLega } from '../models/lega
 import { createSquadra, getSquadreByLega } from '../models/squadra.js';
 import { createGiocatore, getGiocatoriBySquadra } from '../models/giocatore.js';
 import { requireAuth, requireSuperAdmin, requireLegaAdminOrSuperAdmin } from '../middleware/auth.js';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 import { getLeagueConfig } from '../utils/leagueConfig.js';
 import fs from 'fs';
 
@@ -33,7 +33,8 @@ router.use((req, res, next) => {
     'https://topleague-frontend-new.onrender.com',
     'https://topleaguem.onrender.com',
     'https://topleague-frontend.onrender.com',
-    'https://topleague-frontend-new.onrender.com'
+    'https://topleague-frontend-new.onrender.com',
+    'https://top-league.org'
   ];
   
   if (origin && allowedOrigins.includes(origin)) {
@@ -276,49 +277,22 @@ router.get('/', requireAuth, async (req, res) => {
     const db = getDb();
     console.log('Database connection obtained for /leghe');
     
-    // Prima controlla se la tabella leghe esiste
-    const tableCheck = await db.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'leghe'
-      );
-    `);
-    console.log('Table leghe exists:', tableCheck.rows[0].exists);
-    
-    if (!tableCheck.rows[0].exists) {
-      console.error('Table leghe does not exist!');
-      return res.status(500).json({ error: 'Database schema not initialized' });
-    }
-    
     const result = await db.query(`
-      SELECT l.*, 
-           CASE 
-             WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-             ELSE u.nome || ' ' || u.cognome 
-           END as admin_nome,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id) as numero_squadre_totali,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = false) as squadre_assegnate,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) as squadre_disponibili,
-           (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei,
-           CASE 
-             WHEN (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) > 0 
-             THEN true 
-             ELSE false 
-           END as ha_squadre_disponibili
+      SELECT 
+        l.*,
+        u.nome as admin_nome,
+        u.cognome as admin_cognome
       FROM leghe l
       LEFT JOIN users u ON l.admin_id = u.id
-      WHERE l.admin_id = $1 OR l.is_pubblica = true
-      ORDER BY l.nome
-    `, [userId]);
+      ORDER BY l.created_at DESC
+    `);
     
-    console.log('Query executed successfully, rows found:', result.rows.length);
+    console.log('Query tutte le leghe eseguita con successo');
     res.json({ leghe: result.rows });
-  } catch (err) {
-    console.error('Errore query tutte le leghe:', err);
-    console.error('Error details:', err.message);
-    console.error('Error stack:', err.stack);
-    res.status(500).json({ error: 'Errore DB', details: err.message });
+    
+  } catch (error) {
+    console.error('Errore query tutte le leghe:', error);
+    res.status(500).json({ error: 'Errore interno del server' });
   }
 });
 
@@ -332,32 +306,22 @@ router.get('/user-leagues', requireAuth, async (req, res) => {
     const db = getDb();
     console.log('Database connection obtained');
     
-    const query = `
-      SELECT l.*, 
-           CASE 
-             WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-             ELSE u.nome || ' ' || u.cognome 
-           END as admin_nome,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id) as numero_squadre_totali,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = false) as squadre_assegnate,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) as squadre_disponibili,
-           (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei
+    console.log('Executing query with userId:', userId);
+    const result = await db.query(`
+      SELECT DISTINCT l.*, u.nome as admin_nome, u.cognome as admin_cognome
       FROM leghe l
       LEFT JOIN users u ON l.admin_id = u.id
-      WHERE l.admin_id = $1
+      LEFT JOIN squadre s ON l.id = s.lega_id
+      WHERE l.admin_id = ? OR s.proprietario_id = ?
       ORDER BY l.nome
-    `;
+    `, [userId, userId]);
     
-    console.log('Executing query with userId:', userId);
-    const result = await db.query(query, [userId]);
-    console.log('Query executed successfully, rows found:', result.rows.length);
-    
+    console.log('Query user-leagues executed successfully');
     res.json({ leghe: result.rows });
-  } catch (err) {
-    console.error('Errore query user-leagues:', err);
-    console.error('Error details:', err.message);
-    console.error('Error stack:', err.stack);
-    res.status(500).json({ error: 'Errore DB', details: err.message });
+    
+  } catch (error) {
+    console.error('Errore query user-leagues:', error);
+    res.status(500).json({ error: 'Errore interno del server' });
   }
 });
 
@@ -370,13 +334,21 @@ router.get('/admin', requireAuth, async (req, res) => {
   try {
     const db = getDb();
     console.log('Database connection obtained for admin query');
+    console.log('Database connection type:', typeof db);
+    console.log('Database connection is null:', db === null);
+    console.log('Database connection is undefined:', db === undefined);
+    
+    if (!db) {
+      console.log('❌ Database connection is null or undefined');
+      return res.status(503).json({ error: 'Database connection not available' });
+    }
     
     // Prima controlla se ci sono leghe nel database
     const allLegheResult = await db.query('SELECT COUNT(*) as total FROM leghe');
     console.log('Total leghe in database:', allLegheResult.rows[0].total);
     
     // Controlla se ci sono leghe con questo admin_id
-    const adminLegheResult = await db.query('SELECT COUNT(*) as total FROM leghe WHERE admin_id = $1', [adminId]);
+    const adminLegheResult = await db.query('SELECT COUNT(*) as total FROM leghe WHERE admin_id = ?', [adminId]);
     console.log('Leghe with admin_id', adminId, ':', adminLegheResult.rows[0].total);
     
     const result = await db.query(`
@@ -386,9 +358,9 @@ router.get('/admin', requireAuth, async (req, res) => {
            (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) as squadre_non_assegnate,
            (SELECT COUNT(*) FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = l.id) as numero_giocatori,
            (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei,
-           TO_CHAR(l.created_at, 'DD/MM/YYYY') as data_creazione_formattata
+           DATE_FORMAT(l.created_at, '%d/%m/%Y') as data_creazione_formattata
       FROM leghe l
-      WHERE l.admin_id = $1
+      WHERE l.admin_id = ?
       ORDER BY l.created_at DESC
     `, [adminId]);
     
@@ -399,7 +371,7 @@ router.get('/admin', requireAuth, async (req, res) => {
     console.error('Errore query admin leghe:', err);
     console.error('Error details:', err.message);
     console.error('Error stack:', err.stack);
-    res.status(500).json({ error: 'Errore DB', details: err.message });
+    res.status(500).json({ error: 'Errore interno del server' });
   }
 });
 
@@ -413,7 +385,7 @@ router.get('/all', requireSuperAdmin, async (req, res) => {
       SELECT l.*, 
            CASE 
              WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-             ELSE u.nome || ' ' || u.cognome 
+             ELSE CONCAT(u.nome, ' ', u.cognome)
            END as admin_nome,
            u.email as admin_email,
            COALESCE((SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id), 0) as numero_squadre,
@@ -462,7 +434,7 @@ router.get('/:legaId/squadre', requireAuth, async (req, res) => {
       user_id_type: typeof userId
     });
     
-    if (parseInt(lega.admin_id) !== parseInt(userId) && req.user.ruolo !== 'SuperAdmin') {
+    if (parseInt(lega.admin_id) !== parseInt(userId) && req.user.ruolo !== 'superadmin' && req.user.ruolo !== 'SuperAdmin') {
       console.log('❌ Authorization failed');
       return res.status(403).json({ error: 'Non autorizzato a vedere le squadre di questa lega' });
     }
@@ -573,13 +545,13 @@ router.post('/:legaId/join', requireAuth, async (req, res) => {
     }
     
     // Verifica che l'utente non abbia già una squadra in questa lega
-    const squadraResult = await db.query('SELECT id FROM squadre WHERE lega_id = $1 AND proprietario_id = $2', [legaId, userId]);
+    const squadraResult = await db.query('SELECT id FROM squadre WHERE lega_id = ? AND proprietario_id = ?', [legaId, userId]);
     if (squadraResult.rows.length > 0) {
       return res.status(400).json({ error: 'Hai già una squadra in questa lega' });
     }
     
     // Trova una squadra orfana disponibile
-    const squadraOrfanaResult = await db.query('SELECT id, nome FROM squadre WHERE lega_id = $1 AND is_orfana = 1 LIMIT 1', [legaId]);
+    const squadraOrfanaResult = await db.query('SELECT id, nome FROM squadre WHERE lega_id = ? AND is_orfana = 1 LIMIT 1', [legaId]);
     if (squadraOrfanaResult.rows.length === 0) {
       return res.status(400).json({ error: 'Nessuna squadra disponibile in questa lega' });
     }
@@ -587,7 +559,7 @@ router.post('/:legaId/join', requireAuth, async (req, res) => {
     const squadraOrfana = squadraOrfanaResult.rows[0];
     
     // Assegna la squadra orfana all'utente
-    await db.query('UPDATE squadre SET proprietario_id = $1, is_orfana = 0 WHERE id = $2', [userId, squadraOrfana.id]);
+          await db.query('UPDATE squadre SET proprietario_id = ?, is_orfana = 0 WHERE id = ?', [userId, squadraOrfana.id]);
     
     console.log(`Squadra ${squadraOrfana.nome} assegnata all'utente ${userId}`);
     res.json({ 
@@ -629,7 +601,7 @@ router.delete('/:legaId', requireAuth, async (req, res) => {
     console.log('Lega trovata:', { id: lega.id, nome: lega.nome, admin_id: lega.admin_id });
     
     // Verifica autorizzazione
-    if (lega.admin_id !== userId && req.user.ruolo !== 'SuperAdmin') {
+    if (lega.admin_id !== userId && req.user.ruolo !== 'superadmin' && req.user.ruolo !== 'SuperAdmin') {
       console.log('Non autorizzato - admin_id:', lega.admin_id, 'user_id:', userId, 'ruolo:', req.user.ruolo);
       return res.status(403).json({ error: 'Non autorizzato a cancellare questa lega' });
     }
@@ -642,19 +614,19 @@ router.delete('/:legaId', requireAuth, async (req, res) => {
       console.log('Transazione iniziata, elimino giocatori');
       
       // Elimina giocatori
-      await db.query('DELETE FROM giocatori WHERE squadra_id IN (SELECT id FROM squadre WHERE lega_id = $1)', [legaId]);
+      await db.query('DELETE FROM giocatori WHERE squadra_id IN (SELECT id FROM squadre WHERE lega_id = ?)', [legaId]);
       console.log('Giocatori eliminati, elimino squadre');
       
       // Elimina squadre
-      await db.query('DELETE FROM squadre WHERE lega_id = $1', [legaId]);
+      await db.query('DELETE FROM squadre WHERE lega_id = ?', [legaId]);
       console.log('Squadre eliminate, elimino notifiche');
       
       // Elimina notifiche
-      await db.query('DELETE FROM notifiche WHERE lega_id = $1', [legaId]);
+      await db.query('DELETE FROM notifiche WHERE lega_id = ?', [legaId]);
       console.log('Notifiche eliminate, elimino offerte');
       
       // Elimina offerte
-      await db.query('DELETE FROM offerte WHERE lega_id = $1', [legaId]);
+      await db.query('DELETE FROM offerte WHERE lega_id = ?', [legaId]);
       console.log('Offerte eliminate, elimino log');
       
       // Elimina log (rimuovo questa query perché la tabella log non ha lega_id)
@@ -662,7 +634,7 @@ router.delete('/:legaId', requireAuth, async (req, res) => {
       console.log('Log eliminati, elimino lega');
       
       // Elimina la lega
-      await db.query('DELETE FROM leghe WHERE id = $1', [legaId]);
+      await db.query('DELETE FROM leghe WHERE id = ?', [legaId]);
       console.log('Lega eliminata, faccio commit');
       
       await db.query('COMMIT');
@@ -861,7 +833,7 @@ router.get('/:legaId/squadre-disponibili', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT s.id, s.nome, s.is_orfana
       FROM squadre s
-      WHERE s.lega_id = $1
+              WHERE s.lega_id = ?
       ORDER BY s.nome
     `, [legaId]);
     
@@ -892,7 +864,7 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, async (req, res) => {
     const db = getDb();
     
     // Verifica che la lega esista
-    const legaResult = await db.query('SELECT * FROM leghe WHERE id = $1', [legaId]);
+    const legaResult = await db.query('SELECT * FROM leghe WHERE id = ?', [legaId]);
     if (legaResult.rows.length === 0) {
       return res.status(404).json({ error: 'Lega non trovata' });
     }
@@ -904,19 +876,19 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, async (req, res) => {
     }
     
     // Verifica che l'utente non sia già proprietario di una squadra in questa lega
-    const squadraPossedutaResult = await db.query('SELECT id FROM squadre WHERE lega_id = $1 AND proprietario_id = $2', [legaId, userId]);
+    const squadraPossedutaResult = await db.query('SELECT id FROM squadre WHERE lega_id = ? AND proprietario_id = ?', [legaId, userId]);
     if (squadraPossedutaResult.rows.length > 0) {
       return res.status(400).json({ error: 'Hai già una squadra in questa lega' });
     }
 
     // Verifica che l'utente non abbia già una richiesta (in attesa, accettata o rifiutata) per questa lega
-    const richiestaEsistenteResult = await db.query('SELECT id FROM richieste_ingresso WHERE utente_id = $1 AND lega_id = $2', [userId, legaId]);
+    const richiestaEsistenteResult = await db.query('SELECT id FROM richieste_ingresso WHERE utente_id = ? AND lega_id = ?', [userId, legaId]);
     if (richiestaEsistenteResult.rows.length > 0) {
       return res.status(400).json({ error: 'Hai già inviato una richiesta per questa lega' });
     }
 
     // Verifica che la squadra esista e sia disponibile
-    const squadraResult = await db.query('SELECT id, nome, is_orfana FROM squadre WHERE id = $1 AND lega_id = $2', [squadra_id, legaId]);
+    const squadraResult = await db.query('SELECT id, nome, is_orfana FROM squadre WHERE id = ? AND lega_id = ?', [squadra_id, legaId]);
     if (squadraResult.rows.length === 0) {
       return res.status(404).json({ error: 'Squadra non trovata' });
     }
@@ -940,16 +912,15 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, async (req, res) => {
     const richiestaInsertResult = await db.query(`
       INSERT INTO richieste_ingresso 
       (utente_id, lega_id, squadra_id, password_fornita, messaggio_richiesta)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id
+      VALUES (?, ?, ?, ?, ?)
     `, [userId, legaId, squadra_id, password || null, messaggio || null]);
     
-    const richiestaId = richiestaInsertResult.rows[0].id;
+    const richiestaId = richiestaInsertResult.insertId;
 
     // Crea notifica per l'admin
     await db.query(`
       INSERT INTO notifiche (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-      VALUES ($1, $2, $3, $4, $5, NOW())
+      VALUES (?, ?, ?, ?, ?, NOW())
     `, [legaId, lega.admin_id, 'richiesta_ingresso', 'Nuova richiesta di ingresso', `Nuova richiesta di ingresso per la squadra ${squadra.nome} da ${req.user.nome || req.user.username}`]);
 
     // Crea notifiche per i subadmin con permesso gestione_richieste
@@ -957,7 +928,7 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, async (req, res) => {
       const subadminsResult = await db.query(`
         SELECT s.utente_id, s.permessi
         FROM subadmin s
-        WHERE s.lega_id = $1 AND s.attivo = true
+        WHERE s.lega_id = ? AND s.attivo = true
       `, [legaId]);
       
       for (const subadmin of subadminsResult.rows) {
@@ -966,7 +937,7 @@ router.post('/:legaId/richiedi-ingresso', requireAuth, async (req, res) => {
           if (permessi.gestione_richieste) {
             await db.query(`
               INSERT INTO notifiche (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-              VALUES ($1, $2, $3, $4, $5, NOW())
+              VALUES (?, ?, ?, ?, ?, NOW())
             `, [legaId, subadmin.utente_id, 'Nuova richiesta di ingresso', `Nuova richiesta di ingresso per la squadra ${squadra.nome} da ${req.user.nome || req.user.username}`]);
             console.log(`Notifica creata per subadmin ${subadmin.utente_id}`);
           }
@@ -1000,13 +971,13 @@ router.get('/richieste/utente', requireAuth, async (req, res) => {
       SELECT ri.*, l.nome as lega_nome, s.nome as squadra_nome, 
              CASE 
                WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-               ELSE u.nome || ' ' || u.cognome 
+               ELSE CONCAT(u.nome, ' ', u.cognome)
              END as admin_nome
       FROM richieste_ingresso ri
       JOIN leghe l ON ri.lega_id = l.id
       JOIN squadre s ON ri.squadra_id = s.id
       LEFT JOIN users u ON ri.risposta_admin_id = u.id
-      WHERE ri.utente_id = $1
+      WHERE ri.utente_id = ?
       ORDER BY ri.data_richiesta DESC
     `, [userId]);
     
@@ -1030,120 +1001,55 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
     // Prima ottieni le richieste di ingresso normali
     console.log('Executing richieste ingresso query...');
     const richiesteIngressoResult = await db.query(`
-      SELECT ri.*, l.nome as lega_nome, l.id as lega_id, s.nome as squadra_nome, 
-             u.nome || ' ' || u.cognome as utente_nome, u.email as utente_email,
-             'user' as tipo_richiesta, ri.messaggio_richiesta as tipo_richiesta_richiesta
+      SELECT 
+        ri.*,
+        l.nome as lega_nome,
+        s.nome as squadra_nome,
+        u.username as richiedente_username,
+        u.nome as richiedente_nome,
+        u.cognome as richiedente_cognome
       FROM richieste_ingresso ri
       JOIN leghe l ON ri.lega_id = l.id
       JOIN squadre s ON ri.squadra_id = s.id
       JOIN users u ON ri.utente_id = u.id
-      WHERE l.admin_id = $1 AND ri.stato = 'in_attesa'
+      WHERE l.admin_id = ?
+      ORDER BY ri.data_creazione DESC
     `, [adminId]);
-    console.log('Richieste ingresso found:', richiesteIngressoResult.rows.length);
-
-    // Poi ottieni le richieste admin
-    console.log('Executing richieste admin query...');
-    const richiesteAdminResult = await db.query(`
-      SELECT ra.*, l.nome as lega_nome, l.id as lega_id, s.nome as squadra_nome,
-             COALESCE(u.nome || ' ' || u.cognome, 'N/A') as utente_nome, 
-             COALESCE(u.email, 'N/A') as utente_email,
-             'admin' as tipo_richiesta, ra.tipo_richiesta as tipo_richiesta_richiesta
-      FROM richieste_admin ra
-      JOIN squadre s ON ra.squadra_id = s.id
-      JOIN leghe l ON s.lega_id = l.id
-      LEFT JOIN users u ON s.proprietario_id = u.id
-      WHERE l.admin_id = $1 AND ra.stato = 'pending'
+    
+    // Poi ottieni le richieste di unione squadra
+    console.log('Executing richieste unione squadra query...');
+    const richiesteUnioneResult = await db.query(`
+      SELECT 
+        rus.*,
+        l.nome as lega_nome,
+        s.nome as squadra_nome,
+        u.username as richiedente_username,
+        u.nome as richiedente_nome,
+        u.cognome as richiedente_cognome,
+        'unione_squadra' as tipo_richiesta
+      FROM richieste_unione_squadra rus
+      JOIN leghe l ON rus.lega_id = l.id
+      JOIN squadre s ON rus.squadra_id = s.id
+      JOIN users u ON rus.utente_id = u.id
+      WHERE l.admin_id = ?
+      ORDER BY rus.data_richiesta DESC
     `, [adminId]);
-    console.log('Richieste admin found:', richiesteAdminResult.rows.length);
-
-    // Per le richieste Cantera, aggiungi i dettagli del giocatore se non sono già presenti
-    for (let richiesta of richiesteAdminResult.rows) {
-      if (richiesta.tipo_richiesta === 'cantera' && richiesta.dati_richiesta) {
-        try {
-          const datiRichiesta = typeof richiesta.dati_richiesta === 'string' 
-            ? JSON.parse(richiesta.dati_richiesta) 
-            : richiesta.dati_richiesta;
-          
-          // Se non ci sono dettagli_giocatori, li recuperiamo dal database
-          if (!datiRichiesta.dettagli_giocatori && datiRichiesta.giocatori_selezionati) {
-            console.log('Recupero dettagli giocatori per richiesta:', richiesta.id);
-            console.log('Dati richiesta:', JSON.stringify(datiRichiesta, null, 2));
-            
-            const giocatoriIds = Array.isArray(datiRichiesta.giocatori_selezionati) 
-              ? datiRichiesta.giocatori_selezionati 
-              : [datiRichiesta.giocatori_selezionati];
-            
-            console.log('Giocatori IDs da recuperare:', giocatoriIds);
-            
-            if (giocatoriIds.length > 0) {
-              const giocatoriResult = await db.query(`
-                SELECT id, nome, cognome, ruolo, squadra_reale, qi, qa, quotazione_attuale, costo_attuale
-                FROM giocatori 
-                WHERE id = ANY($1)
-              `, [giocatoriIds]);
-              
-              console.log('Giocatori trovati nel DB:', giocatoriResult.rows.length);
-              console.log('Giocatori trovati:', giocatoriResult.rows);
-              
-              const dettagliGiocatori = {};
-              giocatoriResult.rows.forEach(giocatore => {
-                dettagliGiocatori[giocatore.id] = {
-                  nome: giocatore.nome,
-                  cognome: giocatore.cognome,
-                  ruolo: giocatore.ruolo,
-                  squadra_reale: giocatore.squadra_reale,
-                  qi: giocatore.qi,
-                  qa: giocatore.qa || giocatore.quotazione_attuale,
-                  costo_attuale: giocatore.costo_attuale,
-                  costo_dimezzato: Math.floor(giocatore.costo_attuale / 2)
-                };
-              });
-              
-              console.log('Dettagli giocatori creati:', dettagliGiocatori);
-              
-              // Aggiorna i dati della richiesta con i dettagli del giocatore
-              datiRichiesta.dettagli_giocatori = dettagliGiocatori;
-              richiesta.dati_richiesta = JSON.stringify(datiRichiesta);
-              
-              console.log('Dati richiesta aggiornati:', richiesta.dati_richiesta);
-              
-              // Salva i dettagli aggiornati nel database
-              try {
-                await db.query(`
-                  UPDATE richieste_admin 
-                  SET dati_richiesta = $1 
-                  WHERE id = $2
-                `, [richiesta.dati_richiesta, richiesta.id]);
-                console.log('Dettagli giocatori salvati nel database per richiesta:', richiesta.id);
-              } catch (updateError) {
-                console.error('Errore nel salvataggio dettagli nel database:', updateError);
-              }
-            }
-          } else {
-            console.log('Richiesta già ha dettagli giocatori o non ha giocatori selezionati');
-            console.log('Dati richiesta attuali:', JSON.stringify(datiRichiesta, null, 2));
-          }
-        } catch (error) {
-          console.error('Errore nel recupero dettagli giocatori per richiesta:', richiesta.id, error);
-        }
-      }
-    }
-
-    console.log('Richieste admin trovate:', richiesteAdminResult.rows.length);
-
-    // Combina le due liste
+    
+    // Combina le richieste
     const tutteRichieste = [
-      ...richiesteIngressoResult.rows.map(r => ({ ...r, id: `ingresso_${r.id}` })),
-      ...richiesteAdminResult.rows.map(r => ({ ...r, id: `admin_${r.id}` }))
+      ...richiesteIngressoResult.rows.map(r => ({ ...r, tipo_richiesta: 'ingresso' })),
+      ...richiesteUnioneResult.rows
     ];
-
-    console.log('Richieste totali trovate:', tutteRichieste.length);
-    res.json({ richieste: tutteRichieste });
-  } catch (err) {
-    console.error('Errore query richieste admin:', err);
-    console.error('Error details:', err.message);
-    console.error('Error stack:', err.stack);
-    res.status(500).json({ error: 'Errore DB' });
+    
+    console.log('Richieste query executed successfully');
+    res.json({ 
+      richieste: tutteRichieste,
+      total: tutteRichieste.length
+    });
+    
+  } catch (error) {
+    console.error('Errore query richieste admin:', error);
+    res.status(500).json({ error: 'Errore interno del server' });
   }
 });
 
@@ -1161,7 +1067,7 @@ router.get('/richieste/subadmin', requireAuth, async (req, res) => {
       SELECT s.*, l.nome as lega_nome
       FROM subadmin s
       JOIN leghe l ON s.lega_id = l.id
-      WHERE s.utente_id = $1 AND s.attivo = true
+              WHERE s.utente_id = ? AND s.attivo = true
     `, [subadminId]);
     
     if (subadminResult.rows.length === 0) {
@@ -1183,13 +1089,13 @@ router.get('/richieste/subadmin', requireAuth, async (req, res) => {
     // Ottieni le richieste per tutte le leghe dove l'utente è subadmin con permesso gestione_richieste
     const richiesteResult = await db.query(`
       SELECT ri.*, l.nome as lega_nome, s.nome as squadra_nome, 
-             u.nome || ' ' || u.cognome as utente_nome, u.email as utente_email
+             CONCAT(u.nome, ' ', u.cognome) as utente_nome, u.email as utente_email
       FROM richieste_ingresso ri
       JOIN leghe l ON ri.lega_id = l.id
       JOIN squadre s ON ri.squadra_id = s.id
       JOIN users u ON ri.utente_id = u.id
       JOIN subadmin sub ON sub.lega_id = l.id
-      WHERE sub.utente_id = $1 AND sub.attivo = true AND ri.stato = 'in_attesa'
+              WHERE sub.utente_id = ? AND sub.attivo = true AND ri.stato = 'in_attesa'
       ORDER BY ri.data_richiesta ASC
     `, [subadminId]);
     
@@ -1222,7 +1128,7 @@ router.post('/richieste/:richiestaId/rispondi', requireAuth, async (req, res) =>
       JOIN leghe l ON ri.lega_id = l.id
       JOIN squadre s ON ri.squadra_id = s.id
       JOIN users u ON ri.utente_id = u.id
-      WHERE ri.id = $1 AND ri.stato = 'in_attesa'
+              WHERE ri.id = ? AND ri.stato = 'in_attesa'
     `, [richiestaId]);
     
     const richiesta = richiestaResult.rows[0];
@@ -1239,16 +1145,16 @@ router.post('/richieste/:richiestaId/rispondi', requireAuth, async (req, res) =>
       // Aggiorna la richiesta
       await db.query(`
         UPDATE richieste_ingresso 
-        SET stato = $1, data_risposta = $2, risposta_admin_id = $3, messaggio_risposta = $4
-        WHERE id = $5
+        SET stato = ?, data_risposta = ?, risposta_admin_id = ?, messaggio_risposta = ?
+        WHERE id = ?
       `, [nuovoStato, dataRisposta, adminId, messaggio || null, richiestaId]);
       
       if (risposta === 'accetta') {
         // Assegna la squadra all'utente
         await db.query(`
           UPDATE squadre 
-          SET proprietario_id = $1, is_orfana = false
-          WHERE id = $2
+                  SET proprietario_id = ?, is_orfana = false
+        WHERE id = ?
         `, [richiesta.utente_id, richiesta.squadra_id]);
       }
       
@@ -1263,7 +1169,7 @@ router.post('/richieste/:richiestaId/rispondi', requireAuth, async (req, res) =>
       
       await db.query(`
         INSERT INTO notifiche (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-        VALUES ($1, $2, $3, $4, $5, NOW())
+        VALUES (?, ?, ?, ?, ?, NOW())
       `, [richiesta.lega_id, richiesta.utente_id, 'risposta_richiesta', titoloNotifica, messaggioNotifica]);
       
       console.log('Risposta alla richiesta processata:', richiestaId);
@@ -1282,7 +1188,7 @@ router.post('/richieste/:richiestaId/rispondi', requireAuth, async (req, res) =>
       const subadminResult = await db.query(`
         SELECT s.permessi
         FROM subadmin s
-        WHERE s.utente_id = $1 AND s.lega_id = $2 AND s.attivo = true
+        WHERE s.utente_id = ? AND s.lega_id = ? AND s.attivo = true
       `, [adminId, richiesta.lega_id]);
       
       const subadmin = subadminResult.rows[0];
@@ -1323,7 +1229,7 @@ router.delete('/richieste/:richiestaId', requireAuth, async (req, res) => {
 
     const result = await db.query(`
       DELETE FROM richieste_ingresso 
-      WHERE id = $1 AND utente_id = $2 AND stato = 'in_attesa'
+              WHERE id = ? AND utente_id = ? AND stato = 'in_attesa'
     `, [richiestaId, userId]);
     
     if (result.rowCount === 0) {

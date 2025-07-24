@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 import { authenticateToken, generateToken, requireSuperAdmin } from '../middleware/auth.js';
 import bcrypt from 'bcryptjs';
 import { getAllUtenti, updateUtente, updateUtenteRole, deleteUtente } from '../models/utente.js';
@@ -33,8 +33,8 @@ router.post('/login', async (req, res) => {
       return res.status(503).json({ message: 'Database non disponibile' });
     }
 
-    const result = await db.query('SELECT * FROM users WHERE email = $1 AND ruolo = $2', [email, 'SuperAdmin']);
-    const user = result.rows[0];
+    const result = await db.query('SELECT * FROM users WHERE email = ? AND ruolo = ?', [email, 'SuperAdmin']);
+    const user = result[0];
     
     if (!user) {
       return res.status(401).json({ message: 'Credenziali non valide' });
@@ -91,7 +91,7 @@ router.get('/users', authenticateToken, requireSuperAdmin, async (req, res) => {
     }
 
     const users = await db.query('SELECT * FROM users');
-    res.json({ success: true, users: users.rows });
+    res.json({ success: true, users: users });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -112,9 +112,9 @@ router.put('/users/:userId/role', authenticateToken, requireSuperAdmin, async (r
       return res.status(503).json({ message: 'Database non disponibile' });
     }
 
-    const result = await db.query('UPDATE users SET ruolo = $1 WHERE id = $2', [ruolo, userId]);
+    const result = await db.query('UPDATE users SET ruolo = ? WHERE id = ?', [ruolo, userId]);
     
-    if (result.rowCount === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Utente non trovato' });
     }
 
@@ -134,9 +134,9 @@ router.delete('/users/:userId', authenticateToken, requireSuperAdmin, async (req
       return res.status(503).json({ message: 'Database non disponibile' });
     }
 
-    const result = await db.query('DELETE FROM users WHERE id = $1', [userId]);
+    const result = await db.query('DELETE FROM users WHERE id = ?', [userId]);
     
-    if (result.rowCount === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Utente non trovato' });
     }
 
@@ -154,8 +154,8 @@ router.get('/leagues', authenticateToken, requireSuperAdmin, async (req, res) =>
       return res.status(503).json({ message: 'Database non disponibile' });
     }
 
-    const leghe = await db.query('SELECT * FROM lega');
-    res.json({ success: true, leghe: leghe.rows });
+    const leghe = await db.query('SELECT * FROM leghe');
+    res.json({ success: true, leghe: leghe });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -171,9 +171,9 @@ router.delete('/leagues/:legaId', authenticateToken, requireSuperAdmin, async (r
       return res.status(503).json({ message: 'Database non disponibile' });
     }
 
-    const result = await db.query('DELETE FROM lega WHERE id = $1', [legaId]);
+    const result = await db.query('DELETE FROM leghe WHERE id = ?', [legaId]);
     
-    if (result.rowCount === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Lega non trovata' });
     }
 
@@ -191,8 +191,8 @@ router.get('/teams', authenticateToken, requireSuperAdmin, async (req, res) => {
       return res.status(503).json({ message: 'Database non disponibile' });
     }
 
-    const squadre = await db.query('SELECT * FROM squadra');
-    res.json({ success: true, squadre: squadre.rows });
+    const squadre = await db.query('SELECT * FROM squadre');
+    res.json({ success: true, squadre: squadre });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -208,9 +208,9 @@ router.delete('/teams/:squadraId', authenticateToken, requireSuperAdmin, async (
       return res.status(503).json({ message: 'Database non disponibile' });
     }
 
-    const result = await db.query('DELETE FROM squadra WHERE id = $1', [squadraId]);
+    const result = await db.query('DELETE FROM squadre WHERE id = ?', [squadraId]);
     
-    if (result.rowCount === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Squadra non trovata' });
     }
 
@@ -228,8 +228,8 @@ router.get('/players', authenticateToken, requireSuperAdmin, async (req, res) =>
       return res.status(503).json({ message: 'Database non disponibile' });
     }
 
-    const giocatori = await db.query('SELECT * FROM giocatore');
-    res.json({ success: true, giocatori: giocatori.rows });
+    const giocatori = await db.query('SELECT * FROM giocatori');
+    res.json({ success: true, giocatori: giocatori });
   } catch (error) {
     res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
@@ -245,9 +245,9 @@ router.delete('/players/:giocatoreId', authenticateToken, requireSuperAdmin, asy
       return res.status(503).json({ message: 'Database non disponibile' });
     }
 
-    const result = await db.query('DELETE FROM giocatore WHERE id = $1', [giocatoreId]);
+    const result = await db.query('DELETE FROM giocatori WHERE id = ?', [giocatoreId]);
     
-    if (result.rowCount === 0) {
+    if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Giocatore non trovato' });
     }
 
@@ -344,14 +344,14 @@ router.post('/update-schema', requireSuperAdmin, async (req, res) => {
     try {
       await db.query(`
         CREATE TABLE IF NOT EXISTS richieste_unione_squadra (
-          id SERIAL PRIMARY KEY,
-          utente_id INTEGER NOT NULL,
-          squadra_id INTEGER NOT NULL,
-          lega_id INTEGER NOT NULL,
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          utente_id INT NOT NULL,
+          squadra_id INT NOT NULL,
+          lega_id INT NOT NULL,
           stato VARCHAR(50) DEFAULT 'in_attesa',
           data_richiesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          data_risposta TIMESTAMP,
-          risposta_admin_id INTEGER,
+          data_risposta TIMESTAMP NULL,
+          risposta_admin_id INT NULL,
           messaggio_richiesta TEXT,
           messaggio_risposta TEXT,
           FOREIGN KEY (utente_id) REFERENCES users(id),

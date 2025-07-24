@@ -157,6 +157,25 @@ CREATE TABLE IF NOT EXISTS tornei_preferiti (
     UNIQUE(utente_id, torneo_id)
 );
 
+-- Tabella richieste_ingresso
+CREATE TABLE IF NOT EXISTS richieste_ingresso (
+    id SERIAL PRIMARY KEY,
+    utente_id INTEGER NOT NULL,
+    lega_id INTEGER NOT NULL,
+    squadra_id INTEGER NOT NULL,
+    password_fornita TEXT,
+    stato TEXT DEFAULT 'in_attesa',
+    data_richiesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data_risposta TIMESTAMP,
+    risposta_admin_id INTEGER,
+    messaggio_richiesta TEXT,
+    messaggio_risposta TEXT,
+    FOREIGN KEY (utente_id) REFERENCES users(id),
+    FOREIGN KEY (lega_id) REFERENCES leghe(id),
+    FOREIGN KEY (squadra_id) REFERENCES squadre(id),
+    FOREIGN KEY (risposta_admin_id) REFERENCES users(id)
+);
+
 -- Tabella richieste_unione_squadra
 CREATE TABLE IF NOT EXISTS richieste_unione_squadra (
     id SERIAL PRIMARY KEY,

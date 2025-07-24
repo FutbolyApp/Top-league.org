@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 import { requireAuth, requireSuperAdmin } from '../middleware/auth.js';
 import { 
   addSubadmin, 
@@ -34,7 +34,8 @@ router.use((req, res, next) => {
     'https://topleaguem-frontend.onrender.com',
     'https://topleague-frontend-new.onrender.com',
     'https://topleague-frontend.onrender.com',
-    'https://topleaguem.onrender.com'
+    'https://topleaguem.onrender.com',
+    'https://top-league.org'
   ];
   
   if (origin && allowedOrigins.includes(origin)) {
@@ -74,7 +75,7 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
     const db = getDb();
     
     // Verifica che l'utente sia admin della lega o SuperAdmin
-    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [legaId]);
+    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [legaId]);
     
     if (legaResult.rows.length === 0) {
       return res.status(404).json({ error: 'Lega non trovata' });
@@ -116,7 +117,7 @@ router.post('/add', requireAuth, async (req, res) => {
     if (!isSuperAdmin) {
       // Se non è SuperAdmin, verifica che sia admin della lega
       const db = getDb();
-      const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [legaId]);
+      const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [legaId]);
       
       console.log('Lega trovata:', legaResult.rows[0]);
       
@@ -163,7 +164,7 @@ router.delete('/remove', requireAuth, async (req, res) => {
     if (!isSuperAdmin) {
       // Se non è SuperAdmin, verifica che sia admin della lega
       const db = getDb();
-      const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [legaId]);
+      const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [legaId]);
       
       if (legaResult.rows.length === 0) {
         return res.status(404).json({ error: 'Lega non trovata' });
@@ -204,7 +205,7 @@ router.put('/update-permissions', requireAuth, async (req, res) => {
     if (!isSuperAdmin) {
       // Se non è SuperAdmin, verifica che sia admin della lega
       const db = getDb();
-      const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [legaId]);
+      const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [legaId]);
       
       if (legaResult.rows.length === 0) {
         return res.status(404).json({ error: 'Lega non trovata' });
@@ -281,7 +282,7 @@ router.get('/pending/:legaId', requireAuth, async (req, res) => {
     const db = getDb();
     
     // Verifica che l'utente sia admin della lega o SuperAdmin
-    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [legaId]);
+    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [legaId]);
     
     if (legaResult.rows.length === 0) {
       return res.status(404).json({ error: 'Lega non trovata' });
@@ -328,7 +329,7 @@ router.post('/approve/:changeId', requireAuth, async (req, res) => {
     } else {
       // Verifica che l'utente sia admin della lega
       const db = getDb();
-      const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [change.lega_id]);
+      const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [change.lega_id]);
       
       if (legaResult.rows.length === 0) {
         return res.status(404).json({ error: 'Lega non trovata' });
@@ -372,7 +373,7 @@ router.post('/reject/:changeId', requireAuth, async (req, res) => {
     } else {
       // Verifica che l'utente sia admin della lega
       const db = getDb();
-      const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [change.lega_id]);
+      const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [change.lega_id]);
       
       if (legaResult.rows.length === 0) {
         return res.status(404).json({ error: 'Lega non trovata' });
@@ -400,7 +401,7 @@ router.get('/history/:legaId', requireAuth, async (req, res) => {
     const db = getDb();
     
     // Verifica che l'utente sia admin della lega o SuperAdmin
-    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [legaId]);
+    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [legaId]);
     
     if (legaResult.rows.length === 0) {
       return res.status(404).json({ error: 'Lega non trovata' });
@@ -442,28 +443,25 @@ router.get('/check-all', requireAuth, async (req, res) => {
     const userId = req.user.id;
     
     const db = getDb();
+    
     const result = await db.query(`
       SELECT s.*, l.nome as lega_nome, l.id as lega_id
       FROM subadmin s
       JOIN leghe l ON s.lega_id = l.id
-      WHERE s.utente_id = $1 AND s.attivo = true
+      WHERE s.utente_id = ? AND s.attivo = true
     `, [userId]);
     
     const subadminLeagues = result.rows;
     const isSubadmin = subadminLeagues.length > 0;
-    const leagues = subadminLeagues.map(sl => ({
-      id: sl.lega_id,
-      nome: sl.lega_nome,
-      permessi: JSON.parse(sl.permessi || '{}')
-    }));
     
-    res.json({ 
-      isSubadmin, 
-      leagues 
+    res.json({
+      isSubadmin,
+      leagues: subadminLeagues
     });
+    
   } catch (error) {
     console.error('Errore verifica subadmin globale:', error);
-    res.status(500).json({ error: 'Errore DB', details: error.message });
+    res.status(500).json({ error: 'Errore interno del server' });
   }
 });
 

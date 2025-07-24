@@ -1,4 +1,4 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 import { getLegaById } from './lega.js';
 import { getGiocatoriBySquadra } from './giocatore.js';
 
@@ -37,7 +37,7 @@ export class RosterManager {
         SELECT *,
                quotazione_attuale
         FROM giocatori 
-        WHERE squadra_id = $1 
+        WHERE squadra_id = ? 
         ORDER BY roster, nome, cognome
       `;
       
@@ -73,7 +73,7 @@ export class RosterManager {
       }
 
       // Prima verifica se il giocatore è in prestito
-      const giocatoreResult = await db.query('SELECT prestito FROM giocatori WHERE id = $1', [giocatoreId]);
+      const giocatoreResult = await db.query('SELECT prestito FROM giocatori WHERE id = ?', [giocatoreId]);
       const giocatore = giocatoreResult.rows[0];
       
       if (!giocatore) {
@@ -84,7 +84,7 @@ export class RosterManager {
         throw new Error('Solo i giocatori in prestito possono essere spostati in Roster B');
       }
       
-      const sql = `UPDATE giocatori SET roster = 'B' WHERE id = $1`;
+      const sql = `UPDATE giocatori SET roster = 'B' WHERE id = ?`;
       const result = await db.query(sql, [giocatoreId]);
       return result.rowCount > 0;
     } catch (error) {
@@ -105,7 +105,7 @@ export class RosterManager {
       }
 
       // Prima verifica se il giocatore è ancora in prestito
-      const giocatoreResult = await db.query('SELECT prestito FROM giocatori WHERE id = $1', [giocatoreId]);
+      const giocatoreResult = await db.query('SELECT prestito FROM giocatori WHERE id = ?', [giocatoreId]);
       const giocatore = giocatoreResult.rows[0];
       
       if (!giocatore) {
@@ -116,7 +116,7 @@ export class RosterManager {
         throw new Error('I giocatori in prestito devono rimanere in Roster B');
       }
       
-      const sql = `UPDATE giocatori SET roster = 'A' WHERE id = $1`;
+      const sql = `UPDATE giocatori SET roster = 'A' WHERE id = ?`;
       const result = await db.query(sql, [giocatoreId]);
       return result.rowCount > 0;
     } catch (error) {
@@ -173,7 +173,7 @@ export class RosterManager {
       }
 
       // Prima imposta prestito = 0 per indicare che il giocatore non è più in prestito
-      await db.query('UPDATE giocatori SET prestito = 0 WHERE id = $1', [giocatoreId]);
+      await db.query('UPDATE giocatori SET prestito = 0 WHERE id = ?', [giocatoreId]);
 
       // Ottieni il numero massimo di giocatori dalla lega
       const lega = await getLegaById(this.legaId);
@@ -216,7 +216,7 @@ export class RosterManager {
       const sql = `
         SELECT SUM(salario) as totale_salari
         FROM giocatori 
-        WHERE squadra_id = $1 AND roster = 'A'
+        WHERE squadra_id = ? AND roster = 'A'
       `;
       
       const result = await db.query(sql, [squadraId]);
@@ -262,7 +262,7 @@ export class RosterManager {
         throw new Error('Database non disponibile');
       }
 
-      const sql = `UPDATE giocatori SET roster = $1 WHERE id = $2`;
+      const sql = `UPDATE giocatori SET roster = ? WHERE id = ?`;
       const result = await db.query(sql, [targetRoster, giocatoreId]);
       return result.rowCount > 0;
     } catch (error) {
@@ -285,7 +285,7 @@ export class RosterManager {
         SELECT *,
                quotazione_attuale
         FROM giocatori 
-        WHERE squadra_id = $1 AND prestito = 1 AND roster = 'B'
+        WHERE squadra_id = ? AND prestito = 1 AND roster = 'B'
         ORDER BY nome, cognome
       `;
       

@@ -1,6 +1,6 @@
 import express from 'express';
-import { getDb } from '../db/postgres.js';
-import { initDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
+import { initDb } from '../db/mariadb.js';
 
 const router = express.Router();
 

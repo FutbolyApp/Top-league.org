@@ -1,7 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { getLogSquadra, getLogSquadraFiltrati, createLogSquadra, CATEGORIE_EVENTI, TIPI_EVENTI } from '../models/logSquadra.js';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 const router = express.Router();
 

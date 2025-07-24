@@ -47,7 +47,7 @@ export function requireAdmin(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Token non fornito' });
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    if (payload.ruolo !== 'admin' && payload.ruolo !== 'superadmin') {
+    if (payload.ruolo !== 'admin' && payload.ruolo !== 'superadmin' && payload.ruolo !== 'SuperAdmin') {
       return res.status(403).json({ error: 'Accesso negato: richiesto Admin o SuperAdmin' });
     }
     req.user = payload;

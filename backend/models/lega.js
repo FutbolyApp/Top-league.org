@@ -1,15 +1,12 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 function normalizeLegaName(nome) {
-  return nome
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, ''); // rimuove tutto tranne lettere e numeri
+  return nome.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 export async function checkLegaExists(nome) {
   const normalized = normalizeLegaName(nome);
   const db = getDb();
-  // Cerco tra tutte le leghe già normalizzate
   const result = await db.query('SELECT id, nome FROM leghe');
   const found = result.rows.find(l => normalizeLegaName(l?.nome || 'Nome') === normalized);
   return found;
@@ -31,7 +28,7 @@ export async function createLega(data) {
   
   // Se non esiste, procedi con la creazione
   const sql = `INSERT INTO leghe (nome, modalita, admin_id, is_pubblica, password, max_squadre, min_giocatori, max_giocatori, roster_ab, cantera, contratti, triggers, regolamento_pdf, excel_originale, excel_modificato)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`;
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   const db = getDb();
   const result = await db.query(sql, [
     data?.nome || 'Nome',
@@ -51,12 +48,12 @@ export async function createLega(data) {
     data?.excel_modificato || null
   ]);
   
-  return result.rows[0].id;
+  return result.insertId;
 }
 
 export async function getLegaById(id) {
   const db = getDb();
-  const result = await db.query('SELECT * FROM leghe WHERE id = $1', [id]);
+  const result = await db.query('SELECT * FROM leghe WHERE id = ?', [id]);
   return result.rows[0] || null;
 }
 
@@ -84,7 +81,7 @@ export async function updateLega(id, data) {
   const admin_id = parseInt(data.admin_id) || 1;
   
   // Procedi con l'aggiornamento
-  const sql = `UPDATE leghe SET nome=$1, modalita=$2, admin_id=$3, is_pubblica=$4, password=$5, max_squadre=$6, min_giocatori=$7, max_giocatori=$8, roster_ab=$9, cantera=$10, contratti=$11, triggers=$12, regolamento_pdf=$13, excel_originale=$14, excel_modificato=$15 WHERE id=$16`;
+  const sql = `UPDATE leghe SET nome=?, modalita=?, admin_id=?, is_pubblica=?, password=?, max_squadre=?, min_giocatori=?, max_giocatori=?, roster_ab=?, cantera=?, contratti=?, triggers=?, regolamento_pdf=?, excel_originale=?, excel_modificato=? WHERE id=?`;
   const db = getDb();
   await db.query(sql, [
     data?.nome || 'Nome',
@@ -108,5 +105,5 @@ export async function updateLega(id, data) {
 
 export async function deleteLega(id) {
   const db = getDb();
-  await db.query('DELETE FROM leghe WHERE id = $1', [id]);
+  await db.query('DELETE FROM leghe WHERE id = ?', [id]);
 } 

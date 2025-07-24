@@ -1,4 +1,4 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 import { updateSquadra } from './squadra.js';
 import { updateGiocatorePartial } from './giocatore.js';
 
@@ -10,16 +10,16 @@ export async function createPendingChange(legaId, subadminId, actionType, action
   console.log('Creazione pending change:', { legaId, subadminId, actionType, description });
   
   const result = await db.query(
-    'INSERT INTO pending_changes (lega_id, subadmin_id, action_type, action_data, description, details, status) VALUES ($1, $2, $3, $4, $5, $6, \'pending\') RETURNING id',
+    'INSERT INTO pending_changes (lega_id, subadmin_id, action_type, action_data, description, details, status) VALUES (?, ?, ?, ?, ?, ?, \'pending\')',
     [legaId, subadminId, actionType, actionDataJson, description, detailsJson]
   );
   
-  const changeId = result.rows[0].id;
+  const changeId = result.insertId;
   console.log('Pending change creata con ID:', changeId);
   
   // Crea notifica per l'admin della lega
   try {
-    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [legaId]);
+    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [legaId]);
     
     console.log('Admin lega trovato:', legaResult.rows[0]);
     
@@ -29,11 +29,10 @@ export async function createPendingChange(legaId, subadminId, actionType, action
       
       const notificaResult = await db.query(`
         INSERT INTO notifiche (utente_id, lega_id, tipo, messaggio, data_creazione)
-        VALUES ($1, $2, $3, $4, NOW())
-        RETURNING id
+        VALUES (?, ?, ?, ?, NOW())
       `, [legaResult.rows[0].admin_id, legaId, 'subadmin_request', messaggio]);
       
-      console.log('Notifica creata per admin, ID:', notificaResult.rows[0].id);
+      console.log('Notifica creata per admin, ID:', notificaResult.insertId);
     } else {
       console.log('Nessun admin trovato per la lega:', legaId);
     }
@@ -53,7 +52,7 @@ export async function getPendingChangesByLega(legaId) {
     FROM pending_changes pc
     JOIN users u ON pc.subadmin_id = u.id
     JOIN leghe l ON pc.lega_id = l.id
-    WHERE pc.lega_id = $1 AND pc.status = 'pending'
+    WHERE pc.lega_id = ? AND pc.status = 'pending'
     ORDER BY pc.created_at DESC
   `, [legaId]);
   
@@ -77,7 +76,7 @@ export async function getPendingChangesBySubadmin(subadminId) {
     SELECT pc.*, l.nome as lega_nome, l.id as lega_id
     FROM pending_changes pc
     JOIN leghe l ON pc.lega_id = l.id
-    WHERE pc.subadmin_id = $1 AND pc.status = 'pending'
+    WHERE pc.subadmin_id = ? AND pc.status = 'pending'
     ORDER BY pc.created_at DESC
   `, [subadminId]);
   

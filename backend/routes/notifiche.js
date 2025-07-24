@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 const router = express.Router();
 
@@ -9,17 +9,17 @@ router.get('/', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
     const db = getDb();
+    
     const result = await db.query(`
-      SELECT *, COALESCE(dati_aggiuntivi, '{}') as dati_aggiuntivi 
-      FROM notifiche 
-      WHERE utente_id = $1 AND (archiviata = false OR archiviata IS NULL) 
+      SELECT * FROM notifiche 
+      WHERE utente_id = ? 
       ORDER BY data_creazione DESC
     `, [userId]);
     
     res.json({ notifiche: result.rows });
   } catch (error) {
     console.error('Errore recupero notifiche:', error);
-    res.status(500).json({ error: 'Errore DB', details: error.message });
+    res.status(500).json({ error: 'Errore interno del server' });
   }
 });
 
@@ -31,14 +31,14 @@ router.get('/utente', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT *, COALESCE(dati_aggiuntivi, '{}') as dati_aggiuntivi 
       FROM notifiche 
-      WHERE utente_id = $1 AND (archiviata = false OR archiviata IS NULL) 
+      WHERE utente_id = ? AND (archiviata = false OR archiviata IS NULL) 
       ORDER BY data_creazione DESC
     `, [userId]);
     
     res.json({ notifiche: result.rows });
   } catch (error) {
     console.error('Errore recupero notifiche utente:', error);
-    res.status(500).json({ error: 'Errore DB', details: error.message });
+    res.status(500).json({ error: 'Errore interno del server' });
   }
 });
 
@@ -50,7 +50,7 @@ router.get('/admin/:legaId', requireAuth, async (req, res) => {
     const db = getDb();
     
     // Verifica che l'utente sia admin della lega
-    const legaResult = await db.query('SELECT id FROM leghe WHERE id = $1 AND admin_id = $2', [legaId, adminId]);
+    const legaResult = await db.query('SELECT id FROM leghe WHERE id = ? AND admin_id = ?', [legaId, adminId]);
     
     if ((legaResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
@@ -58,17 +58,17 @@ router.get('/admin/:legaId', requireAuth, async (req, res) => {
     
     // Ottieni notifiche per admin di questa lega
     const notificheResult = await db.query(`
-      SELECT n.*, COALESCE(u.nome, 'Nome') as utente_nome, u?.cognome || '' as utente_cognome
+      SELECT n.*, COALESCE(u.nome, 'Nome') as utente_nome, CONCAT(u.cognome, '') as utente_cognome
       FROM notifiche n
       JOIN users u ON n.utente_id = u.id
-      WHERE n.lega_id = $1 AND n.tipo IN ('richiesta_trasferimento', 'richiesta_club', 'richiesta_rinnovo', 'richiesta_pagamento', 'richiesta_generale')
+      WHERE n.lega_id = ? AND n.tipo IN ('richiesta_trasferimento', 'richiesta_club', 'richiesta_rinnovo', 'richiesta_pagamento', 'richiesta_generale')
       ORDER BY n.data_creazione DESC
     `, [legaId]);
     
     res.json({ notifiche: notificheResult.rows });
   } catch (error) {
     console.error('Errore recupero notifiche admin:', error);
-    res.status(500).json({ error: 'Errore DB', details: error.message });
+    res.status(500).json({ error: 'Errore interno del server' });
   }
 });
 
@@ -84,7 +84,7 @@ router.post('/admin', requireAuth, async (req, res) => {
     }
     
     // Ottieni admin della lega
-    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [lega_id]);
+    const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [lega_id]);
     
     if ((legaResult.rows?.length || 0) === 0) {
       return res.status(404).json({ error: 'Lega non trovata' });
@@ -95,8 +95,7 @@ router.post('/admin', requireAuth, async (req, res) => {
     // Crea notifica per l'admin
     const notificaResult = await db.query(`
       INSERT INTO notifiche (utente_id, lega_id, tipo, messaggio, data_creazione)
-      VALUES ($1, $2, $3, $4, NOW())
-      RETURNING id
+      VALUES (?, ?, ?, ?, NOW())
     `, [lega.admin_id, lega_id, tipo, messaggio]);
     
     res.json({ success: true, id: notificaResult.rows[0].id });
@@ -114,7 +113,7 @@ router.put('/:notificaId/letta', requireAuth, async (req, res) => {
     const db = getDb();
     
     const result = await db.query(
-      'UPDATE notifiche SET letto = true, data_lettura = NOW() WHERE id = $1 AND utente_id = $2',
+      'UPDATE notifiche SET letto = true, data_lettura = NOW() WHERE id = ? AND utente_id = ?',
       [notificaId, userId]
     );
     
@@ -137,7 +136,7 @@ router.post('/:notificaId/read', requireAuth, async (req, res) => {
     const db = getDb();
     
     const result = await db.query(
-      'UPDATE notifiche SET letto = true, data_lettura = NOW() WHERE id = $1 AND utente_id = $2',
+      'UPDATE notifiche SET letto = true, data_lettura = NOW() WHERE id = ? AND utente_id = ?',
       [notificaId, userId]
     );
     
@@ -159,7 +158,7 @@ router.put('/tutte-lette', requireAuth, async (req, res) => {
     const db = getDb();
     
     const result = await db.query(
-      'UPDATE notifiche SET letto = true, data_lettura = NOW() WHERE utente_id = $1',
+      'UPDATE notifiche SET letto = true, data_lettura = NOW() WHERE utente_id = ?',
       [userId]
     );
     
@@ -178,7 +177,7 @@ router.delete('/:notificaId', requireAuth, async (req, res) => {
     const db = getDb();
     
     const result = await db.query(
-      'DELETE FROM notifiche WHERE id = $1 AND utente_id = $2',
+      'DELETE FROM notifiche WHERE id = ? AND utente_id = ?',
       [notificaId, userId]
     );
     
@@ -204,11 +203,11 @@ router.put('/archivia', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Lista notifiche richiesta' });
     }
     
-    const placeholders = notifica_ids?.map((_, index) => `$${index + 2}`).join(',');
+    const placeholders = notifica_ids?.map((_, index) => `?`).join(',');
     const params = [userId, ...notifica_ids];
     
     const result = await db.query(
-      `UPDATE notifiche SET archiviata = true WHERE id IN (${placeholders}) AND utente_id = $1`,
+      `UPDATE notifiche SET archiviata = true WHERE id IN (${placeholders}) AND utente_id = ?`,
       params
     );
     

@@ -4,11 +4,15 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { initializeDatabase, getDb } from './db/postgres.js';
+import { initializeDatabase, getDb } from './db/mariadb.js';
 import { fixNotificheColumns } from './scripts/fix_remaining_columns.js';
 
-// Carica le variabili d'ambiente dal file env.local
-dotenv.config({ path: './env.local' });
+// Carica le variabili d'ambiente in base all'ambiente
+if (process.env.NODE_ENV === 'production') {
+  dotenv.config({ path: './env.render' });
+} else {
+  dotenv.config({ path: './env.local' });
+}
 import { initializeWebSocket } from './websocket.js';
 import legheRouter from './routes/leghe.js';
 import authRouter from './routes/auth.js';
@@ -29,6 +33,7 @@ import quotazioniRoutes from './routes/quotazioni.js';
 import richiesteAdminRoutes from './routes/richiesteAdmin.js';
 import schemaRouter from './routes/schema.js';
 import debugRouter from './routes/debug.js';
+import testRouter from './routes/test.js';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -44,7 +49,10 @@ app.use(cors({
     'https://topleaguem-frontend.onrender.com',
     'https://topleague-frontend.onrender.com',
     'https://topleaguem.onrender.com',
-    'http://localhost:3000'
+    'https://top-league.org',
+    'https://www.top-league.org',
+    'http://localhost:3000',
+    'http://localhost:3001'
   ],
   methods: ['GET','POST','PUT','DELETE','OPTIONS','PATCH'],
   allowedHeaders: ['Content-Type','Authorization','Cache-Control','Pragma','Expires','Origin','X-Requested-With','Accept'],
@@ -56,7 +64,7 @@ app.options('*', cors()); // abilita le richieste preflight
 // Middleware specifico per gestire richieste OPTIONS
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', 'https://topleague-frontend-new.onrender.com');
+    res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires');
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -72,7 +80,7 @@ app.use((err, req, res, next) => {
   
   // Se è un errore CORS, rispondi con headers appropriati
   if (err.message && err.message.includes('CORS')) {
-    res.header('Access-Control-Allow-Origin', 'https://topleague-frontend-new.onrender.com');
+    res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma, Expires');
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -197,6 +205,81 @@ app.post('/api/test-formdata', upload.single('file'), (req, res) => {
   });
 });
 
+// Test database connection
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database connection not available' });
+    }
+    
+    const result = await db.query('SELECT COUNT(*) as total FROM leghe');
+    console.log('Query result:', result);
+    console.log('Result rows:', result.rows);
+    console.log('Result structure:', Object.keys(result));
+    console.log('Result type:', typeof result);
+    console.log('Result is array:', Array.isArray(result));
+    
+    res.json({ 
+      success: true, 
+      total_leghe: result.rows ? result.rows[0]?.total : 'no rows',
+      result_structure: Object.keys(result),
+      has_rows: !!result.rows,
+      rows_length: result.rows ? result.rows.length : 0,
+      result_type: typeof result,
+      is_array: Array.isArray(result),
+      message: 'Database connection working'
+    });
+  } catch (error) {
+    console.error('Database test error:', error);
+    res.status(500).json({ 
+      error: 'Database error', 
+      details: error.message,
+      stack: error.stack
+    });
+  }
+});
+
+// Test leghe admin query
+app.get('/api/test-leghe-admin', async (req, res) => {
+  try {
+    const db = getDb();
+    if (!db) {
+      return res.status(503).json({ error: 'Database connection not available' });
+    }
+    
+    const result = await db.query(`
+      SELECT l.*, 
+           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id) as numero_squadre_totali,
+           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = false) as squadre_assegnate,
+           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) as squadre_non_assegnate,
+           (SELECT COUNT(*) FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = l.id) as numero_giocatori,
+           (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei,
+           DATE_FORMAT(l.created_at, '%d/%m/%Y') as data_creazione_formattata
+      FROM leghe l
+      WHERE l.admin_id = ?
+      ORDER BY l.created_at DESC
+    `, [1]);
+    
+    console.log('Leghe admin query result:', result);
+    console.log('Result rows:', result.rows);
+    
+    res.json({ 
+      success: true, 
+      leghe: result.rows,
+      rows_length: result.rows ? result.rows.length : 0,
+      message: 'Leghe admin query working'
+    });
+  } catch (error) {
+    console.error('Leghe admin query error:', error);
+    res.status(500).json({ 
+      error: 'Leghe admin query error', 
+      details: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Placeholder: upload file Excel
 app.post('/api/upload/excel', upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Nessun file caricato' });
@@ -246,6 +329,7 @@ app.use('/api/quotazioni', quotazioniRoutes);
 app.use('/api/richieste-admin', richiesteAdminRoutes);
 app.use('/api/schema', schemaRouter);
 app.use('/api/debug', debugRouter);
+app.use('/api/test', testRouter);
 
 // Error handling
 app.use((err, req, res, next) => {
@@ -382,7 +466,32 @@ const startServer = async () => {
 
 startServer();
 
+// Servi i file statici del frontend React
+const frontendBuildPath = path.join(__dirname, '../frontend/build');
+if (fs.existsSync(frontendBuildPath)) {
+  app.use(express.static(frontendBuildPath));
+  console.log('✅ Frontend build files found and served');
+} else {
+  console.log('⚠️ Frontend build directory not found, serving API only');
+}
+
 // Conferma API
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.send('✅ API TopLeague attiva!');
+});
+
+// Catch-all handler per SPA routing (deve essere dopo tutte le altre route)
+app.get('*', (req, res) => {
+  // Se la richiesta inizia con /api, restituisci 404
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  
+  // Altrimenti, servi il file index.html del frontend
+  const indexPath = path.join(frontendBuildPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend not built. Please run "npm run build" in the frontend directory.');
+  }
 });

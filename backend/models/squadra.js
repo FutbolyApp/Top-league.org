@@ -1,4 +1,4 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 export async function createSquadra(data) {
   try {
@@ -6,7 +6,7 @@ export async function createSquadra(data) {
     
     const db = getDb();
     const sql = `INSERT INTO squadre (lega_id, nome, proprietario_id, club_level, casse_societarie, costo_salariale_totale, costo_salariale_annuale, valore_squadra, is_orfana)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`;
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     
     const params = [
       data.lega_id,
@@ -24,7 +24,7 @@ export async function createSquadra(data) {
     console.log(`🔄 Parametri:`, JSON.stringify(params, null, 2));
     
     const result = await db.query(sql, params);
-    const squadraId = result.rows[0].id;
+    const squadraId = result.insertId;
     
     console.log(`✅ Squadra creata con successo. ID: ${squadraId}`);
     return squadraId;
@@ -51,7 +51,7 @@ export async function getSquadraById(id) {
            END as proprietario_cognome
     FROM squadre s
     LEFT JOIN users u ON s.proprietario_id = u.id
-    WHERE s.id = $1
+    WHERE s.id = ?
   `, [id]);
   
   return result.rows[0] || null;
@@ -80,7 +80,7 @@ export async function getSquadreByLega(lega_id) {
              ), 0) as valore_attuale_qa
       FROM squadre s
       LEFT JOIN users u ON s.proprietario_id = u.id
-      WHERE s.lega_id = $1
+      WHERE s.lega_id = ?
       ORDER BY s.nome
     `, [lega_id]);
     
@@ -91,7 +91,7 @@ export async function getSquadreByLega(lega_id) {
           SELECT t.id, t.nome
           FROM tornei_squadre ts
           JOIN tornei t ON ts.torneo_id = t.id
-          WHERE ts.squadra_id = $1
+          WHERE ts.squadra_id = ?
           ORDER BY t.nome
         `, [squadra.id]);
         
@@ -99,7 +99,7 @@ export async function getSquadreByLega(lega_id) {
         squadra.tornei_nomi = torneiResult.rows.map(t => t.nome).join(', ');
         squadra.tornei_ids = torneiResult.rows.map(t => t.id.toString()).join(', ');
       } catch (error) {
-        console.log(`⚠️ Error getting tournaments for team ${squadra.id}:`, error.message);
+        console.error(`Errore recupero tornei per squadra ${squadra.id}:`, error);
         squadra.tornei = [];
         squadra.tornei_nomi = '';
         squadra.tornei_ids = '';
@@ -108,7 +108,7 @@ export async function getSquadreByLega(lega_id) {
     
     return result.rows;
   } catch (error) {
-    console.error(`❌ Error in getSquadreByLega for lega ${lega_id}:`, error.message);
+    console.error('Errore in getSquadreByLega:', error);
     throw error;
   }
 }
@@ -128,6 +128,7 @@ export async function getAllSquadre() {
            END as proprietario_cognome
     FROM squadre s
     LEFT JOIN users u ON s.proprietario_id = u.id
+    ORDER BY s.nome
   `);
   
   return result.rows;
@@ -135,7 +136,7 @@ export async function getAllSquadre() {
 
 export async function updateSquadra(id, data) {
   const db = getDb();
-  const sql = `UPDATE squadre SET lega_id=$1, nome=$2, proprietario_id=$3, club_level=$4, casse_societarie=$5, costo_salariale_totale=$6, costo_salariale_annuale=$7, valore_squadra=$8, is_orfana=$9 WHERE id=$10`;
+  const sql = `UPDATE squadre SET lega_id=?, nome=?, proprietario_id=?, club_level=?, casse_societarie=?, costo_salariale_totale=?, costo_salariale_annuale=?, valore_squadra=?, is_orfana=? WHERE id=?`;
   await db.query(sql, [
     data.lega_id,
     data?.nome || 'Nome',
@@ -151,31 +152,24 @@ export async function updateSquadra(id, data) {
 }
 
 export async function updateSquadraPartial(id, updates) {
-  // First get the current squad data
-  const squadra = await getSquadraById(id);
-  if (!squadra) {
-    throw new Error('Squadra non trovata');
-  }
-
-  // Merge current data with updates
-  const updatedData = {
-    lega_id: squadra.lega_id,
-    nome: squadra?.nome || 'Nome',
-    proprietario_id: squadra.proprietario_id,
-    club_level: squadra.club_level,
-    casse_societarie: squadra.casse_societarie,
-    costo_salariale_totale: squadra.costo_salariale_totale,
-    costo_salariale_annuale: squadra.costo_salariale_annuale,
-    valore_squadra: squadra.valore_squadra,
-    is_orfana: squadra.is_orfana,
-    ...updates // Override with provided updates
-  };
-
-  // Use the existing updateSquadra function
-  await updateSquadra(id, updatedData);
+  const db = getDb();
+  
+  // Costruisci dinamicamente la query UPDATE
+  const fields = [];
+  const values = [];
+  
+  Object.entries(updates).forEach(([key, value]) => {
+    fields.push(`${key} = ?`);
+    values.push(value);
+  });
+  
+  values.push(id);
+  
+  const sql = `UPDATE squadre SET ${fields.join(', ')} WHERE id = ?`;
+  await db.query(sql, values);
 }
 
 export async function deleteSquadra(id) {
   const db = getDb();
-  await db.query('DELETE FROM squadre WHERE id = $1', [id]);
+  await db.query('DELETE FROM squadre WHERE id = ?', [id]);
 } 

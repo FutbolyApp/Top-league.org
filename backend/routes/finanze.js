@@ -1,6 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 const router = express.Router();
 
@@ -16,7 +16,7 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
     }
 
     // Verifica che l'utente sia proprietario della squadra
-    const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
+    const squadraResult = await db.query('SELECT id FROM squadre WHERE id = ? AND proprietario_id = ?', [squadraId, userId]);
     if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
@@ -30,7 +30,7 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
         (s.budget_iniziale + COALESCE(SUM(CASE WHEN t.tipo = 'entrata' THEN t.importo ELSE -t.importo END), 0)) as bilancio_attuale
       FROM squadre s
       LEFT JOIN transazioni t ON s.id = t.squadra_id
-      WHERE s.id = $1
+      WHERE s.id = ?
       GROUP BY s.id
     `, [squadraId]);
     
@@ -55,7 +55,7 @@ router.get('/squadra/:squadraId/transazioni', requireAuth, async (req, res) => {
     }
 
     // Verifica autorizzazione
-    const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
+    const squadraResult = await db.query('SELECT id FROM squadre WHERE id = ? AND proprietario_id = ?', [squadraId, userId]);
     if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
@@ -65,44 +65,44 @@ router.get('/squadra/:squadraId/transazioni', requireAuth, async (req, res) => {
       FROM transazioni t
       LEFT JOIN giocatori g ON t.giocatore_id = g.id
       LEFT JOIN squadre s ON t.squadra_id = s.id
-      WHERE t.squadra_id = $1
+      WHERE t.squadra_id = ?
     `;
     let params = [squadraId];
     let paramIndex = 1;
 
     if (tipo) {
       paramIndex++;
-      query += ` AND t.tipo = $${paramIndex}`;
+      query += ` AND t.tipo = ?`;
       params.push(tipo);
     }
 
     if (categoria) {
       paramIndex++;
-      query += ` AND t.categoria = $${paramIndex}`;
+      query += ` AND t.categoria = ?`;
       params.push(categoria);
     }
 
     paramIndex++;
-    query += ` ORDER BY t.data_transazione DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    query += ` ORDER BY t.data_transazione DESC LIMIT ? OFFSET ?`;
     params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
 
     const transazioniResult = await db.query(query, params);
     const transazioni = transazioniResult.rows;
     
     // Conta totale
-    let countQuery = 'SELECT COUNT(*) as total FROM transazioni WHERE squadra_id = $1';
+    let countQuery = 'SELECT COUNT(*) as total FROM transazioni WHERE squadra_id = ?';
     let countParams = [squadraId];
     let countParamIndex = 1;
     
     if (tipo) {
       countParamIndex++;
-      countQuery += ` AND tipo = $${countParamIndex}`;
+      countQuery += ` AND tipo = ?`;
       countParams.push(tipo);
     }
     
     if (categoria) {
       countParamIndex++;
-      countQuery += ` AND categoria = $${countParamIndex}`;
+      countQuery += ` AND categoria = ?`;
       countParams.push(categoria);
     }
 
@@ -137,7 +137,7 @@ router.post('/squadra/:squadraId/transazione', requireAuth, async (req, res) => 
     }
 
     // Verifica autorizzazione
-    const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
+    const squadraResult = await db.query('SELECT id FROM squadre WHERE id = ? AND proprietario_id = ?', [squadraId, userId]);
     if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
@@ -150,7 +150,7 @@ router.post('/squadra/:squadraId/transazione', requireAuth, async (req, res) => 
           COALESCE(SUM(CASE WHEN t.tipo = 'entrata' THEN t.importo ELSE -t.importo END), 0) as saldo_attuale
         FROM squadre s
         LEFT JOIN transazioni t ON s.id = t.squadra_id
-        WHERE s.id = $1
+        WHERE s.id = ?
         GROUP BY s.id
       `, [squadraId]);
       
@@ -164,13 +164,12 @@ router.post('/squadra/:squadraId/transazione', requireAuth, async (req, res) => 
     // Inserisci transazione
     const insertResult = await db.query(`
       INSERT INTO transazioni (squadra_id, tipo, categoria, importo, descrizione, giocatore_id, data_transazione)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [squadraId, tipo, categoria, importo, descrizione, giocatore_id || null, data_transazione || new Date().toISOString()]);
     
     res.json({ 
       success: true, 
-      transazione_id: insertResult.rows[0].id,
+      transazione_id: insertResult.insertId,
       message: 'Transazione registrata con successo'
     });
   } catch (error) {
@@ -192,7 +191,7 @@ router.get('/squadra/:squadraId/report', requireAuth, async (req, res) => {
     }
 
     // Verifica autorizzazione
-    const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
+    const squadraResult = await db.query('SELECT id FROM squadre WHERE id = ? AND proprietario_id = ?', [squadraId, userId]);
     if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
@@ -202,29 +201,29 @@ router.get('/squadra/:squadraId/report', requireAuth, async (req, res) => {
 
     switch (periodo) {
       case 'settimana':
-        dateFilter = 'AND t.data_transazione >= date("now", "-7 days")';
+        dateFilter = 'AND t.data_transazione >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
         break;
       case 'mese':
-        dateFilter = 'AND t.data_transazione >= date("now", "-1 month")';
+        dateFilter = 'AND t.data_transazione >= DATE_SUB(NOW(), INTERVAL 1 MONTH)';
         break;
       case 'trimestre':
-        dateFilter = 'AND t.data_transazione >= date("now", "-3 months")';
+        dateFilter = 'AND t.data_transazione >= DATE_SUB(NOW(), INTERVAL 3 MONTH)';
         break;
       case 'anno':
-        dateFilter = 'AND t.data_transazione >= date("now", "-1 year")';
+        dateFilter = 'AND t.data_transazione >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
         break;
     }
 
     // Statistiche per categoria
     const statsCategoriaResult = await db.query(`
       SELECT 
-        categoria,
-        tipo,
-        SUM(importo) as totale,
+        t.categoria,
+        t.tipo,
+        SUM(t.importo) as totale,
         COUNT(*) as numero_transazioni
-      FROM transazioni 
-      WHERE squadra_id = $1 ${dateFilter}
-      GROUP BY categoria, tipo
+      FROM transazioni t
+      WHERE t.squadra_id = ? ${dateFilter}
+      GROUP BY t.categoria, t.tipo
       ORDER BY totale DESC
     `, params);
     
@@ -233,12 +232,12 @@ router.get('/squadra/:squadraId/report', requireAuth, async (req, res) => {
     // Transazioni per mese
     const statsMensiliResult = await db.query(`
       SELECT 
-        strftime('%Y-%m', data_transazione) as mese,
-        tipo,
-        SUM(importo) as totale
-      FROM transazioni 
-      WHERE squadra_id = $1 ${dateFilter}
-      GROUP BY strftime('%Y-%m', data_transazione), tipo
+        DATE_FORMAT(t.data_transazione, '%Y-%m') as mese,
+        t.tipo,
+        SUM(t.importo) as totale
+      FROM transazioni t
+      WHERE t.squadra_id = ? ${dateFilter}
+      GROUP BY DATE_FORMAT(t.data_transazione, '%Y-%m'), t.tipo
       ORDER BY mese DESC
     `, params);
     
@@ -249,7 +248,7 @@ router.get('/squadra/:squadraId/report', requireAuth, async (req, res) => {
       SELECT t.*, COALESCE(g.nome, 'Nome') as giocatore_nome
       FROM transazioni t
       LEFT JOIN giocatori g ON t.giocatore_id = g.id
-      WHERE t.squadra_id = $1 AND t.tipo = 'uscita' ${dateFilter}
+      WHERE t.squadra_id = ? AND t.tipo = 'uscita' ${dateFilter}
       ORDER BY t.importo DESC
       LIMIT 10
     `, params);
@@ -284,14 +283,14 @@ router.put('/squadra/:squadraId/budget', requireAuth, async (req, res) => {
     const squadraResult = await db.query(`
       SELECT s.id FROM squadre s 
       JOIN leghe l ON s.lega_id = l.id 
-      WHERE s.id = $1 AND l.admin_id = $2
+      WHERE s.id = ? AND l.admin_id = ?
     `, [squadraId, userId]);
     
     if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
 
-    await db.query('UPDATE squadre SET budget_iniziale = $1 WHERE id = $2', [nuovo_budget, squadraId]);
+    await db.query('UPDATE squadre SET budget_iniziale = ? WHERE id = ?', [nuovo_budget, squadraId]);
     
     res.json({ 
       success: true, 
@@ -317,7 +316,7 @@ router.get('/squadra/:squadraId/export', requireAuth, async (req, res) => {
     }
 
     // Verifica autorizzazione
-    const squadraResult = await db.query('SELECT id FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
+    const squadraResult = await db.query('SELECT id FROM squadre WHERE id = ? AND proprietario_id = ?', [squadraId, userId]);
     if ((squadraResult.rows?.length || 0) === 0) {
       return res.status(403).json({ error: 'Non autorizzato' });
     }
@@ -332,7 +331,7 @@ router.get('/squadra/:squadraId/export', requireAuth, async (req, res) => {
         COALESCE(g.nome, 'Nome') as giocatore_nome
       FROM transazioni t
       LEFT JOIN giocatori g ON t.giocatore_id = g.id
-      WHERE t.squadra_id = $1
+      WHERE t.squadra_id = ?
       ORDER BY t.data_transazione DESC
     `, [squadraId]);
     

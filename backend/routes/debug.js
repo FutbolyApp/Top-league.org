@@ -1,5 +1,5 @@
 import express from 'express';
-import { getDb, initializeDatabase } from '../db/postgres.js';
+import { getDb, initializeDatabase } from '../db/mariadb.js';
 import bcrypt from 'bcryptjs';
 
 const router = express.Router();
@@ -39,11 +39,10 @@ router.post('/fix-database', async (req, res) => {
       
       superAdminResult = await db.query(`
         INSERT INTO users (nome, cognome, username, email, password_hash, ruolo)
-        VALUES ('Admin', 'Test', 'admin', 'admin@topleague.com', $1, 'SuperAdmin')
-        RETURNING id
+        VALUES ('Admin', 'Test', 'admin', 'admin@topleague.com', ?, 'SuperAdmin')
       `, [password_hash]);
       
-      superAdminId = superAdminResult.rows[0].id;
+      superAdminId = superAdminResult.insertId;
       console.log(`SuperAdmin created with ID: ${superAdminId}`);
     } else {
       superAdminId = superAdminResult.rows[0].id;
@@ -53,8 +52,8 @@ router.post('/fix-database', async (req, res) => {
       const password_hash = await bcrypt.hash('admin123', 10);
       await db.query(`
         UPDATE users 
-        SET password_hash = $1 
-        WHERE id = $2
+        SET password_hash = ? 
+        WHERE id = ?
       `, [password_hash, superAdminId]);
       console.log('Password updated');
     }
@@ -72,11 +71,10 @@ router.post('/fix-database', async (req, res) => {
       console.log('Creating new Test League...');
       legaResult = await db.query(`
         INSERT INTO leghe (nome, admin_id, is_pubblica, modalita, max_squadre)
-        VALUES ('Test League', $1, true, 'Classic Serie A', 20)
-        RETURNING id
+        VALUES ('Test League', ?, true, 'Classic Serie A', 20)
       `, [superAdminId]);
       
-      legaId = legaResult.rows[0].id;
+      legaId = legaResult.insertId;
       console.log(`Test League created with ID: ${legaId}`);
     } else {
       legaId = legaResult.rows[0].id;
@@ -88,7 +86,7 @@ router.post('/fix-database', async (req, res) => {
       SELECT id, nome, lega_id 
       FROM squadre 
       WHERE (proprietario_id IS NULL OR is_orfana = true) 
-      AND lega_id = $1
+      AND lega_id = ?
       LIMIT 5
     `, [legaId]);
     
@@ -100,11 +98,10 @@ router.post('/fix-database', async (req, res) => {
       for (const nome of squadreNomi) {
         const squadraResult = await db.query(`
           INSERT INTO squadre (nome, lega_id, proprietario_id, is_orfana, casse_societarie, valore_squadra, club_level)
-          VALUES ($1, $2, $3, false, 1000000, 50000000, 1)
-          RETURNING id
+          VALUES (?, ?, ?, false, 1000000, 50000000, 1)
         `, [nome, legaId, superAdminId]);
         
-        const squadraId = squadraResult.rows[0].id;
+        const squadraId = squadraResult.insertId;
         console.log(`Created squadra ${nome} with ID: ${squadraId}`);
         
         // Aggiungi giocatori
@@ -118,8 +115,8 @@ router.post('/fix-database', async (req, res) => {
         for (const giocatore of giocatori) {
           await db.query(`
             INSERT INTO giocatori (nome, ruolo, squadra_reale, costo_attuale, quotazione_attuale, squadra_id, lega_id)
-            VALUES ($1, $2, $3, $4, $4, $5, $6)
-          `, [giocatore.nome, giocatore.ruolo, giocatore.squadra_reale, giocatore.costo, squadraId, legaId]);
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `, [giocatore.nome, giocatore.ruolo, giocatore.squadra_reale, giocatore.costo, giocatore.costo, squadraId, legaId]);
         }
         
         console.log(`Added 4 giocatori to ${nome}`);
@@ -130,8 +127,8 @@ router.post('/fix-database', async (req, res) => {
       for (const squadra of unassignedSquadre.rows) {
         await db.query(`
           UPDATE squadre 
-          SET proprietario_id = $1, is_orfana = false 
-          WHERE id = $2
+          SET proprietario_id = ?, is_orfana = false 
+          WHERE id = ?
         `, [superAdminId, squadra.id]);
         
         console.log(`Assigned squadra ${squadra.nome} to SuperAdmin`);

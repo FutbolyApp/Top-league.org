@@ -3,7 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { getSquadraById, updateSquadra, deleteSquadra } from '../models/squadra.js';
 import { getLegaById } from '../models/lega.js';
 import { getGiocatoriBySquadra } from '../models/giocatore.js';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 import { getLeagueConfig, filterDataByConfig } from '../utils/leagueConfig.js';
 
 const router = express.Router();
@@ -25,7 +25,7 @@ router.post('/:id/join', requireAuth, async (req, res) => {
     
     // Verifica che l'utente non abbia già una richiesta per questa squadra
     const richiestaEsistente = await db.query(
-      'SELECT id FROM richieste_unione_squadra WHERE utente_id = $1 AND squadra_id = $2',
+      'SELECT id FROM richieste_unione_squadra WHERE utente_id = ? AND squadra_id = ?',
       [utente_id, squadra_id]
     );
     
@@ -41,17 +41,16 @@ router.post('/:id/join', requireAuth, async (req, res) => {
     const richiestaResult = await db.query(`
       INSERT INTO richieste_unione_squadra 
       (utente_id, squadra_id, lega_id, messaggio_richiesta)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id
+      VALUES (?, ?, ?, ?)
     `, [utente_id, squadra_id, squadra.lega_id, req.body.messaggio || 'Richiesta di unione alla squadra']);
     
-    const richiestaId = richiestaResult.rows[0].id;
+    const richiestaId = richiestaResult.insertId;
     
     // Crea notifica per l'admin della lega
     await db.query(`
       INSERT INTO notifiche 
       (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-      VALUES ($1, $2, 'richiesta_unione_squadra', $3, $4, NOW())
+      VALUES (?, ?, 'richiesta_unione_squadra', ?, ?, NOW())
     `, [squadra.lega_id, lega.admin_id, 'Richiesta Unione Squadra', `Nuova richiesta di unione alla squadra ${squadra.nome} da ${req.user.nome || req.user.username}`]);
     
     console.log('Richiesta di unione squadra creata:', richiestaId);
@@ -163,69 +162,31 @@ router.get('/utente', requireAuth, async (req, res) => {
     
     const db = getDb();
     if (!db) {
-      console.error('❌ Database non disponibile');
+      console.log('❌ Database non disponibile');
       return res.status(503).json({ error: 'Database non disponibile' });
     }
     
-    console.log('🔍 Eseguendo query squadre per utente...');
-    const squadreResult = await db.query(`
-      SELECT s.*, 
-             u.username as proprietario_username,
-             CASE 
-               WHEN u.ruolo = 'SuperAdmin' THEN 'Futboly'
-               ELSE u.nome 
-             END as proprietario_nome,
-             CASE 
-               WHEN u.ruolo = 'SuperAdmin' THEN ''
-               ELSE u.cognome 
-             END as proprietario_cognome,
-             l.nome as lega_nome,
-             l.modalita as lega_modalita,
-             l.is_pubblica as lega_is_pubblica,
-             l.max_squadre as lega_numero_squadre_totali,
-             (SELECT COUNT(*) FROM squadre WHERE lega_id = l.id AND proprietario_id IS NOT NULL) as lega_squadre_assegnate
+    const result = await db.query(`
+      SELECT 
+        s.*,
+        u.username as proprietario_username,
+        u.nome as proprietario_nome,
+        u.cognome as proprietario_cognome,
+        l.nome as lega_nome,
+        l.id as lega_id
       FROM squadre s
       LEFT JOIN users u ON s.proprietario_id = u.id
       LEFT JOIN leghe l ON s.lega_id = l.id
-      WHERE s.proprietario_id = $1
-      ORDER BY s.nome
+      WHERE s.proprietario_id = ?
+      ORDER BY s.created_at DESC
     `, [utente_id]);
     
-    console.log(`✅ Query eseguita. Trovate ${squadreResult.rows.length} squadre per utente ${utente_id}`);
+    console.log('✅ Squadre trovate:', result.rows.length);
+    res.json({ squadre: result.rows });
     
-    // Debug: mostra le squadre trovate
-    if (squadreResult.rows.length > 0) {
-      console.log('📋 Squadre trovate:');
-      squadreResult.rows.forEach((squadra, index) => {
-        console.log(`  ${index + 1}. ${squadra.nome} (ID: ${squadra.id}) - Lega: ${squadra.lega_nome} - Proprietario: ${squadra.proprietario_id}`);
-      });
-    } else {
-      console.log('⚠️ Nessuna squadra trovata per questo utente');
-      
-      // Debug: controlla tutte le squadre nel database
-      const allSquadre = await db.query('SELECT id, nome, proprietario_id, lega_id FROM squadre LIMIT 10');
-      console.log('🔍 Tutte le squadre nel database:');
-      allSquadre.rows.forEach(s => {
-        console.log(`  - ${s.nome} (ID: ${s.id}) - Proprietario: ${s.proprietario_id} - Lega: ${s.lega_id}`);
-      });
-    }
-    
-    // Per ogni squadra, ottieni i giocatori
-    const squadreConGiocatori = await Promise.all(squadreResult.rows.map(async (squadra) => {
-      const giocatoriResult = await db.query(`
-        SELECT g.*, g.quotazione_attuale
-        FROM giocatori g
-        WHERE g.squadra_id = $1
-        ORDER BY g.nome
-      `, [squadra.id]);
-      
-      return { ...squadra, giocatori: giocatoriResult.rows || [] };
-    }));
-    
-    res.json({ squadre: squadreConGiocatori });
   } catch (error) {
-    console.error('Errore SQL:', error);
-    res.status(500).json({ error: 'Errore DB', details: error.message });
+    console.error('❌ Errore recupero squadre:', error);
+    res.status(500).json({ error: 'Errore interno del server' });
   }
 });
 
@@ -247,7 +208,7 @@ router.get('/my-team', requireAuth, async (req, res) => {
        FROM squadre s
        JOIN leghe l ON s.lega_id = l.id
        LEFT JOIN users u ON s.proprietario_id = u.id
-       WHERE s.proprietario_id = $1`,
+       WHERE s.proprietario_id = ?`,
       [userId]
     );
     
@@ -262,7 +223,7 @@ router.get('/my-team', requireAuth, async (req, res) => {
               sp.nome as squadra_prestito_nome
        FROM giocatori g
        LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
-       WHERE g.squadra_id = $1
+       WHERE g.squadra_id = ?
        ORDER BY g.nome`,
       [squadra.id]
     );
@@ -297,7 +258,7 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
        FROM squadre s
        JOIN leghe l ON s.lega_id = l.id
        LEFT JOIN users u ON s.proprietario_id = u.id
-       WHERE s.proprietario_id = $1 AND s.lega_id = $2`,
+       WHERE s.proprietario_id = ? AND s.lega_id = ?`,
       [userId, legaId]
     );
     
@@ -322,9 +283,9 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
               sp.nome as squadra_prestito_nome
        FROM giocatori g
        LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
-       WHERE g.squadra_id = $1 OR g.squadra_prestito_id = $1
+       WHERE g.squadra_id = ? OR g.squadra_prestito_id = ?
        ORDER BY g.nome`,
-      [squadra.id]
+      [squadra.id, squadra.id]
     );
     
     const giocatori = giocatoriResult.rows || [];
@@ -389,7 +350,7 @@ router.get('/:id', requireAuth, async (req, res) => {
              END as proprietario_cognome
       FROM squadre s
       LEFT JOIN users u ON s.proprietario_id = u.id
-      WHERE s.id = $1
+      WHERE s.id = ?
     `, [id]);
     
     if (squadraResult.rows.length === 0) {
@@ -477,7 +438,7 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
       FROM squadre s
       LEFT JOIN users u ON s.proprietario_id = u.id
       LEFT JOIN giocatori g ON s.id = g.squadra_id
-      WHERE s.lega_id = $1
+      WHERE s.lega_id = ?
       GROUP BY s.id, s.nome, s.lega_id, s.proprietario_id, s.is_orfana, s.club_level, s.casse_societarie, s.costo_salariale_totale, s.costo_salariale_annuale, s.valore_squadra, s.created_at, u.username, u.nome, u.cognome
       ORDER BY s.nome
     `, [legaId]);
@@ -500,7 +461,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     // Verifica permessi
     const canEdit = async () => {
       // Superadmin può modificare tutto
-      if (userRole === 'superadmin') return true;
+      if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
       
       // Subadmin può modificare
       if (userRole === 'subadmin') return true;
@@ -544,7 +505,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     // Verifica permessi
     const canDelete = async () => {
       // Superadmin può cancellare tutto
-      if (userRole === 'superadmin') return true;
+      if (userRole === 'superadmin' || userRole === 'SuperAdmin') return true;
       
       // Subadmin può cancellare
       if (userRole === 'subadmin') return true;
@@ -624,7 +585,7 @@ router.get('/richieste-unione/:legaId', requireAuth, async (req, res) => {
       JOIN users u ON rus.utente_id = u.id
       JOIN squadre s ON rus.squadra_id = s.id
       JOIN leghe l ON rus.lega_id = l.id
-      WHERE rus.lega_id = $1
+      WHERE rus.lega_id = ?
       ORDER BY rus.data_richiesta DESC
     `, [legaId]);
     
@@ -653,7 +614,7 @@ router.post('/richieste-unione/:richiestaId/rispondi', requireAuth, async (req, 
        FROM richieste_unione_squadra rus
        JOIN squadre s ON rus.squadra_id = s.id
        JOIN leghe l ON rus.lega_id = l.id
-       WHERE rus.id = $1 AND rus.stato = 'in_attesa'
+       WHERE rus.id = ? AND rus.stato = 'in_attesa'
     `, [richiestaId]);
     
     if (richiesta.rows.length === 0) {
@@ -670,8 +631,8 @@ router.post('/richieste-unione/:richiestaId/rispondi', requireAuth, async (req, 
     // Aggiorna la richiesta
     await db.query(`
       UPDATE richieste_unione_squadra 
-      SET stato = $1, data_risposta = $2, risposta_admin_id = $3, messaggio_risposta = $4
-      WHERE id = $5
+      SET stato = ?, data_risposta = ?, risposta_admin_id = ?, messaggio_risposta = ?
+      WHERE id = ?
     `, [nuovoStato, dataRisposta, adminId, messaggio || null, richiestaId]);
     
     if (risposta === 'accetta') {
@@ -688,7 +649,7 @@ router.post('/richieste-unione/:richiestaId/rispondi', requireAuth, async (req, 
       await db.query(`
         INSERT INTO notifiche 
         (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-        VALUES ($1, $2, 'risposta_richiesta_unione', $3, $4, NOW())
+        VALUES (?, ?, 'risposta_richiesta_unione', ?, ?, NOW())
       `, [richiesta.rows[0].lega_id, richiesta.rows[0].utente_id, titoloNotifica, messaggioNotifica]);
     } else {
       // Crea notifica per l'utente (rifiuto)
@@ -698,7 +659,7 @@ router.post('/richieste-unione/:richiestaId/rispondi', requireAuth, async (req, 
       await db.query(`
         INSERT INTO notifiche 
         (lega_id, utente_id, tipo, titolo, messaggio, data_creazione)
-        VALUES ($1, $2, 'risposta_richiesta_unione', $3, $4, NOW())
+        VALUES (?, ?, 'risposta_richiesta_unione', ?, ?, NOW())
       `, [richiesta.rows[0].lega_id, richiesta.rows[0].utente_id, titoloNotifica, messaggioNotifica]);
     }
     
@@ -721,7 +682,7 @@ router.delete('/richieste-unione/:richiestaId', requireAuth, async (req, res) =>
     
     await db.query(
       `DELETE FROM richieste_unione_squadra 
-      WHERE id = $1 AND utente_id = $2 AND stato = 'in_attesa'`,
+      WHERE id = ? AND utente_id = ? AND stato = 'in_attesa'`,
       [richiestaId, userId]
     );
     
@@ -746,7 +707,7 @@ router.post('/end-loan/:giocatoreId', requireAuth, async (req, res) => {
       FROM giocatori g
       JOIN squadre s ON g.squadra_id = s.id
       JOIN squadre s_prestito ON g.squadra_prestito_id = s_prestito.id
-      WHERE g.id = $1 AND g.squadra_prestito_id IS NOT NULL
+      WHERE g.id = ? AND g.squadra_prestito_id IS NOT NULL
     `, [giocatoreId]);
     
     if (giocatore.rows.length === 0) {
@@ -762,7 +723,7 @@ router.post('/end-loan/:giocatoreId', requireAuth, async (req, res) => {
     const result = await db.query(
       `SELECT COUNT(*) as num_giocatori
       FROM giocatori
-      WHERE squadra_id = $1 AND squadra_prestito_id IS NULL
+      WHERE squadra_id = ? AND squadra_prestito_id IS NULL
     `, [giocatore.rows[0].squadra_prestito_id]);
     
     const numGiocatori = result.rows[0].num_giocatori;
@@ -777,8 +738,8 @@ router.post('/end-loan/:giocatoreId', requireAuth, async (req, res) => {
     // Aggiorna il giocatore: rimuovi il prestito e spostalo nella squadra di appartenenza
     await db.query(`
       UPDATE giocatori 
-      SET squadra_id = $1, squadra_prestito_id = NULL, roster = $2
-      WHERE id = $3
+      SET squadra_id = ?, squadra_prestito_id = NULL, roster = ?
+      WHERE id = ?
     `, [giocatore.rows[0].squadra_prestito_id, nuovoRoster, giocatoreId]);
     
     console.log('Prestito concluso per giocatore:', giocatoreId);

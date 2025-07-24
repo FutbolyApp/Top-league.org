@@ -1,7 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { createOfferta, getOfferteByLega, updateOfferta } from '../models/offerta.js';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { createRosterManager, handleLoanAcceptance } from '../models/rosterManager.js';
 import { createLogSquadra, CATEGORIE_EVENTI, TIPI_EVENTI } from '../models/logSquadra.js';
@@ -64,7 +64,7 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
     }
 
     const query = `
-      SELECT o.id, o.tipo, o.valore, o.created_at as data,
+      SELECT o.id, 'trasferimento' as tipo, o.valore_offerta as valore, o.data_creazione as data,
              COALESCE(g.nome, 'Nome') as giocatore_nome, COALESCE(g.cognome, '') as giocatore_cognome,
              COALESCE(sm.nome, 'Nome') as squadra_mittente, COALESCE(sd.nome, 'Nome') as squadra_destinataria,
              o.lega_id
@@ -72,8 +72,8 @@ router.get('/movimenti/:legaId', authenticateToken, async (req, res) => {
       JOIN giocatori g ON o.giocatore_id = g.id
       JOIN squadre sm ON o.squadra_mittente_id = sm.id
       JOIN squadre sd ON o.squadra_destinatario_id = sd.id
-      WHERE o.lega_id = $1 AND o.stato = 'accettata'
-      ORDER BY o.created_at DESC
+      WHERE o.lega_id = ? AND o.stato = 'accettata'
+      ORDER BY o.data_creazione DESC
       LIMIT 20
     `;
     
@@ -121,11 +121,11 @@ router.get('/roster/stats/:squadraId', authenticateToken, async (req, res) => {
     if (ruolo === 'admin' || ruolo === 'superadmin' || ruolo === 'subadmin' || 
         ruolo === 'Admin' || ruolo === 'SuperAdmin' || ruolo === 'SubAdmin') {
       // Admin può vedere tutte le squadre
-      const result = await db.query('SELECT * FROM squadre WHERE id = $1', [squadraId]);
+      const result = await db.query('SELECT * FROM squadre WHERE id = ?', [squadraId]);
       squadra = result.rows[0];
     } else {
       // Utente normale deve essere proprietario
-      const result = await db.query('SELECT * FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
+      const result = await db.query('SELECT * FROM squadre WHERE id = ? AND proprietario_id = ?', [squadraId, userId]);
       squadra = result.rows[0];
     }
 
@@ -133,7 +133,7 @@ router.get('/roster/stats/:squadraId', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Squadra non trovata o non autorizzato' });
     }
 
-    const legaIdResult = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [squadraId]);
+    const legaIdResult = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [squadraId]);
     const legaId = legaIdResult.rows[0]?.lega_id;
     const rosterManager = createRosterManager(legaId);
     const stats = await rosterManager.getRosterStats(squadraId);
@@ -165,11 +165,11 @@ router.get('/roster/:squadraId', authenticateToken, async (req, res) => {
     if (ruolo === 'admin' || ruolo === 'superadmin' || ruolo === 'subadmin' || 
         ruolo === 'Admin' || ruolo === 'SuperAdmin' || ruolo === 'SubAdmin') {
       // Admin può vedere tutte le squadre
-      const result = await db.query('SELECT * FROM squadre WHERE id = $1', [squadraId]);
+      const result = await db.query('SELECT * FROM squadre WHERE id = ?', [squadraId]);
       squadra = result.rows[0];
     } else {
       // Utente normale deve essere proprietario
-      const result = await db.query('SELECT * FROM squadre WHERE id = $1 AND proprietario_id = $2', [squadraId, userId]);
+      const result = await db.query('SELECT * FROM squadre WHERE id = ? AND proprietario_id = ?', [squadraId, userId]);
       squadra = result.rows[0];
     }
 
@@ -177,7 +177,7 @@ router.get('/roster/:squadraId', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Squadra non trovata o non autorizzato' });
     }
 
-    const legaIdResult = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [squadraId]);
+    const legaIdResult = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [squadraId]);
     const legaId = legaIdResult.rows[0]?.lega_id;
     const rosterManager = createRosterManager(legaId);
     const giocatori = await rosterManager.getGiocatoriByRoster(squadraId);
@@ -205,7 +205,7 @@ router.post('/roster/loan-return', authenticateToken, async (req, res) => {
       `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id
        FROM giocatori g 
        JOIN squadre s ON g.squadra_id = s.id 
-       WHERE g.id = $1 AND s.proprietario_id = $2`,
+       WHERE g.id = ? AND s.proprietario_id = ?`,
       [giocatoreId, userId]
     );
     const giocatore = result.rows[0];
@@ -214,7 +214,7 @@ router.post('/roster/loan-return', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Giocatore non trovato o non autorizzato' });
     }
 
-    const legaIdResult = await db.query('SELECT s.lega_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1', [giocatore.id]);
+    const legaIdResult = await db.query('SELECT s.lega_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = ?', [giocatore.id]);
     const legaId = legaIdResult.rows[0]?.lega_id;
     const rosterManager = createRosterManager(legaId);
     const result2 = await rosterManager.handleLoanReturn(giocatore.squadra_id, giocatoreId);
@@ -238,7 +238,7 @@ router.post('/termina-prestito/:giocatoreId', authenticateToken, async (req, res
       `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id, COALESCE(s.nome, 'Nome') as squadra_nome
        FROM giocatori g 
        JOIN squadre s ON g.squadra_id = s.id 
-       WHERE g.id = $1 AND s.proprietario_id = $2 AND g.prestito = 1`,
+       WHERE g.id = ? AND s.proprietario_id = ? AND g.prestito = 1`,
       [giocatoreId, userId]
     );
     const giocatore = result.rows[0];
@@ -248,7 +248,7 @@ router.post('/termina-prestito/:giocatoreId', authenticateToken, async (req, res
     }
 
     // Imposta prestito = 0 e sposta in Roster A se possibile
-    await db.query('UPDATE giocatori SET prestito = 0 WHERE id = $1', [giocatoreId]);
+          await db.query('UPDATE giocatori SET prestito = 0 WHERE id = ?', [giocatoreId]);
     
     res.json({ 
       success: true, 
@@ -270,7 +270,7 @@ router.get('/log/:squadraId', requireAuth, async (req, res) => {
       SELECT lc.*, COALESCE(g.nome, 'Nome') as giocatore_nome
       FROM log_contratti lc
       JOIN giocatori g ON lc.giocatore_id = g.id
-      WHERE lc.squadra_id = $1
+      WHERE lc.squadra_id = ?
       ORDER BY lc.data_pagamento DESC
       LIMIT 50
     `;
@@ -301,7 +301,7 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
          LEFT JOIN giocatori gs ON o.giocatore_scambio_id = gs.id
          JOIN squadre sm ON o.squadra_mittente_id = sm.id
          JOIN squadre sd ON o.squadra_destinatario_id = sd.id
-         WHERE o.id = $1 AND sd.proprietario_id = $2`,
+         WHERE o.id = ? AND sd.proprietario_id = ?`,
       [offerta_id, giocatore_id]
     );
 
@@ -316,7 +316,7 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
     }
 
     // Gestisci il sistema Roster A/B se attivato
-    const legaIdResult = await db.query('SELECT s.lega_id FROM offerte o JOIN squadre s ON o.squadra_mittente_id = s.id WHERE o.id = $1', [offerta_id]);
+    const legaIdResult = await db.query('SELECT s.lega_id FROM offerte o JOIN squadre s ON o.squadra_mittente_id = s.id WHERE o.id = ?', [offerta_id]);
     const legaId = legaIdResult.rows[0]?.lega_id;
     const rosterManager = createRosterManager(legaId);
     const isRosterABEnabled = await rosterManager.isRosterABEnabled();
@@ -324,7 +324,7 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
     // Verifica spazio nel roster prima di accettare
     if (isRosterABEnabled) {
       // Conta giocatori attuali nella squadra destinataria
-      const giocatoriAttuali = await db.query('SELECT COUNT(*) as count FROM giocatori WHERE squadra_id = $1', [offertaData.squadra_mittente_id]);
+      const giocatoriAttuali = await db.query('SELECT COUNT(*) as count FROM giocatori WHERE squadra_id = ?', [offertaData.squadra_mittente_id]);
       const giocatoriAttualiCount = giocatoriAttuali.rows[0].count;
 
       // Ottieni limite massimo dalla lega
@@ -342,13 +342,13 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
     const isClassic = await isClassicLeague(offertaData.lega_id);
     if (isClassic) {
       // Ottieni i dati del giocatore che viene trasferito
-      const giocatoreIn = await db.query('SELECT * FROM giocatori WHERE id = $1', [offertaData.giocatore_id]);
+      const giocatoreIn = await db.query('SELECT * FROM giocatori WHERE id = ?', [offertaData.giocatore_id]);
       const giocatoreInData = giocatoreIn.rows[0];
 
       // Ottieni i dati del giocatore scambio se presente
       let giocatoreOut = null;
       if (offertaData.tipo === 'scambio' && offertaData.giocatore_scambio_id) {
-        giocatoreOut = await db.query('SELECT * FROM giocatori WHERE id = $1', [offertaData.giocatore_scambio_id]);
+        giocatoreOut = await db.query('SELECT * FROM giocatori WHERE id = ?', [offertaData.giocatore_scambio_id]);
         giocatoreOut = giocatoreOut.rows[0];
       }
 
@@ -388,7 +388,7 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
 
     try {
       // Aggiorna stato offerta
-      await db.query('UPDATE offerte SET stato = $1, data_accettazione = $2 WHERE id = $3', 
+      await db.query('UPDATE offerte SET stato = ?, data_accettazione = ? WHERE id = ?', 
         ['accettata', new Date().toISOString(), offerta_id]);
 
       // Sposta il giocatore target
@@ -397,89 +397,89 @@ router.post('/accetta/:offerta_id', authenticateToken, async (req, res) => {
       // Se è un prestito, imposta il campo prestito = 1 e gestisci i roster
       if (offertaData.tipo === 'prestito') {
         console.log(`Impostazione prestito = 1 per giocatore ${offertaData.giocatore_id}`);
-        await db.query('UPDATE giocatori SET squadra_id = $1, prestito = 1, squadra_prestito_id = $2 WHERE id = $3', 
+        await db.query('UPDATE giocatori SET squadra_id = ?, prestito = 1, squadra_prestito_id = ? WHERE id = ?', 
           [offertaData.squadra_mittente_id, offertaData.squadra_destinatario_id, offertaData.giocatore_id]);
         
         // Se il sistema Roster A/B è attivato:
         if (isRosterABEnabled) {
           // Il giocatore va in Roster A della squadra che lo riceve (può giocare)
           console.log(`Spostamento giocatore ${offertaData.giocatore_id} in Roster A della squadra ricevente (prestito)`);
-          await db.query('UPDATE giocatori SET roster = $1 WHERE id = $2', ['A', offertaData.giocatore_id]);
+          await db.query('UPDATE giocatori SET roster = ? WHERE id = ?', ['A', offertaData.giocatore_id]);
         }
       } else {
         // Per trasferimenti normali, non impostare prestito = 1
-        await db.query('UPDATE giocatori SET squadra_id = $1 WHERE id = $2', 
+        await db.query('UPDATE giocatori SET squadra_id = ? WHERE id = ?', 
           [offertaData.squadra_mittente_id, offertaData.giocatore_id]);
       }
 
       // Se è uno scambio, sposta anche il giocatore scambio
       if (offertaData.tipo === 'scambio' && offertaData.giocatore_scambio_id) {
         console.log(`Spostamento giocatore scambio ${offertaData.giocatore_scambio_id} da squadra ${offertaData.squadra_mittente_id} a squadra ${offertaData.squadra_destinatario_id}`);
-        await db.query('UPDATE giocatori SET squadra_id = $1 WHERE id = $2', 
+        await db.query('UPDATE giocatori SET squadra_id = ? WHERE id = ?', 
           [offertaData.squadra_destinatario_id, offertaData.giocatore_scambio_id]);
       }
 
       // Aggiorna casse societarie
       if (offertaData.valore_offerta > 0) {
         console.log(`Aggiornamento casse: +${offertaData.valore_offerta} per squadra ${offertaData.squadra_destinatario_id}, -${offertaData.valore_offerta} per squadra ${offertaData.squadra_mittente_id}`);
-        await db.query('UPDATE squadre SET casse_societarie = casse_societarie + $1 WHERE id = $2', 
+        await db.query('UPDATE squadre SET casse_societarie = casse_societarie + ? WHERE id = ?', 
           [offertaData.valore_offerta, offertaData.squadra_destinatario_id]);
-        await db.query('UPDATE squadre SET casse_societarie = casse_societarie - $1 WHERE id = $2', 
+        await db.query('UPDATE squadre SET casse_societarie = casse_societarie - ? WHERE id = ?', 
           [offertaData.valore_offerta, offertaData.squadra_mittente_id]);
       }
 
       // Log operazioni
       const dettagliTarget = `${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} trasferito da ${offertaData.squadra_destinatario_nome} a ${offertaData.squadra_mittente_nome}`;
-      const legaIdResult = await db.query('SELECT s.lega_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1', [offertaData.giocatore_id]);
+      const legaIdResult = await db.query('SELECT s.lega_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = ?', [offertaData.giocatore_id]);
       const legaId = legaIdResult.rows[0]?.lega_id;
       await db.query(
-        'INSERT INTO log_operazioni_giocatori (giocatore_id, lega_id, tipo_operazione, squadra_mittente_id, squadra_destinatario_id, valore, dettagli, utente_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        'INSERT INTO log_operazioni_giocatori (giocatore_id, lega_id, tipo_operazione, squadra_mittente_id, squadra_destinatario_id, valore, dettagli, utente_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [offertaData.giocatore_id, legaId, offertaData.tipo, offertaData.squadra_destinatario_id, offertaData.squadra_mittente_id, offertaData.valore_offerta, dettagliTarget, giocatore_id]
       );
 
       if (offertaData.tipo === 'scambio' && offertaData.giocatore_scambio_id) {
         const dettagliScambio = `${offertaData.giocatore_scambio_nome} ${offertaData.giocatore_scambio_cognome} trasferito da ${offertaData.squadra_mittente_nome} a ${offertaData.squadra_destinatario_nome}`;
-        const legaIdScambio = await db.query('SELECT s.lega_id FROM giocatori gs JOIN squadre s ON gs.squadra_id = s.id WHERE gs.id = $1', [offertaData.giocatore_scambio_id]);
+        const legaIdScambio = await db.query('SELECT s.lega_id FROM giocatori gs JOIN squadre s ON gs.squadra_id = s.id WHERE gs.id = ?', [offertaData.giocatore_scambio_id]);
         const legaIdScambioResult = legaIdScambio.rows[0]?.lega_id;
         await db.query(
-          'INSERT INTO log_operazioni_giocatori (giocatore_id, lega_id, tipo_operazione, squadra_mittente_id, squadra_destinatario_id, valore, dettagli, utente_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+          'INSERT INTO log_operazioni_giocatori (giocatore_id, lega_id, tipo_operazione, squadra_mittente_id, squadra_destinatario_id, valore, dettagli, utente_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
           [offertaData.giocatore_scambio_id, legaIdScambioResult, offertaData.tipo, offertaData.squadra_mittente_id, offertaData.squadra_destinatario_id, offertaData.valore_offerta, dettagliScambio, giocatore_id]
         );
       }
 
       // Ottieni l'ID dell'utente proprietario della squadra mittente
-      const proprietarioMittente = await db.query('SELECT proprietario_id FROM squadre WHERE id = $1', [offertaData.squadra_mittente_id]);
+      const proprietarioMittente = await db.query('SELECT proprietario_id FROM squadre WHERE id = ?', [offertaData.squadra_mittente_id]);
       const proprietarioMittenteId = proprietarioMittente.rows[0].proprietario_id;
 
       // Recupera i dati_aggiuntivi dalle notifiche originali
       const notificaOriginal = await db.query(
-        'SELECT dati_aggiuntivi FROM notifiche WHERE dati_aggiuntivi LIKE $1 LIMIT 1',
+        'SELECT dati_aggiuntivi FROM notifiche WHERE dati_aggiuntivi LIKE ? LIMIT 1',
         [`%"offerta_id":${offerta_id}%`]
       );
       const datiAggiuntivi = notificaOriginal.rows[0] ? notificaOriginal.rows[0].dati_aggiuntivi : null;
 
       // Notifica al mittente
       const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome || ''} è stata accettata!`;
-      const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [offertaData.squadra_mittente_id]);
+      const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [offertaData.squadra_mittente_id]);
       const legaIdMittenteResult = legaIdMittente.rows[0]?.lega_id;
       await db.query(
-            'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5, $6)',
+            'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES (?, ?, ?, ?, ?, ?)',
             [legaIdMittenteResult, proprietarioMittenteId, 'Offerta Accettata', messaggioNotifica, offertaData.tipo, datiAggiuntivi]
       );
 
       // Notifica anche al destinatario (squadra che ha accettato)
       const messaggioNotificaDestinatario = `Hai accettato l'offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome || ''}`;
-      const legaIdDestinatario = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [offertaData.squadra_destinatario_id]);
+      const legaIdDestinatario = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [offertaData.squadra_destinatario_id]);
       const legaIdDestinatarioResult = legaIdDestinatario.rows[0]?.lega_id;
       await db.query(
-            'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5, $6)',
+            'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES (?, ?, ?, ?, ?, ?)',
             [legaIdDestinatarioResult, giocatore_id, 'Offerta Accettata', messaggioNotificaDestinatario, offertaData.tipo, datiAggiuntivi]
           );
 
       // Aggiorna la notifica originale per indicare che è stata accettata
       // Mantieni i dati_aggiuntivi per preservare le informazioni del popup
       await db.query(
-        'UPDATE notifiche SET messaggio = messaggio || " - ACCETTATA" WHERE dati_aggiuntivi LIKE $1 ',
+        'UPDATE notifiche SET messaggio = messaggio || " - ACCETTATA" WHERE dati_aggiuntivi LIKE ? ',
         [`%"offerta_id":${offerta_id}%`]
       );
 
@@ -507,7 +507,7 @@ router.post('/rifiuta/:offerta_id', authenticateToken, async (req, res) => {
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
          JOIN squadre sd ON o.squadra_destinatario_id = sd.id
-         WHERE o.id = $1 AND sd.proprietario_id = $2`,
+         WHERE o.id = ? AND sd.proprietario_id = ?`,
       [offerta_id, giocatore_id]
     );
 
@@ -522,31 +522,31 @@ router.post('/rifiuta/:offerta_id', authenticateToken, async (req, res) => {
     }
 
     // Aggiorna stato offerta
-    await db.query('UPDATE offerte SET stato = $1 WHERE id = $2', ['rifiutata', offerta_id]);
+    await db.query('UPDATE offerte SET stato = ? WHERE id = ?', ['rifiutata', offerta_id]);
 
     // Ottieni l'ID dell'utente proprietario della squadra mittente
-    const proprietarioMittente = await db.query('SELECT proprietario_id FROM squadre WHERE id = $1', [offertaData.squadra_mittente_id]);
+    const proprietarioMittente = await db.query('SELECT proprietario_id FROM squadre WHERE id = ?', [offertaData.squadra_mittente_id]);
     const proprietarioMittenteId = proprietarioMittente.rows[0].proprietario_id;
 
     // Recupera i dati_aggiuntivi dalle notifiche originali
     const notificaOriginal = await db.query(
-      'SELECT dati_aggiuntivi FROM notifiche WHERE dati_aggiuntivi LIKE $1 LIMIT 1',
+      'SELECT dati_aggiuntivi FROM notifiche WHERE dati_aggiuntivi LIKE ? LIMIT 1',
       [`%"offerta_id":${offerta_id}%`]
     );
     const datiAggiuntivi = notificaOriginal.rows[0] ? notificaOriginal.rows[0].dati_aggiuntivi : null;
 
     // Notifica al mittente
     const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome || ''} è stata rifiutata.`;
-    const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [offertaData.squadra_mittente_id]);
+    const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [offertaData.squadra_mittente_id]);
     const legaIdMittenteResult = legaIdMittente.rows[0]?.lega_id;
     await db.query(
-            'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5, $6)',
+            'INSERT INTO notifiche (lega_id, utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES (?, ?, ?, ?, ?, ?)',
             [legaIdMittenteResult, proprietarioMittenteId, 'Offerta Rifiutata', messaggioNotifica, offertaData.tipo, datiAggiuntivi],
         );
 
     // Aggiorna la notifica originale per indicare che è stata rifiutata
     await db.query(
-      'UPDATE notifiche SET messaggio = messaggio || \' - RIFIUTATA\' WHERE dati_aggiuntivi LIKE $1',
+      'UPDATE notifiche SET messaggio = messaggio || \' - RIFIUTATA\' WHERE dati_aggiuntivi LIKE ?',
       [`%"offerta_id":${offerta_id}%`]
     );
 
@@ -573,7 +573,7 @@ router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
       `SELECT o.*, COALESCE(g.nome, 'Nome') as giocatore_nome, COALESCE(g.cognome, '') as giocatore_cognome, g.quotazione_attuale
          FROM offerte o
          JOIN giocatori g ON o.giocatore_id = g.id
-         WHERE o.id = $1`,
+         WHERE o.id = ?`,
       [offertaId]
     );
 
@@ -594,8 +594,8 @@ router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
     // Aggiorna lo stato dell'offerta
     await db.query(
       `UPDATE offerte 
-             SET stato = $1, data_accettazione = $2
-             WHERE id = $3`,
+             SET stato = ?, data_accettazione = ?
+             WHERE id = ?`,
       [nuovoStato, dataAccettazione, offertaId]
     );
     
@@ -603,18 +603,18 @@ router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
       // Se l'offerta è accettata, trasferisci il giocatore
       await db.query(
         `UPDATE giocatori 
-                   SET squadra_id = $1, salario = $2
-                   WHERE id = $3`,
+                   SET squadra_id = ?, salario = ?
+                   WHERE id = ?`,
         [offertaData.squadra_destinatario_id, salario, offertaData.giocatore_id]
       );
 
       // Crea notifica per il mittente
       const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} è stata accettata!`;
-      const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [offertaData.squadra_mittente_id]);
+      const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [offertaData.squadra_mittente_id]);
       const legaIdMittenteResult = legaIdMittente.rows[0]?.lega_id;
       await db.query(
         `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
-         VALUES ($1, 'offerta_accettata', $2, datetime('now'))`,
+         VALUES (?, 'offerta_accettata', ?, NOW())`,
         [offertaData.squadra_mittente_id, messaggioNotifica]
       );
 
@@ -662,11 +662,11 @@ router.post('/:offertaId/risposta', requireAuth, async (req, res) => {
     } else {
       // Se l'offerta è rifiutata, crea solo la notifica
       const messaggioNotifica = `La tua offerta per ${offertaData.giocatore_nome} ${offertaData.giocatore_cognome} è stata rifiutata.`;
-      const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [offertaData.squadra_mittente_id]);
+      const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [offertaData.squadra_mittente_id]);
       const legaIdMittenteResult = legaIdMittente.rows[0]?.lega_id;
       await db.query(
         `INSERT INTO notifiche (utente_id, tipo, messaggio, data_creazione)
-         VALUES ($1, 'offerta_rifiutata', $2, datetime('now'))`,
+         VALUES (?, 'offerta_rifiutata', ?, NOW())`,
         [offertaData.squadra_mittente_id, messaggioNotifica]
       );
 
@@ -726,7 +726,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
   try {
     // Ottieni la squadra dell'utente
     const squadraUtente = await db.query(
-      'SELECT s.* FROM squadre s JOIN leghe l ON s.lega_id = l.id JOIN giocatori g JOIN squadre sg ON g.squadra_id = sg.id ON sg.lega_id = l.id WHERE g.id = $1 AND s.proprietario_id = $2',
+      'SELECT s.* FROM squadre s JOIN leghe l ON s.lega_id = l.id JOIN giocatori g JOIN squadre sg ON g.squadra_id = sg.id ON sg.lega_id = l.id WHERE g.id = ? AND s.proprietario_id = ?',
       [giocatore_id, utente_id]
     );
 
@@ -737,7 +737,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
 
     // Ottieni informazioni sul giocatore target
     const giocatoreTarget = await db.query(
-      'SELECT g.*, s.proprietario_id, s.nome as squadra_nome FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1',
+      'SELECT g.*, s.proprietario_id, s.nome as squadra_nome FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = ?',
       [giocatore_id]
     );
 
@@ -768,7 +768,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
     // Se è uno scambio, verifica che il giocatore scambio sia nella squadra dell'utente
     if (tipo === 'scambio' && giocatore_scambio_id) {
       const giocatoreScambio = await db.query(
-        'SELECT * FROM giocatori WHERE id = $1 AND squadra_id = $2',
+        'SELECT * FROM giocatori WHERE id = ? AND squadra_id = ?',
         [giocatore_scambio_id, squadraUtenteData.id]
       );
 
@@ -780,29 +780,29 @@ router.post('/crea', authenticateToken, async (req, res) => {
     // Crea l'offerta
     const offertaId = await db.query(
       `INSERT INTO offerte (lega_id, squadra_mittente_id, squadra_destinatario_id, giocatore_id, giocatore_scambio_id, tipo, valore_offerta, richiesta_fm, stato) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'in_attesa')`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'in_attesa')`,
       [giocatoreTargetData.lega_id, squadraUtenteData.id, giocatoreTargetData.squadra_id, giocatore_id, giocatore_scambio_id || null, tipo, valore_offerta, richiesta_fm]
     );
 
     // Ottieni le casse societarie attuali delle squadre
-    const casseMittente = await db.query('SELECT casse_societarie, proprietario_id, nome FROM squadre WHERE id = $1', [squadraUtenteData.id]);
+    const casseMittente = await db.query('SELECT casse_societarie, proprietario_id, nome FROM squadre WHERE id = ?', [squadraUtenteData.id]);
     const casseMittenteData = casseMittente.rows[0];
 
-    const casseDestinatario = await db.query('SELECT casse_societarie, proprietario_id, nome FROM squadre WHERE id = $1', [giocatoreTargetData.squadra_id]);
+    const casseDestinatario = await db.query('SELECT casse_societarie, proprietario_id, nome FROM squadre WHERE id = ?', [giocatoreTargetData.squadra_id]);
     const casseDestinatarioData = casseDestinatario.rows[0];
 
     // Prendi info proprietario mittente
-    const proprietarioMittente = await db.query('SELECT nome, cognome FROM users WHERE id = $1', [casseMittenteData.proprietario_id]);
+    const proprietarioMittente = await db.query('SELECT nome, cognome FROM users WHERE id = ?', [casseMittenteData.proprietario_id]);
     const proprietarioMittenteData = proprietarioMittente.rows[0] || { nome: '', cognome: '' };
 
     // Prendi info proprietario destinatario
-    const proprietarioDestinatario = await db.query('SELECT nome, cognome FROM users WHERE id = $1', [casseDestinatarioData.proprietario_id]);
+    const proprietarioDestinatario = await db.query('SELECT nome, cognome FROM users WHERE id = ?', [casseDestinatarioData.proprietario_id]);
     const proprietarioDestinatarioData = proprietarioDestinatario.rows[0] || { nome: '', cognome: '' };
 
     // Prendi info giocatore in scambio (se presente)
     let giocatoreScambio = { nome: '', cognome: '' };
     if (giocatore_scambio_id) {
-      giocatoreScambio = await db.query('SELECT nome, cognome FROM giocatori WHERE id = $1', [giocatore_scambio_id]);
+      giocatoreScambio = await db.query('SELECT nome, cognome FROM giocatori WHERE id = ?', [giocatore_scambio_id]);
       giocatoreScambio = giocatoreScambio.rows[0] || { nome: '', cognome: '' };
     }
 
@@ -829,10 +829,10 @@ router.post('/crea', authenticateToken, async (req, res) => {
     console.log('- Tipo:', tipo);
 
           // Crea notifica per il destinatario
-      const legaIdDestinatarioNotifica = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [giocatoreTargetData.squadra_id]);
+      const legaIdDestinatarioNotifica = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [giocatoreTargetData.squadra_id]);
       const legaIdDestinatarioNotificaResult = legaIdDestinatarioNotifica.rows[0]?.lega_id;
     await db.query(
-      'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5)',
+      'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES (?, ?, ?, ?, ?)',
       [
         casseDestinatarioData.proprietario_id,
         `Offerta ricevuta per ${giocatoreTargetData?.nome || 'Nome'}${giocatoreTargetData?.cognome || '' ? ` ${giocatoreTargetData?.cognome || ''}` : ''}`,
@@ -863,10 +863,10 @@ router.post('/crea', authenticateToken, async (req, res) => {
       ]
     );
           // Crea notifica di conferma per il mittente
-      const legaIdMittenteConferma = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [squadraUtenteData.id]);
+      const legaIdMittenteConferma = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [squadraUtenteData.id]);
       const legaIdMittenteConfermaResult = legaIdMittenteConferma.rows[0]?.lega_id;
     await db.query(
-      'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES ($1, $2, $3, $4, $5)',
+      'INSERT INTO notifiche (utente_id, titolo, messaggio, tipo, dati_aggiuntivi) VALUES (?, ?, ?, ?, ?)',
       [
         casseMittenteData.proprietario_id,
         `Offerta inviata per ${giocatoreTargetData?.nome || 'Giocatore'} ${giocatoreTargetData?.cognome || ''}`,
@@ -898,7 +898,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
     );
 
     // Crea log per la squadra mittente
-    const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [squadraUtenteData.id]);
+    const legaIdMittente = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [squadraUtenteData.id]);
     const legaIdMittenteResult = legaIdMittente.rows[0]?.lega_id;
     await createLogSquadra({
       squadra_id: casseMittenteData.id,
@@ -919,7 +919,7 @@ router.post('/crea', authenticateToken, async (req, res) => {
     });
 
     // Crea log per la squadra destinataria
-    const legaIdDestinatario = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [giocatoreTargetData.squadra_id]);
+    const legaIdDestinatario = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [giocatoreTargetData.squadra_id]);
     const legaIdDestinatarioResult = legaIdDestinatario.rows[0]?.lega_id;
     await createLogSquadra({
       squadra_id: casseDestinatarioData.id,
@@ -965,7 +965,7 @@ router.get('/ricevute', authenticateToken, async (req, res) => {
          LEFT JOIN giocatori gs ON o.giocatore_scambio_id = gs.id
          JOIN squadre sm ON o.squadra_mittente_id = sm.id
          JOIN squadre sd ON o.squadra_destinatario_id = sd.id
-         WHERE sd.proprietario_id = $1 AND o.stato = 'in_attesa'
+         WHERE sd.proprietario_id = ? AND o.stato = 'in_attesa'
          ORDER BY o.created_at DESC`,
       [giocatore_id]
     );
@@ -992,7 +992,7 @@ router.get('/log-giocatore/:giocatore_id', authenticateToken, async (req, res) =
          LEFT JOIN squadre sm ON l.squadra_mittente_id = sm.id
          LEFT JOIN squadre sd ON l.squadra_destinatario_id = sd.id
          LEFT JOIN utenti u ON l.utente_id = u.id
-         WHERE l.giocatore_id = $1
+         WHERE l.giocatore_id = ?
          ORDER BY l.data_operazione DESC`,
       [giocatore_id]
     );
@@ -1022,7 +1022,7 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
       `SELECT g.*, s.proprietario_id, s.lega_id, s.id as squadra_id
          FROM giocatori g 
          JOIN squadre s ON g.squadra_id = s.id 
-         WHERE g.id = $1 AND g.squadra_id = $2`,
+         WHERE g.id = ? AND g.squadra_id = ?`,
       [giocatoreId, squadraId]
     );
 
@@ -1043,7 +1043,7 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
 
     // Se si sta spostando in Roster A, verifica che ci sia spazio
     if (targetRoster === 'A') {
-      const legaIdResult = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = $1', [squadraId]);
+      const legaIdResult = await db.query('SELECT s.lega_id FROM squadre s WHERE s.id = ?', [squadraId]);
       const legaId = legaIdResult.rows[0]?.lega_id;
       const rosterManager = createRosterManager(legaId);
       const isRosterABEnabled = await rosterManager.isRosterABEnabled();
@@ -1065,7 +1065,7 @@ router.post('/roster/move-player', authenticateToken, async (req, res) => {
 
     // Sposta il giocatore nel roster specificato
     await db.query(
-      'UPDATE giocatori SET roster = $1 WHERE id = $2',
+      'UPDATE giocatori SET roster = ? WHERE id = ?',
       [targetRoster, giocatoreId]
     );
 

@@ -2,7 +2,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { getGiocatoreById, updateGiocatore, updateGiocatorePartial, createGiocatore, deleteGiocatore } from '../models/giocatore.js';
 import { getLegaById } from '../models/lega.js';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 const router = express.Router();
 
@@ -28,7 +28,7 @@ router.get('/:giocatoreId', requireAuth, async (req, res) => {
       LEFT JOIN squadre s ON g.squadra_id = s.id
       LEFT JOIN leghe l ON s.lega_id = l.id
       LEFT JOIN users u ON s.proprietario_id = u.id
-      WHERE g.id = $1
+      WHERE g.id = ?
     `, [giocatoreId]);
     
     if ((result.rows?.length || 0) === 0) return res.status(404).json({ error: 'Giocatore non trovato' });
@@ -54,7 +54,7 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
              COALESCE(sp.nome, 'Nome') as squadra_prestito_nome
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
-      WHERE g.squadra_id = $1
+      WHERE g.squadra_id = ?
     `, [squadraId]);
     res.json({ giocatori: result.rows });
   } catch (err) {
@@ -103,7 +103,7 @@ router.post('/batch', requireAuth, async (req, res) => {
     }
     const { ids } = req.body;
     if (!Array.isArray(ids) || ids?.length || 0 === 0) return res.status(400).json({ error: 'Nessun ID fornito' });
-    const placeholders = ids?.map((_, index) => `$${index + 1}`).join(',');
+    const placeholders = ids?.map(() => '?').join(',');
     const result = await db.query(`
       SELECT *, 
              quotazione_attuale
@@ -131,7 +131,7 @@ router.get('/lega/:legaId', requireAuth, async (req, res) => {
       FROM giocatori g 
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
       JOIN squadre s ON g.squadra_id = s.id
-      WHERE s.lega_id = $1
+      WHERE s.lega_id = ?
     `, [legaId]);
     res.json({ giocatori: result.rows });
   } catch (err) {
@@ -161,7 +161,7 @@ router.post('/', requireAuth, async (req, res) => {
       
       // Admin può creare solo nella sua lega (gestisce entrambi i casi)
       if (userRole === 'admin' || userRole === 'Admin') {
-        const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = $1', [giocatoreData.lega_id]);
+        const legaResult = await db.query('SELECT admin_id FROM leghe WHERE id = ?', [giocatoreData.lega_id]);
         const lega = legaResult.rows[0];
         return lega && lega.admin_id === utenteId;
       }
@@ -223,7 +223,7 @@ router.put('/:id', requireAuth, async (req, res) => {
         console.log('canEdit - Checking admin permissions for player:', giocatoreId);
         
         const result = await db.query(
-          'SELECT s.lega_id, l.admin_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id LEFT JOIN leghe l ON s.lega_id = l.id WHERE g.id = $1',
+          'SELECT s.lega_id, l.admin_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id LEFT JOIN leghe l ON s.lega_id = l.id WHERE g.id = ?',
           [giocatoreId]
         );
         const giocatore = result.rows[0];
@@ -277,7 +277,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
       // Admin può eliminare solo i giocatori della sua lega (gestisce entrambi i casi)
       if (userRole === 'admin' || userRole === 'Admin') {
         const result = await db.query(
-          'SELECT s.lega_id, l.admin_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id LEFT JOIN leghe l ON s.lega_id = l.id WHERE g.id = $1',
+          'SELECT s.lega_id, l.admin_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id LEFT JOIN leghe l ON s.lega_id = l.id WHERE g.id = ?',
           [giocatoreId]
         );
         const giocatore = result.rows[0];
@@ -357,7 +357,7 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
     }
     
     // Verifica che la squadra destinazione esista e sia nella stessa lega
-    const squadraDestResult = await db.query('SELECT * FROM squadre WHERE id = $1', [squadra_destinazione_id]);
+    const squadraDestResult = await db.query('SELECT * FROM squadre WHERE id = ?', [squadra_destinazione_id]);
     const squadraDest = squadraDestResult.rows[0];
     if (!squadraDest) {
       return res.status(404).json({ error: 'Squadra destinazione non trovata' });
@@ -375,7 +375,7 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
     }
     
     // Verifica che le squadre siano nella stessa lega
-    const giocatoreSquadraResult = await db.query('SELECT s.lega_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = $1', [giocatoreId]);
+    const giocatoreSquadraResult = await db.query('SELECT s.lega_id FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE g.id = ?', [giocatoreId]);
     const giocatoreSquadra = giocatoreSquadraResult.rows[0];
     
     if (!giocatoreSquadra || giocatoreSquadra.lega_id !== squadraDest.lega_id) {
@@ -383,10 +383,10 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
     }
     
     // Verifica che la squadra destinazione abbia slot disponibili
-    const giocatoriCountResult = await db.query('SELECT COUNT(*) as count FROM giocatori WHERE squadra_id = $1', [squadra_destinazione_id]);
+    const giocatoriCountResult = await db.query('SELECT COUNT(*) as count FROM giocatori WHERE squadra_id = ?', [squadra_destinazione_id]);
     const currentPlayers = parseInt(giocatoriCountResult.rows[0].count);
     
-    const legaResult = await db.query('SELECT max_giocatori FROM leghe WHERE id = $1', [giocatoreSquadra.lega_id]);
+    const legaResult = await db.query('SELECT max_giocatori FROM leghe WHERE id = ?', [giocatoreSquadra.lega_id]);
     const lega = legaResult.rows[0];
     
     const maxGiocatori = lega ? lega?.max_giocatori || '' : 30;
@@ -402,13 +402,13 @@ router.post('/:id/transfer', requireAuth, async (req, res) => {
     try {
       // Aggiorna il giocatore
       await db.query(
-        'UPDATE giocatori SET squadra_id = $1, costo_attuale = $2, salario = $3, anni_contratto = $4 WHERE id = $5',
+        'UPDATE giocatori SET squadra_id = ?, costo_attuale = ?, salario = ?, anni_contratto = ? WHERE id = ?',
         [squadra_destinazione_id, costo, ingaggio, anni_contratto, giocatoreId]
       );
       
       // Sottrai il costo dalle casse della squadra destinazione
       await db.query(
-        'UPDATE squadre SET casse_societarie = casse_societarie - $1 WHERE id = $2',
+        'UPDATE squadre SET casse_societarie = casse_societarie - ? WHERE id = ?',
         [costo, squadra_destinazione_id]
       );
       
@@ -444,7 +444,7 @@ router.get('/:id/qa-history', requireAuth, async (req, res) => {
     const result = await db.query(`
       SELECT qa_value, data_registrazione, fonte 
       FROM qa_history 
-      WHERE giocatore_id = $1 
+      WHERE giocatore_id = ? 
       ORDER BY data_registrazione DESC 
       LIMIT 50
     `, [giocatoreId]);
