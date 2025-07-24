@@ -51,6 +51,7 @@ app.use(cors({
     'https://topleaguem.onrender.com',
     'https://top-league.org',
     'https://www.top-league.org',
+    'https://top-league-org.onrender.com',
     'http://localhost:3000',
     'http://localhost:3001'
   ],
