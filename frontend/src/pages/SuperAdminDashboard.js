@@ -5,6 +5,7 @@ import { useAuth } from '../components/AuthContext';
 import { getAllLegheAdmin, deleteLeague } from '../api/leghe';
 import { getAllSubadmins, addSubadmin, removeSubadmin } from '../api/subadmin';
 import { searchUsers } from '../api/auth';
+import { api } from '../api/config';
 import UserAutocomplete from '../components/UserAutocomplete';
 
 const Container = styled.div`
@@ -369,34 +370,26 @@ const SuperAdminDashboard = () => {
         console.log('🔍 SuperAdminDashboard: Leghe response:', legheRes);
         console.log('🔍 SuperAdminDashboard: Subadmins response:', subadminsRes);
         
-        setLeghe(legheRes?.data?.leghe || []);
-        setSubadmins(subadminsRes?.data?.subadmins || []);
+        // Gestione risposta leghe - supporta sia {data: {leghe: [...]}} che {leghe: [...]}
+        const legheData = legheRes?.data?.leghe || legheRes?.leghe || [];
+        setLeghe(legheData);
         
-        console.log('🔍 SuperAdminDashboard: Leghe set:', legheRes?.data?.leghe?.length || 0);
-        console.log('🔍 SuperAdminDashboard: Subadmins set:', subadminsRes?.data?.subadmins?.length || 0);
+        // Gestione risposta subadmins - supporta sia {data: {subadmins: [...]}} che {subadmins: [...]}
+        const subadminsData = subadminsRes?.data?.subadmins || subadminsRes?.subadmins || [];
+        setSubadmins(subadminsData);
+        
+        console.log('🔍 SuperAdminDashboard: Leghe set:', legheData.length);
+        console.log('🔍 SuperAdminDashboard: Subadmins set:', subadminsData.length);
         
         // Carica utenti separatamente con gestione errori migliorata
         try {
-          const usersResponse = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/auth/all-users`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
+          const usersResponse = await api.get('/auth/all-users', token);
           
-          if (usersResponse.ok) {
-            const usersData = await usersResponse.json();
-            setUsers(usersData);
-          } else if (usersResponse.status === 401) {
-            console.warn('Utente non autorizzato per accedere agli utenti');
-            setUsers([]);
-          } else if (usersResponse.status === 403) {
-            console.warn('Accesso negato: richiesti privilegi SuperAdmin');
-            setUsers([]);
-          } else {
-            console.error('Errore nel caricamento utenti:', usersResponse.status);
-            setUsers([]);
-          }
+          // Gestione risposta flessibile - supporta sia {users: [...]} che {...} direttamente
+          const usersData = usersResponse?.users || usersResponse || [];
+          setUsers(usersData);
+          
+          console.log('🔍 SuperAdminDashboard: Users loaded:', usersData.length);
         } catch (usersErr) {
           console.error('Errore caricamento utenti:', usersErr);
           setUsers([]);
@@ -422,11 +415,24 @@ const SuperAdminDashboard = () => {
   const handleDeleteLega = async (legaId, legaNome) => {
     if (window.confirm(`Sei sicuro di voler eliminare la lega "${legaNome}"? Questa azione non può essere annullata.`)) {
       try {
-        await deleteLeague(legaId, token);
-        setLeghe(leghe?.filter(lega => lega.id !== legaId));
-        alert('Lega eliminata con successo!');
+        console.log('🔍 SuperAdminDashboard: Eliminazione lega', legaId);
+        
+        const deleteResponse = await deleteLeague(legaId, token);
+        
+        // Gestione risposta flessibile - supporta sia {success: true} che {...} direttamente
+        const success = deleteResponse?.success || deleteResponse?.ok || false;
+        const message = deleteResponse?.message || 'Lega eliminata con successo';
+        
+        if (success) {
+          setLeghe(leghe?.filter(lega => lega.id !== legaId));
+          alert(message);
+          console.log('✅ SuperAdminDashboard: Lega eliminata con successo');
+        } else {
+          throw new Error(message || 'Errore nell\'eliminazione della lega');
+        }
       } catch (err) {
-        alert(`Errore nell'eliminazione: ${err.message}`);
+        console.error('❌ SuperAdminDashboard: Errore eliminazione lega:', err);
+        alert(`Errore nell'eliminazione: ${err.message || 'Errore sconosciuto'}`);
       }
     }
   };
@@ -510,16 +516,10 @@ const SuperAdminDashboard = () => {
         return;
       }
       
-      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/auth/all-users`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await api.get('/auth/all-users', token);
       
       if (response.ok) {
-        const users = await response.json();
-        setUsers(users);
+        setUsers(response?.data?.users || []);
       } else if (response.status === 401) {
         console.warn('Utente non autorizzato per accedere agli utenti');
         setUsers([]);
@@ -554,21 +554,15 @@ const SuperAdminDashboard = () => {
     }
 
     try {
-      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/superadmin/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await api.delete(`/superadmin/users/${userId}`, token);
 
       if (response.ok) {
         alert(`Utente "${username}" eliminato con successo!`);
         // Ricarica la lista utenti
         await fetchUsers();
       } else {
-        const errorData = await response.json();
-        alert(`Errore nell'eliminazione: ${errorData.error || 'Errore sconosciuto'}`);
+        const errorData = response?.data || {};
+        alert(`Errore nell'eliminazione: ${errorData?.error || 'Errore sconosciuto'}`);
       }
     } catch (err) {
       console.error('Errore nell\'eliminazione utente:', err);
@@ -585,50 +579,34 @@ const SuperAdminDashboard = () => {
 
       if (selectedUserForEdit) {
         // Aggiorna utente esistente
-        const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/superadmin/users/${selectedUserForEdit.id}/role`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            ruolo: userFormData?.ruolo || 'Ruolo'
-          })
-        });
+        const response = await api.put(`/superadmin/users/${selectedUserForEdit.id}/role`, { role: userFormData?.ruolo || 'Ruolo' }, token);
 
         if (response.ok) {
           alert('Utente aggiornato con successo!');
           setShowUserModal(false);
           await fetchUsers(); // Ricarica la lista
         } else {
-          const errorData = await response.json();
-          alert(`Errore nell'aggiornamento: ${errorData.error || 'Errore sconosciuto'}`);
+          const errorData = response?.data || {};
+          alert(`Errore nell'aggiornamento: ${errorData?.error || 'Errore sconosciuto'}`);
         }
       } else {
         // Crea nuovo utente
-        const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/auth/register`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            nome: userFormData.username,
-            cognome: userFormData.username,
-            username: userFormData.username,
-            email: userFormData.email,
-            password: 'password123', // Password temporanea
-            ruolo: userFormData?.ruolo || 'Ruolo'
-          })
-        });
+        const response = await api.post('/auth/register', {
+          nome: userFormData.username,
+          cognome: userFormData.username,
+          username: userFormData.username,
+          email: userFormData.email,
+          password: 'password123', // Password temporanea
+          ruolo: userFormData?.ruolo || 'Ruolo'
+        }, token);
 
         if (response.ok) {
           alert('Utente creato con successo!');
           setShowUserModal(false);
           await fetchUsers(); // Ricarica la lista
         } else {
-          const errorData = await response.json();
-          alert(`Errore nella creazione: ${errorData.error || 'Errore sconosciuto'}`);
+          const errorData = response?.data || {};
+          alert(`Errore nella creazione: ${errorData?.error || 'Errore sconosciuto'}`);
         }
       }
     } catch (err) {
@@ -689,7 +667,28 @@ const SuperAdminDashboard = () => {
       </StatsGrid>
 
       <LeaguesSection>
-        <SectionTitle>🏆 Gestione Leghe</SectionTitle>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <SectionTitle>🏆 Gestione Leghe</SectionTitle>
+          <ActionButton 
+            className="success"
+            onClick={() => navigate('/crea-lega')}
+            style={{ 
+              backgroundColor: '#28a745', 
+              color: 'white', 
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            ➕ Crea Lega
+          </ActionButton>
+        </div>
         
         {!leghe || (leghe?.length || 0) === 0 ? (
           <EmptyContainer>

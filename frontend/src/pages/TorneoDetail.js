@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
-import { getDettaglioTorneo } from '../api/tornei';
+import { getDettaglioTorneo, deleteTorneo } from '../api/tornei';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -313,17 +313,65 @@ const BackButton = styled.button`
   }
 `;
 
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+`;
+
+const ActionButton = styled.button`
+  background: ${props => {
+    if (props.$variant === 'primary') return 'linear-gradient(135deg, #667eea, #764ba2)';
+    if (props.$variant === 'danger') return 'linear-gradient(135deg, #e53e3e, #c53030)';
+    return 'linear-gradient(135deg, #718096, #4a5568)';
+  }};
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  }
+`;
+
 const TorneoDetail = () => {
   const { torneoId } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [torneo, setTorneo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     loadTorneo();
   }, [torneoId]);
+
+  const handleEdit = () => {
+    navigate(`/gestione-tornei/${torneo.lega_id}`, { 
+      state: { editingTorneo: torneo } 
+    });
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Sei sicuro di voler eliminare questo torneo? Questa azione non può essere annullata.')) {
+      return;
+    }
+    
+    try {
+      await deleteTorneo(torneoId, token);
+      alert('Torneo eliminato con successo!');
+      navigate(-1);
+    } catch (error) {
+      console.error('Errore eliminazione torneo:', error);
+      alert('Errore nell\'eliminazione del torneo. Riprova più tardi.');
+    }
+  };
 
   const loadTorneo = async () => {
     try {
@@ -331,6 +379,11 @@ const TorneoDetail = () => {
       setError('');
       const response = await getDettaglioTorneo(torneoId, token);
       setTorneo(response.torneo);
+      
+      // Verifica se l'utente è admin della lega
+      if (response.torneo && user) {
+        setIsAdmin(user?.ruolo === 'admin' || user?.ruolo === 'superadmin');
+      }
     } catch (error) {
       console.error('Errore caricamento torneo:', error);
       setError('Errore nel caricamento del torneo. Riprova più tardi.');
@@ -425,6 +478,17 @@ const TorneoDetail = () => {
         <BackButton onClick={() => navigate(-1)}>
           ← Torna indietro
         </BackButton>
+
+        {isAdmin && (
+          <ActionButtons>
+            <ActionButton onClick={handleEdit}>
+              ✏️ Modifica Torneo
+            </ActionButton>
+            <ActionButton $variant="danger" onClick={handleDelete}>
+              🗑️ Elimina Torneo
+            </ActionButton>
+          </ActionButtons>
+        )}
 
         <Header>
           <Title>{torneo.nome}</Title>

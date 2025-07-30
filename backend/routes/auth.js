@@ -54,17 +54,6 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Test user for local development
-const TEST_USER = {
-  id: 1,
-  username: 'admin',
-  email: 'admin@topleague.com',
-  password_hash: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // password: password
-  nome: 'Admin',
-  cognome: 'Test',
-  ruolo: 'admin'
-};
-
 // Login utente - versione PostgreSQL
 router.post('/login', async (req, res) => {
   try {
@@ -79,39 +68,27 @@ router.post('/login', async (req, res) => {
     
     console.log('Login attempt for email/username:', email);
     
-    // Check if database is available
-    let db = getDb();
-    let utente = null;
-    
-    if (db) {
-      // Database available - try normal login
-      try {
-        // Prima prova a cercare per email
-        utente = await getUtenteByEmail(email);
-        
-        // Se non trova per email, prova per username
-        if (!utente) {
-          console.log('User not found by email, trying username...');
-          utente = await getUtenteByUsername(email);
-        }
-      } catch (dbError) {
-        console.log('Database error, using test user for local development');
-        db = null;
-      }
+    // Get database connection
+    const db = getDb();
+    if (!db) {
+      console.error('Database not available');
+      return res.status(500).json({ error: 'Database non disponibile' });
     }
     
-    // If no database or database error, use test user for local development
-    if (!db || !utente) {
-      console.log('Using test user for local development');
+    let utente = null;
+    
+    try {
+      // Prima prova a cercare per email
+      utente = await getUtenteByEmail(email);
       
-      // Check if it's the test user
-      if (email === 'admin@topleague.com' && password === 'password') {
-        utente = TEST_USER;
-        console.log('Test user authenticated:', utente.username);
-      } else {
-        console.log('❌ Test user check failed. Email:', email, 'Password:', password);
-        return res.status(400).json({ error: 'Utente non trovato. Usa admin@topleague.com / password per test locale.' });
+      // Se non trova per email, prova per username
+      if (!utente) {
+        console.log('User not found by email, trying username...');
+        utente = await getUtenteByUsername(email);
       }
+    } catch (dbError) {
+      console.error('Database error during login:', dbError);
+      return res.status(500).json({ error: 'Errore del database durante il login' });
     }
     
     if (!utente) {
@@ -119,8 +96,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Utente non trovato. Verifica email/username o registrati.' });
     }
     
-    // Verifica password (skip for test user)
-    if (utente !== TEST_USER && !(await bcrypt.compare(password, utente.password_hash))) {
+    // Verifica password
+    if (!(await bcrypt.compare(password, utente.password_hash))) {
       console.log('Password incorrect');
       return res.status(400).json({ error: 'Password non corretta. Riprova.' });
     }
@@ -130,51 +107,31 @@ router.post('/login', async (req, res) => {
     // Generate token
     const token = generateToken(utente);
     
-    // Get admin leghe if database available
+    // Get admin leghe
     let legheAdmin = [];
-    if (db && utente !== TEST_USER) {
-      try {
-        const legheResult = await db.query('SELECT id, nome FROM leghe WHERE admin_id = ?', [utente.id]);
-        // Handle MariaDB result format
-        if (legheResult && typeof legheResult === 'object' && legheResult.rows) {
-          legheAdmin = legheResult.rows;
-        } else if (Array.isArray(legheResult)) {
-          legheAdmin = legheResult;
-        }
-      } catch (dbError) {
-        console.log('Error getting admin leghe, using empty array');
+    try {
+      const legheResult = await db.query('SELECT id, nome FROM leghe WHERE admin_id = ?', [utente.id]);
+      // Handle MariaDB result format
+      if (legheResult && Array.isArray(legheResult)) {
+        legheAdmin = legheResult;
+      } else if (legheResult && legheResult.rows) {
+        legheAdmin = legheResult.rows;
       }
+    } catch (error) {
+      console.log('No admin leghe found or error:', error.message);
     }
     
-    console.log('Login successful for:', utente.username, 'Leghe admin:', legheAdmin?.length || 0);
+    // Process login success
+    await processLoginSuccess(utente, res, req, legheAdmin, token);
     
-    res.json({ 
-      token, 
-      user: { 
-        id: utente.id, 
-        nome: utente?.nome || 'Nome', 
-        cognome: utente?.cognome || '', 
-        username: utente.username,
-        email: utente.email, 
-        ruolo: utente?.ruolo || 'Ruolo',
-        leghe_admin: legheAdmin
-      } 
-    });
-    
-  } catch (e) {
-    console.error('Unexpected error in login:', e);
-    if (e.message && e.message.includes('Database non disponibile')) {
-      return res.status(503).json({ 
-        error: 'Servizio temporaneamente non disponibile',
-        message: 'Il servizio database non è attualmente disponibile. Riprova più tardi.'
-      });
-    }
-    res.status(500).json({ error: 'Errore interno del server', details: e.message });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Errore interno del server', details: error.message });
   }
 });
 
 // Funzione helper per processare il login di successo
-async function processLoginSuccess(utente, res, req) {
+async function processLoginSuccess(utente, res, req, legheAdmin, token) {
   try {
     console.log('processLoginSuccess started for user:', utente.username);
     
@@ -303,37 +260,27 @@ router.get('/search-users', requireSuperAdmin, async (req, res) => {
 // Ottieni tutti gli utenti (solo SuperAdmin)
 router.get('/all-users', requireSuperAdmin, async (req, res) => {
   try {
-    console.log('GET /all-users - Starting request');
     console.log('User from middleware:', req.user);
     
     const db = getDb();
     if (!db) {
-      console.error('GET /all-users - Database not available');
       return res.status(500).json({ error: 'Database non disponibile' });
     }
     
-    console.log('GET /all-users - Database connection available');
-    
-    const query = `
-      SELECT id, username, email, ruolo, created_at
-      FROM users 
-      ORDER BY created_at DESC
-    `;
-    
-    console.log('GET /all-users - Executing query:', query);
-    
-    const result = await db.query(query);
-    console.log('GET /all-users - Query result rows:', result?.length || 0);
+    console.log('GET /all-users - Querying database');
+    const users = await db.query('SELECT id, username, email, ruolo, created_at FROM users ORDER BY created_at DESC');
     
     // Handle MariaDB result format
-    let users = [];
-    if (result && typeof result === 'object' && result.rows) {
-      users = result.rows;
-    } else if (Array.isArray(result)) {
-      users = result;
+    let userList = [];
+    if (users && Array.isArray(users)) {
+      userList = users;
+    } else if (users && users.rows) {
+      userList = users.rows;
     }
     
-    res.json(users);
+    console.log('GET /all-users - Found users:', userList.length);
+    return res.json(userList);
+    
   } catch (e) {
     console.error('GET /all-users - Error:', e);
     console.error('GET /all-users - Error stack:', e.stack);
@@ -390,7 +337,7 @@ router.get('/is-league-admin/:legaId', async (req, res) => {
     if (!token) return res.status(401).json({ error: 'Token non fornito' });
     
     // Verifica token e ottieni user
-    const JWT_SECRET = 'topleague_secret';
+    const JWT_SECRET = process.env.JWT_SECRET || 'topleague_secret';
     
     try {
       const payload = jwt.verify(token, JWT_SECRET);
@@ -423,7 +370,7 @@ router.get('/verify-user', async (req, res) => {
     if (!token) return res.status(401).json({ error: 'Token non fornito' });
     
     // Verifica token e ottieni user
-    const JWT_SECRET = 'topleague_secret';
+    const JWT_SECRET = process.env.JWT_SECRET || 'topleague_secret';
     
     try {
       const payload = jwt.verify(token, JWT_SECRET);

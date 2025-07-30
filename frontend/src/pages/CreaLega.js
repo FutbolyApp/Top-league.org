@@ -236,18 +236,24 @@ const CreaLega = () => {
         })
       });
 
-      const result = await response.json();
+      let result = null;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        console.error('🚨 Failed to parse scraping test response JSON:', jsonError);
+        result = { error: 'Errore nel parsing della risposta' };
+      }
       
       if (response.ok) {
         setScrapingTestResult({
           success: true,
           message: '✅ Connessione riuscita! Credenziali valide.',
-          data: result.data
+          data: result?.data
         });
       } else {
         setScrapingTestResult({
           success: false,
-          message: `❌ Errore: ${result.error}`
+          message: `❌ Errore: ${result?.error || 'Errore sconosciuto'}`
         });
       }
     } catch (err) {
@@ -305,7 +311,7 @@ const CreaLega = () => {
     }
     
     try {
-      const result = await creaLega({ ...form, admin_id: user.id, excel, regolamento_pdf: pdf }, token);
+      const result = await creaLega({ ...form, admin_id: user?.id, excel, regolamento_pdf: pdf }, token);
       setSuccess(true);
       
       // Gestisci i warning dal backend
@@ -365,7 +371,7 @@ const CreaLega = () => {
           <Input
             name="nome"
             placeholder="Inserisci il nome della lega"
-            value={form?.nome || 'Nome'}
+            value={form?.nome || ''}
             onChange={handleChange}
             required
           />

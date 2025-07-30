@@ -1,4 +1,4 @@
-import xlsx from 'xlsx';
+import ExcelJS from 'exceljs';
 import fs from 'fs';
 
 /**
@@ -7,29 +7,34 @@ import fs from 'fs';
  * Ogni tabella inizia con il nome della squadra, ha intestazioni Ruolo/Calciatore/Squadra/Costo
  * e termina con "Crediti Residui"
  */
-export function parseSquadreFromExcel(filePath, validationParams = {}) {
+export async function parseSquadreFromExcel(filePath, validationParams = {}) {
   try {
     console.log('Inizio parsing Excel:', filePath);
     console.log('Parametri di validazione:', validationParams);
     
-    const workbook = xlsx.readFile(filePath);
-    console.log('📋 Fogli disponibili nel file:', workbook.SheetNames);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    console.log('📋 Fogli disponibili nel file:', workbook.worksheets.map(ws => ws.name));
     
     let allSquadre = [];
     
-    for (const sheetName of workbook.SheetNames) {
+    for (const worksheet of workbook.worksheets) {
+      const sheetName = worksheet.name;
       console.log(`📄 Processando foglio: ${sheetName}`);
-      const worksheet = workbook.Sheets[sheetName];
       
       if (!worksheet) {
         console.log(`⚠️ Foglio ${sheetName} vuoto, salto`);
         continue;
       }
       
-      const sheetData = xlsx.utils.sheet_to_json(worksheet, { 
-        header: 1,
-        defval: '',
-        raw: false
+      // Converti il foglio in array di righe
+      const sheetData = [];
+      worksheet.eachRow((row, rowNumber) => {
+        const rowData = [];
+        row.eachCell((cell, colNumber) => {
+          rowData[colNumber - 1] = cell.value || '';
+        });
+        sheetData.push(rowData);
       });
       
       console.log(`📊 Foglio ${sheetName}: ${sheetData.length} righe, ${sheetData[0] ? sheetData[0].length : 0} colonne`);

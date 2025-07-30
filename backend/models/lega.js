@@ -27,25 +27,22 @@ export async function createLega(data) {
   const admin_id = parseInt(data.admin_id) || 1;
   
   // Se non esiste, procedi con la creazione
-  const sql = `INSERT INTO leghe (nome, modalita, admin_id, is_pubblica, password, max_squadre, min_giocatori, max_giocatori, roster_ab, cantera, contratti, triggers, regolamento_pdf, excel_originale, excel_modificato)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const sql = `INSERT INTO leghe (nome, descrizione, modalita, admin_id, is_pubblica, password, max_squadre, roster_ab, cantera, contratti, triggers, regole)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   const db = getDb();
   const result = await db.query(sql, [
     data?.nome || 'Nome',
+    data?.descrizione || '',
     data?.modalita || '',
     admin_id,
     data?.is_pubblica || false? true : false,
     data?.password || null,
     max_squadre,
-    min_giocatori,
-    max_giocatori,
     data?.roster_ab ? true : false,
     data?.cantera ? true : false,
     data?.contratti ? true : false,
     data?.triggers ? true : false,
-    data?.regolamento_pdf || null,
-    data?.excel_originale || null,
-    data?.excel_modificato || null
+    data?.regole || null
   ]);
   
   return result.insertId;
@@ -81,24 +78,21 @@ export async function updateLega(id, data) {
   const admin_id = parseInt(data.admin_id) || 1;
   
   // Procedi con l'aggiornamento
-  const sql = `UPDATE leghe SET nome=?, modalita=?, admin_id=?, is_pubblica=?, password=?, max_squadre=?, min_giocatori=?, max_giocatori=?, roster_ab=?, cantera=?, contratti=?, triggers=?, regolamento_pdf=?, excel_originale=?, excel_modificato=? WHERE id=?`;
+  const sql = `UPDATE leghe SET nome=?, descrizione=?, modalita=?, admin_id=?, is_pubblica=?, password=?, max_squadre=?, roster_ab=?, cantera=?, contratti=?, triggers=?, regole=? WHERE id=?`;
   const db = getDb();
   await db.query(sql, [
     data?.nome || 'Nome',
+    data?.descrizione || '',
     data?.modalita || '',
     admin_id,
     data?.is_pubblica || false? true : false,
     data?.password || null,
     max_squadre,
-    min_giocatori,
-    max_giocatori,
     data?.roster_ab ? true : false,
     data?.cantera ? true : false,
     data?.contratti ? true : false,
     data?.triggers ? true : false,
-    data?.regolamento_pdf || null,
-    data?.excel_originale || null,
-    data?.excel_modificato || null,
+    data?.regole || null,
     id
   ]);
 }

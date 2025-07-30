@@ -9,7 +9,7 @@ const SuperAdminRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.ruolo !== 'admin') {
+  if (user?.ruolo !== 'admin') {
     return <Navigate to="/" replace />;
   }
 

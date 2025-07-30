@@ -232,18 +232,24 @@ const NetworkErrorHandler = ({ children }) => {
         body: JSON.stringify(loginData),
       });
 
-      const data = await response.json();
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('🚨 Failed to parse network error handler login response JSON:', jsonError);
+        data = { message: 'Errore nel parsing della risposta' };
+      }
 
       if (response.ok) {
         // Salva il token nel localStorage
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data?.token || '');
+        localStorage.setItem('user', JSON.stringify(data?.user || {}));
         
         // Chiudi il popup e ricarica la pagina
         setNetworkError(null);
         window.location.reload();
       } else {
-        setLoginError(data.message || 'Errore durante il login');
+        setLoginError(data?.message || 'Errore durante il login');
       }
     } catch (error) {
       setLoginError('Errore di connessione. Riprova.');

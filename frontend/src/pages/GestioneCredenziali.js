@@ -4,6 +4,7 @@ import { useAuth } from '../components/AuthContext';
 import { useNotification } from '../components/NotificationSystem';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getLegheAdmin } from '../api/leghe';
+import { api } from '../api/config';
 
 const Container = styled.div`
   max-width: 800px;
@@ -178,21 +179,9 @@ const GestioneCredenziali = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/leghe/${legaId}/scraping-credentials`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          fantacalcio_username: credentials.username,
-          fantacalcio_password: credentials?.password || ''
-        })
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
+      const response = await api.put(`/leghe/${legaId}/scraping-credentials`, credentials, token);
+      
+      if (response.ok) {
         showSuccessModal(
           '✅ Credenziali Aggiornate',
           'Le credenziali sono state aggiornate con successo! Ora puoi testarle.'
@@ -204,13 +193,14 @@ const GestioneCredenziali = () => {
         const updatedLega = leghe?.find(l => l?.id?.toString() === legaId);
         if (updatedLega) {
           setLegaData(updatedLega);
+          setTestResult(null); // Reset test result
         }
         
-        setTestResult(null); // Reset test result
       } else {
+        const errorData = response.data;
         showErrorModal(
           '❌ Errore Aggiornamento',
-          result.error || 'Errore durante l\'aggiornamento delle credenziali'
+          errorData.error || 'Errore durante l\'aggiornamento delle credenziali'
         );
       }
     } catch (error) {
@@ -249,18 +239,10 @@ const GestioneCredenziali = () => {
         lega_id: legaId
       };
 
-      const response = await fetch(`${process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : 'https://topleaguem.onrender.com'}/api/scraping/puppeteer/league`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(requestBody)
-      });
+      const response = await api.post('/scraping/puppeteer/league', requestBody, token);
 
-      const result = await response.json();
-
-      if (result.success) {
+      if (response.ok) {
+        const result = response.data;
         let message = `✅ Credenziali valide! Connessione riuscita. Trovate ${result.data?.summary?.squadre_trovate || 0} squadre con ${result.data?.summary?.giocatori_totali || 0} giocatori totali.`;
         
         // Aggiungi informazioni sul salvataggio nel database se disponibili
@@ -273,9 +255,10 @@ const GestioneCredenziali = () => {
           message: message
         });
       } else {
+        const errorData = response.data;
         setTestResult({
           success: false,
-          message: `❌ Test fallito: ${result.error || 'Errore sconosciuto'}`
+          message: `❌ Test fallito: ${errorData.error || 'Errore sconosciuto'}`
         });
       }
     } catch (error) {

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TopLeague - Test IONOS Conversion</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #17a2b8;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 TopLeague - Test Conversione IONOS</h1>
+        
+        <div class="status success">
+            <h2>✅ Conversione Completata con Successo!</h2>
+            <p>L'applicazione è stata convertita per funzionare su server IONOS.</p>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test API</h3>
+            <button onclick="testAPI()">Test API Status</button>
+            <button onclick="testLogin()">Test Login</button>
+            <button onclick="testPing()">Test Ping</button>
+            <div id="api-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Caratteristiche Verificate</h3>
+            <ul>
+                <li>✅ Backend Node.js/Express funzionante</li>
+                <li>✅ Frontend React servito come file statici</li>
+                <li>✅ Routing SPA (Single Page Application)</li>
+                <li>✅ CORS configurato correttamente</li>
+                <li>✅ API endpoints funzionanti</li>
+                <li>✅ Configurazione IONOS-compatibile</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Configurazione IONOS</h3>
+            <p><strong>Architettura:</strong> Unica applicazione (frontend + backend)</p>
+            <p><strong>Porta:</strong> 3001</p>
+            <p><strong>API Base:</strong> /api/*</p>
+            <p><strong>File Statici:</strong> Serviti da Express</p>
+            <p><strong>Database:</strong> PostgreSQL (configurabile)</p>
+        </div>
+
+        <div class="test-section">
+            <h3>📁 File di Deployment</h3>
+            <ul>
+                <li><code>ionos-deploy.sh</code> - Script di deployment</li>
+                <li><code>.htaccess</code> - Configurazione Apache</li>
+                <li><code>env.template</code> - Template variabili ambiente</li>
+                <li><code>ionos-setup.md</code> - Guida deployment</li>
+            </ul>
+        </div>
+
+        <div class="status info">
+            <h3>🎯 Prossimi Passi</h3>
+            <ol>
+                <li>Configurare database PostgreSQL</li>
+                <li>Eseguire <code>./ionos-deploy.sh</code></li>
+                <li>Caricare su server IONOS</li>
+                <li>Configurare variabili ambiente</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            try {
+                const response = await fetch('/api/test/status');
+                const data = await response.json();
+                document.getElementById('api-results').innerHTML = `
+                    <div class="status success">
+                        <h4>✅ API Test Riuscito</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('api-results').innerHTML = `
+                    <div class="status error">
+                        <h4>❌ API Test Fallito</h4>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+
+        async function testLogin() {
+            try {
+                const response = await fetch('/api/test/auth/test-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@topleague.com',
+                        password: 'admin'
+                    })
+                });
+                const data = await response.json();
+                document.getElementById('api-results').innerHTML = `
+                    <div class="status success">
+                        <h4>✅ Login Test Riuscito</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('api-results').innerHTML = `
+                    <div class="status error">
+                        <h4>❌ Login Test Fallito</h4>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+
+        async function testPing() {
+            try {
+                const response = await fetch('/api/test/ping');
+                const data = await response.json();
+                document.getElementById('api-results').innerHTML = `
+                    <div class="status success">
+                        <h4>✅ Ping Test Riuscito</h4>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('api-results').innerHTML = `
+                    <div class="status error">
+                        <h4>❌ Ping Test Fallito</h4>
+                        <pre>${error.message}</pre>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

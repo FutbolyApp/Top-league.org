@@ -468,19 +468,80 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
       setLoading(true);
       setError('');
       try {
+        console.log('🔍 [DettaglioGiocatore] Token presente:', !!token);
+        console.log('🔍 [DettaglioGiocatore] Chiamando getGiocatoreById per ID:', id);
         const res = await getGiocatoreById(id, token);
-        setGiocatore(res?.giocatore);
+        console.log('🔍 [DettaglioGiocatore] Risposta API:', res);
+        console.log('🔍 [DettaglioGiocatore] Tipo di risposta:', typeof res);
+        console.log('🔍 [DettaglioGiocatore] Contenuto risposta:', JSON.stringify(res, null, 2));
+        
+        // Gestisci sia il caso in cui res è direttamente l'oggetto giocatore
+        // sia il caso in cui è wrappato in { giocatore: {...} }
+        // sia il caso in cui è wrappato in { ok: true, data: { giocatore: {...} } }
+        let giocatoreData = null;
+        if (res && res.ok && res.data && res.data.giocatore) {
+          giocatoreData = res.data.giocatore;
+          console.log('🔍 [DettaglioGiocatore] Estratto da res.data.giocatore');
+        } else if (res && res.giocatore) {
+          giocatoreData = res.giocatore;
+          console.log('🔍 [DettaglioGiocatore] Estratto da res.giocatore');
+        } else if (res && res.id) {
+          giocatoreData = res;
+          console.log('🔍 [DettaglioGiocatore] Usato res direttamente');
+        } else {
+          console.log('🔍 [DettaglioGiocatore] Nessun dato giocatore trovato');
+          console.log('🔍 [DettaglioGiocatore] Struttura res:', JSON.stringify(res, null, 2));
+          throw new Error('Dati giocatore non validi');
+        }
+        
+        setGiocatore(giocatoreData);
         
         // Carica la squadra del giocatore
-        if (res?.giocatore?.squadra_id) {
-          const squadraRes = await getSquadraById(res?.giocatore?.squadra_id, token);
-          setSquadra(squadraRes?.data?.squadra || squadraRes?.squadra);
+        if (giocatoreData?.squadra_id) {
+          console.log('🔍 [DettaglioGiocatore] Caricamento squadra per ID:', giocatoreData.squadra_id);
+          const squadraRes = await getSquadraById(giocatoreData.squadra_id, token);
+          console.log('🔍 [DettaglioGiocatore] Risposta squadra:', squadraRes);
+          
+          // Gestisci sia il caso in cui squadraRes è direttamente l'oggetto squadra
+          // sia il caso in cui è wrappato in { squadra: {...} }
+          let squadraData = null;
+          if (squadraRes && squadraRes.squadra) {
+            squadraData = squadraRes.squadra;
+            console.log('🔍 [DettaglioGiocatore] Estratto da squadraRes.squadra');
+          } else if (squadraRes && squadraRes.data && squadraRes.data.squadra) {
+            squadraData = squadraRes.data.squadra;
+            console.log('🔍 [DettaglioGiocatore] Estratto da squadraRes.data.squadra');
+          } else if (squadraRes && squadraRes.id) {
+            squadraData = squadraRes;
+            console.log('🔍 [DettaglioGiocatore] Usato squadraRes direttamente');
+          }
+          
+          setSquadra(squadraData);
           
           // Carica tutte le squadre della lega per le offerte
-          if (squadraRes?.data?.squadra?.lega_id || squadraRes?.squadra?.lega_id) {
-            const legaId = squadraRes?.data?.squadra?.lega_id || squadraRes?.squadra?.lega_id;
-            const squadreRes = await getSquadreByLega(legaId, token);
-            setSquadre(squadreRes?.data?.squadre || squadreRes?.squadre || []);
+          if (squadraData?.lega_id) {
+            console.log('🔍 [DettaglioGiocatore] Caricamento squadre per lega ID:', squadraData.lega_id);
+            const squadreRes = await getSquadreByLega(squadraData.lega_id, token);
+            console.log('🔍 [DettaglioGiocatore] Risposta squadre:', squadreRes);
+            
+            // Gestisci sia il caso in cui squadreRes è direttamente l'array squadre
+            // sia il caso in cui è wrappato in { squadre: [...] }
+            let squadreArray = [];
+            if (Array.isArray(squadreRes)) {
+              squadreArray = squadreRes;
+              console.log('🔍 [DettaglioGiocatore] Usato squadreRes direttamente come array');
+            } else if (squadreRes && squadreRes.squadre && Array.isArray(squadreRes.squadre)) {
+              squadreArray = squadreRes.squadre;
+              console.log('🔍 [DettaglioGiocatore] Estratto da squadreRes.squadre');
+            } else if (squadreRes && squadreRes.data && Array.isArray(squadreRes.data)) {
+              squadreArray = squadreRes.data;
+              console.log('🔍 [DettaglioGiocatore] Estratto da squadreRes.data');
+            } else if (squadreRes && squadreRes.data && squadreRes.data.squadre && Array.isArray(squadreRes.data.squadre)) {
+              squadreArray = squadreRes.data.squadre;
+              console.log('🔍 [DettaglioGiocatore] Estratto da squadreRes.data.squadre');
+            }
+            
+            setSquadre(squadreArray);
           }
         }
       } catch (err) {
@@ -525,19 +586,24 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
       // Aggiungi i dati storici QA, ma solo se sono diversi dal valore precedente
       let lastValue = giocatore.qi ? parseFloat(giocatore.qi) : null;
       
-      history.forEach(item => {
-        const currentValue = parseFloat(item.qa_value);
-        
-        // Aggiungi solo se il valore è cambiato rispetto al precedente
-        if (lastValue === null || currentValue !== lastValue) {
-          quotazioneHistory.push({
-            data: new Date(item.data_registrazione).toLocaleDateString('it-IT'),
-            qa_value: currentValue,
-            tipo: 'QA'
-          });
-          lastValue = currentValue;
-        }
-      });
+      // Controlla se history è un array valido
+      if (history && Array.isArray(history)) {
+        history.forEach(item => {
+          const currentValue = parseFloat(item.qa_value);
+          
+          // Aggiungi solo se il valore è cambiato rispetto al precedente
+          if (lastValue === null || currentValue !== lastValue) {
+            quotazioneHistory.push({
+              data: new Date(item.data_registrazione).toLocaleDateString('it-IT'),
+              qa_value: currentValue,
+              tipo: 'QA'
+            });
+            lastValue = currentValue;
+          }
+        });
+      } else {
+        console.log('🔍 [DettaglioGiocatore] QA History non disponibile o non valida:', history);
+      }
       
       // Aggiungi QA attuale se è diverso dall'ultimo valore storico
       if (giocatore.qa && quotazioneHistory.length > 0) {
@@ -582,12 +648,20 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
       }
       const userTeamRes = await api.get(`/squadre/my-team/${giocatore.lega_id}`, token);
       if (userTeamRes.ok) {
-        const userTeamData = await userTeamRes.json();
+        const userTeamData = userTeamRes.data;
         setUserTeam(userTeamData.squadra);
         setUserTeamPlayers(userTeamData.giocatori || []);
+      } else if (userTeamRes.status === 404) {
+        // L'utente non ha una squadra in questa lega
+        console.log('🔍 DettaglioGiocatore: Utente non ha squadra in questa lega');
+        setUserTeam(null);
+        setUserTeamPlayers([]);
       }
     } catch (err) {
       console.error('Errore nel recupero della squadra utente:', err);
+      // In caso di errore, imposta userTeam a null
+      setUserTeam(null);
+      setUserTeamPlayers([]);
     }
   };
 
@@ -977,7 +1051,9 @@ const DettaglioGiocatore = ({ setCurrentLeague, setCurrentTeam }) => {
           <div style={{ textAlign: 'center', padding: '1rem', color: '#666', fontStyle: 'italic' }}>
             {userTeam && giocatore.squadra_id === userTeam.id 
               ? 'Questo giocatore appartiene già alla tua squadra'
-              : 'Caricamento...'
+              : userTeam === null 
+                ? 'Non hai una squadra in questa lega'
+                : 'Caricamento...'
             }
           </div>
         )}

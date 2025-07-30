@@ -250,21 +250,24 @@ const ModificaLega = () => {
       setError('');
       try {
         const res = await getLegaById(id, token);
-        setLega(res.lega);
+        
+        // Gestione risposta flessibile - supporta sia {lega: {...}} che {...} direttamente
+        const legaData = res?.lega || res || {};
+        setLega(legaData);
         
         // Inizializza i dati del form
         setFormData({
-          nome: res.lega?.nome || 'Nome' || '',
-          modalita: res.lega?.modalita || 'N/A' || 'Classic',
-          is_pubblica: res.lega?.is_pubblica || true,
-          password: res.lega?.password || '',
-          max_squadre: res.lega?.max_squadre || 20,
-          min_giocatori: res.lega?.min_giocatori || 15,
-          max_giocatori: res.lega?.max_giocatori || 25,
-          roster_ab: res.lega?.roster_ab || false || false,
-          cantera: res.lega?.cantera || false || false,
-          contratti: res.lega?.contratti || false || false,
-          triggers: res.lega?.triggers || false || false
+          nome: legaData?.nome || 'Nome' || '',
+          modalita: legaData?.modalita || 'N/A' || 'Classic',
+          is_pubblica: legaData?.is_pubblica || true,
+          password: legaData?.password || '',
+          max_squadre: legaData?.max_squadre || 20,
+          min_giocatori: legaData?.min_giocatori || 15,
+          max_giocatori: legaData?.max_giocatori || 25,
+          roster_ab: legaData?.roster_ab || false || false,
+          cantera: legaData?.cantera || false || false,
+          contratti: legaData?.contratti || false || false,
+          triggers: legaData?.triggers || false || false
         });
       } catch (err) {
         setError(err.message);

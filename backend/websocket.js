@@ -2,75 +2,49 @@ import { WebSocketServer } from 'ws';
 
 let wss = null;
 
-export function initializeWebSocket(server) {
-  wss = new WebSocketServer({ 
-    server,
-    path: '/ws'
-  });
-
-  wss.on('connection', (ws, req) => {
-    console.log('WebSocket client connected');
+export const initializeWebSocket = (server) => {
+  try {
+    wss = new WebSocketServer({ server });
     
-    // Send welcome message
-    ws.send(JSON.stringify({
-      type: 'connected',
-      message: 'WebSocket connection established'
-    }));
-
-    ws.on('message', (message) => {
-      try {
-        const data = JSON.parse(message);
-        console.log('WebSocket message received:', data);
-        
-        // Handle different message types
-        switch (data.type) {
-          case 'ping':
-            ws.send(JSON.stringify({ type: 'pong' }));
-            break;
-          case 'notification':
-            // Broadcast notification to all connected clients
-            wss.clients.forEach((client) => {
-              if (client.readyState === ws.OPEN) {
-                client.send(JSON.stringify({
-                  type: 'notification',
-                  data: data.data
-                }));
-              }
-            });
-            break;
-          default:
-            console.log('Unknown message type:', data.type);
+    wss.on('connection', (ws) => {
+      console.log('🔌 WebSocket client connected');
+      
+      ws.on('message', (message) => {
+        try {
+          const data = JSON.parse(message);
+          console.log('📨 WebSocket message received:', data);
+          
+          // Echo back for now
+          ws.send(JSON.stringify({
+            type: 'echo',
+            data: data
+          }));
+        } catch (error) {
+          console.error('❌ WebSocket message error:', error);
         }
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-      }
+      });
+      
+      ws.on('close', () => {
+        console.log('🔌 WebSocket client disconnected');
+      });
+      
+      ws.on('error', (error) => {
+        console.error('❌ WebSocket error:', error);
+      });
     });
+    
+    console.log('✅ WebSocket server initialized');
+  } catch (error) {
+    console.error('❌ Failed to initialize WebSocket:', error);
+  }
+};
 
-    ws.on('close', () => {
-      console.log('WebSocket client disconnected');
-    });
-
-    ws.on('error', (error) => {
-      console.error('WebSocket error:', error);
-    });
-  });
-
-  console.log('WebSocket server initialized on path /ws');
-}
-
-export function broadcastNotification(notification) {
+export const broadcastToClients = (message) => {
   if (wss) {
     wss.clients.forEach((client) => {
       if (client.readyState === 1) { // WebSocket.OPEN
-        client.send(JSON.stringify({
-          type: 'notification',
-          data: notification
-        }));
+        client.send(JSON.stringify(message));
       }
     });
   }
-}
-
-export function getWebSocketServer() {
-  return wss;
-} 
+}; 

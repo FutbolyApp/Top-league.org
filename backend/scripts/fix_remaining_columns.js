@@ -3,7 +3,25 @@ import { getDb } from '../db/mariadb.js';
 export async function fixNotificheColumns() {
   try {
     console.log('🔧 Verificando colonne mancanti nella tabella notifiche...');
-    const db = getDb();
+    
+    // Aspetta che il database sia inizializzato
+    let db = null;
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (!db && attempts < maxAttempts) {
+      db = getDb();
+      if (!db) {
+        console.log(`⏳ Database non pronto, tentativo ${attempts + 1}/${maxAttempts}...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+      }
+    }
+    
+    if (!db) {
+      console.log('❌ Database non disponibile dopo tutti i tentativi');
+      return false;
+    }
 
     // Verifica se le colonne esistono già
     const checkResult = await db.query(`

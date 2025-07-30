@@ -414,31 +414,64 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
       console.log('fetchSquadra: risposta API:', res);
       
       // Gestisci sia la risposta diretta che quella wrappata
-      const squadra = res?.data?.squadra || res?.squadra;
-      setSquadra(squadra);
+      const squadraData = res?.data?.squadra || res?.squadra;
+      setSquadra(squadraData);
       
-      if (setCurrentTeam) setCurrentTeam(squadra);
+      if (setCurrentTeam) setCurrentTeam(squadraData);
       
       // Carica i giocatori della squadra
-      if (squadra?.id) {
+      if (squadraData?.id) {
         try {
-          console.log('Caricamento giocatori per squadra ID:', squadra.id);
-          const giocatoriRes = await getGiocatoriBySquadra(squadra.id, token);
-          console.log('Risposta API giocatori:', giocatoriRes);
-          const giocatori = giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || giocatoriRes?.data || giocatoriRes || [];
-          console.log('Giocatori estratti:', giocatori);
+          console.log('🔍 [DettaglioSquadra] Inizio caricamento giocatori per squadra ID:', squadraData.id);
+          console.log('🔍 [DettaglioSquadra] Token disponibile:', !!token);
+          
+          const giocatoriRes = await getGiocatoriBySquadra(squadraData.id, token);
+          console.log('🔍 [DettaglioSquadra] Risposta API giocatori completa:', giocatoriRes);
+          console.log('🔍 [DettaglioSquadra] Tipo di risposta:', typeof giocatoriRes);
+          console.log('🔍 [DettaglioSquadra] È array?', Array.isArray(giocatoriRes));
+          
+          // Estrazione corretta dei dati dalla risposta API
+          let giocatori = [];
+          if (giocatoriRes && giocatoriRes.ok && giocatoriRes.data) {
+            // Se la risposta ha la struttura { ok: true, data: { giocatori: [...] } }
+            giocatori = giocatoriRes.data.giocatori || giocatoriRes.data || [];
+            console.log('🔍 [DettaglioSquadra] Estratto da giocatoriRes.data:', giocatori);
+          } else if (giocatoriRes && giocatoriRes.giocatori) {
+            // Se la risposta ha la struttura { giocatori: [...] }
+            giocatori = giocatoriRes.giocatori;
+            console.log('🔍 [DettaglioSquadra] Estratto da giocatoriRes.giocatori:', giocatori);
+          } else if (Array.isArray(giocatoriRes)) {
+            // Se la risposta è direttamente un array
+            giocatori = giocatoriRes;
+            console.log('🔍 [DettaglioSquadra] Estratto diretto (array):', giocatori);
+          } else {
+            console.log('🔍 [DettaglioSquadra] Nessun dato valido trovato:', giocatoriRes);
+          }
+          
+          console.log('🔍 [DettaglioSquadra] Giocatori finali estratti:', giocatori);
+          console.log('🔍 [DettaglioSquadra] Numero giocatori:', giocatori.length);
+          
           setSquadra(prevSquadra => ({
             ...prevSquadra,
             giocatori: giocatori
           }));
         } catch (err) {
-          console.error('Errore nel caricamento giocatori:', err);
+          console.error('❌ [DettaglioSquadra] Errore nel caricamento giocatori:', err);
+          console.error('❌ [DettaglioSquadra] Stack trace:', err.stack);
+          // Gestione specifica degli errori di rete
+          if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+            setError('Errore di connessione. Verifica la tua connessione e riprova.');
+          } else if (err.message.includes('401') || err.message.includes('Token')) {
+            setError('Sessione scaduta. Effettua di nuovo il login.');
+          } else {
+            setError(`Errore nel caricamento giocatori: ${err.message}`);
+          }
         }
       }
       
       // Carica la lega per il contesto
-      if (squadra?.lega_id) {
-        const legaRes = await getLegaById(squadra.lega_id, token);
+      if (squadraData?.lega_id) {
+        const legaRes = await getLegaById(squadraData.lega_id, token);
         const lega = legaRes?.data?.lega || legaRes?.lega;
         setLega(lega);
         if (setCurrentLeague) setCurrentLeague(lega);
@@ -450,7 +483,7 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
           setUserSquadre(squadre);
           
           // Verifica se l'utente ha già una squadra in questa lega
-          const hasSquadra = squadre?.some(s => s?.lega_id === squadra?.lega_id);
+          const hasSquadra = squadre?.some(s => s?.lega_id === squadraData?.lega_id);
           setHasSquadraInLega(hasSquadra);
         } catch (err) {
           console.error('Errore nel caricamento squadre utente:', err);
@@ -468,22 +501,22 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
   }, [fetchSquadra]);
 
   const formatMoney = (value) => {
-    if (!value) return 'FM 0';
-    return `FM ${value.toLocaleString()}`;
+    if (!value && value !== 0) return 'FM 0';
+    // Converti sempre in numero per evitare concatenazioni
+    const numValue = parseFloat(value) || 0;
+    return `FM ${numValue.toLocaleString()}`;
   };
 
   const getTeamStats = () => {
     if (!squadra) return {};
-    
+    // Usa la funzione getGiocatoriArr per estrarre correttamente i giocatori
+    const giocatoriArr = getGiocatoriArr();
     // Valore Squadra: somma di quotazione_attuale di tutti i giocatori
-    const valoreSquadra = squadra.giocatori?.reduce((sum, g) => sum + (g.quotazione_attuale || 0), 0) || 0;
-    
+    const valoreSquadra = giocatoriArr.reduce((sum, g) => sum + (g.quotazione_attuale || 0), 0) || 0;
     // Casse Societarie: dalla squadra con controllo di sicurezza
     const casseSocietarie = squadra?.casse_societarie || 0;
-    
     // Ingaggio totale: somma di costo_attuale di tutti i giocatori
-    const ingaggioTotale = squadra.giocatori?.reduce((sum, g) => sum + (g.costo_attuale || 0), 0) || 0;
-
+    const ingaggioTotale = giocatoriArr.reduce((sum, g) => sum + (g.costo_attuale || 0), 0) || 0;
     return {
       valoreSquadra,
       casseSocietarie,
@@ -563,11 +596,36 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
     setSortConfig({ key, direction });
   };
 
+  // Funzione per ottenere l'array dei giocatori in modo sicuro
+  const getGiocatoriArr = () => {
+    if (!squadra) return [];
+    
+    // Gestione completa di tutti i possibili formati
+    if (Array.isArray(squadra.giocatori)) {
+      return squadra.giocatori;
+    }
+    
+    if (squadra.giocatori && Array.isArray(squadra.giocatori.giocatori)) {
+      return squadra.giocatori.giocatori;
+    }
+    
+    if (squadra.giocatori && squadra.giocatori.data && Array.isArray(squadra.giocatori.data)) {
+      return squadra.giocatori.data;
+    }
+    
+    if (squadra.giocatori && squadra.giocatori.data && Array.isArray(squadra.giocatori.data.giocatori)) {
+      return squadra.giocatori.data.giocatori;
+    }
+    
+    return [];
+  };
+
   // Funzione per ordinare i giocatori
   const getSortedPlayers = () => {
-    if (!squadra?.giocatori) return [];
+    const giocatoriArr = getGiocatoriArr();
+    if (!giocatoriArr.length) return [];
     
-    let sortedPlayers = [...squadra.giocatori];
+    let sortedPlayers = [...giocatoriArr];
     
     if (sortConfig.key === 'ruolo') {
       return sortPlayersByRole(sortedPlayers);
@@ -718,8 +776,8 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
       setRequestMessage('');
       // Ricarica i dati della squadra
       const res = await getSquadraById(id, token);
-      const squadra = res?.data?.squadra || res?.squadra;
-      setSquadra(squadra);
+      const squadraData = res?.data?.squadra || res?.squadra;
+      setSquadra(squadraData);
     } catch (err) {
       setError(err.message);
     }
@@ -987,7 +1045,7 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
           </button>
         </div>
         
-        {!squadra.giocatori || squadra.giocatori?.length || 0 === 0 ? (
+        {!getGiocatoriArr().length ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#86868b' }}>
             Nessun giocatore in questa squadra
           </div>

@@ -503,7 +503,17 @@ const RequestGiocatoriModification = () => {
         for (const squadra of squadreRes.squadre || []) {
           try {
             const giocatoriRes = await getGiocatoriBySquadra(squadra.id, token);
-            const giocatori = giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || [];
+            // Estrazione robusta dei dati
+            let giocatori = [];
+            if (giocatoriRes && giocatoriRes.ok && giocatoriRes.data) {
+              giocatori = giocatoriRes.data.giocatori || giocatoriRes.data || [];
+            } else if (giocatoriRes && giocatoriRes.giocatori) {
+              giocatori = giocatoriRes.giocatori;
+            } else if (Array.isArray(giocatoriRes)) {
+              giocatori = giocatoriRes;
+            } else {
+              console.error('Nessun dato valido trovato per giocatori:', giocatoriRes);
+            }
             giocatoriData[squadra.id] = giocatori;
           } catch (err) {
             console.error(`Errore caricamento giocatori squadra ${squadra.id}:`, err);

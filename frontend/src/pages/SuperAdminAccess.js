@@ -137,19 +137,25 @@ const SuperAdminAccess = () => {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('🚨 Failed to parse superadmin login response JSON:', jsonError);
+        data = { message: 'Errore nel parsing della risposta' };
+      }
 
       if (response.ok) {
         setSuccess('Accesso effettuato con successo!');
-        localStorage.setItem('token', data.token);
+        localStorage.setItem('token', data?.token || '');
         localStorage.setItem('userRole', 'SuperAdmin');
-        localStorage.setItem('userId', data.user.id);
+        localStorage.setItem('userId', data?.user?.id || '');
         
         setTimeout(() => {
           navigate('/superadmin-dashboard');
         }, 1000);
       } else {
-        setError(data.message || 'Errore durante l\'accesso');
+        setError(data?.message || 'Errore durante l\'accesso');
       }
     } catch (err) {
       setError('Errore di connessione');

@@ -276,8 +276,8 @@ const AreaManager = () => {
         console.log('🔍 AreaManager: User ID:', user?.id);
         
         const [squadreRes, notificheRes] = await Promise.all([
-          getSquadreUtenteShared(token, user.id),
-          getNotificheShared(token, user.id)
+          getSquadreUtenteShared(token, user?.id),
+          getNotificheShared(token, user?.id)
         ]);
         
         console.log('🔍 AreaManager: Squadre response:', squadreRes);

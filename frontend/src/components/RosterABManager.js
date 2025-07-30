@@ -229,7 +229,17 @@ const RosterABManager = ({ squadraId, legaId, userRole }) => {
       setError(null);
       
       const response = await api.get(`/offerte/roster/${squadraId}`, token);
-      setRosterData(response);
+      // Fix estrazione dati come per squadre
+      let roster = response;
+      if (response && response.ok && response.data) {
+        roster = response.data;
+        console.log('🔍 [RosterABManager] Estratto da response.data:', roster);
+      } else {
+        console.log('🔍 [RosterABManager] Estratto diretto:', roster);
+      }
+      console.log(`🔍 RosterA length:`, roster?.rosterA?.length);
+      console.log(`🔍 RosterB length:`, roster?.rosterB?.length);
+      setRosterData(roster);
     } catch (err) {
       console.error('Errore fetch roster data:', err);
       console.error('Error details:', err.response?.data);

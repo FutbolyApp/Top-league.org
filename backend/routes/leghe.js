@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { parseSquadreFromExcel } from '../utils/excelParser.js';
 import { createLega, getAllLeghe, getLegaById, updateLega } from '../models/lega.js';
 import { createSquadra, getSquadreByLega } from '../models/squadra.js';
@@ -55,6 +56,63 @@ router.use((req, res, next) => {
     res.sendStatus(200);
   } else {
     next();
+  }
+});
+
+// Crea una lega semplice (senza file Excel)
+router.post('/', requireAuth, async (req, res) => {
+  try {
+    console.log('Creazione lega semplice - User ID:', req.user.id);
+    console.log('Creazione lega semplice - Body:', req.body);
+    
+    const {
+      nome, descrizione, modalita, is_pubblica, password, max_squadre,
+      roster_ab, cantera, contratti, triggers, regole
+    } = req.body;
+    
+    // Validazione dei dati richiesti
+    if (!nome || !modalita) {
+      return res.status(400).json({ 
+        error: 'Dati mancanti', 
+        details: 'Nome e modalità sono obbligatori' 
+      });
+    }
+    
+    // Validazione e pulizia dei valori
+    const cleanData = {
+      nome: nome.trim(),
+      descrizione: descrizione || '',
+      modalita: modalita.trim(),
+      is_pubblica: is_pubblica === 'true' || is_pubblica === true,
+      password: password || null,
+      max_squadre: max_squadre || 20,
+      roster_ab: roster_ab === 'true' || roster_ab === true,
+      cantera: cantera === 'true' || cantera === true,
+      contratti: contratti === 'true' || contratti === true,
+      triggers: triggers === 'true' || triggers === true,
+      regole: regole || null
+    };
+    
+    // Crea la lega
+    const legaId = await createLega({
+      ...cleanData,
+      admin_id: req.user.id
+    });
+    
+    console.log('Lega semplice creata con ID:', legaId);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Lega creata con successo',
+      legaId: legaId
+    });
+    
+  } catch (error) {
+    console.error('Errore nella creazione lega semplice:', error);
+    res.status(500).json({ 
+      error: 'Errore interno del server',
+      details: error.message 
+    });
   }
 });
 
@@ -151,8 +209,27 @@ router.post('/create', requireAuth, (req, res, next) => {
       };
       
       console.log('Parametri di validazione per il parser:', validationParams);
-      const squadre = parseSquadreFromExcel(req.file.path, validationParams);
-      console.log('Squadre parseate:', squadre.length);
+      console.log('🔄 Inizio parsing file Excel:', req.file.path);
+      console.log('📁 File info:', {
+        originalname: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        path: req.file.path
+      });
+      
+      try {
+        const squadre = await parseSquadreFromExcel(req.file.path, validationParams);
+        console.log('✅ Parsing Excel completato');
+        console.log('📊 Squadre parseate:', squadre.length);
+        console.log('📋 Dettagli squadre:');
+        squadre.forEach((sq, index) => {
+          console.log(`  ${index + 1}. ${sq.nome}: ${sq.giocatori?.length || 0} giocatori, crediti: ${sq.casseSocietarie}, valore: ${sq.valoreRosa}`);
+        });
+      } catch (error) {
+        console.error('❌ Errore parsing Excel:', error);
+        console.error('❌ Stack trace:', error.stack);
+        throw new Error(`Errore nel parsing del file Excel: ${error.message}`);
+      }
       
       // NUOVO: Controlla se il numero di squadre corrisponde a quello atteso
       const expectedTeams = parseInt(cleanData.max_squadre) || 0;
@@ -284,7 +361,7 @@ router.get('/', requireAuth, async (req, res) => {
         u.cognome as admin_cognome
       FROM leghe l
       LEFT JOIN users u ON l.admin_id = u.id
-      ORDER BY l.created_at DESC
+      ORDER BY l.data_creazione DESC
     `);
     
     console.log('Query tutte le leghe eseguita con successo');
@@ -358,10 +435,10 @@ router.get('/admin', requireAuth, async (req, res) => {
            (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) as squadre_non_assegnate,
            (SELECT COUNT(*) FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = l.id) as numero_giocatori,
            (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei,
-           DATE_FORMAT(l.created_at, '%d/%m/%Y') as data_creazione_formattata
+           DATE_FORMAT(l.data_creazione, '%d/%m/%Y') as data_creazione_formattata
       FROM leghe l
       WHERE l.admin_id = ?
-      ORDER BY l.created_at DESC
+      ORDER BY l.data_creazione DESC
     `, [adminId]);
     
     console.log('Leghe admin trovate:', result.rows.length);
@@ -1032,7 +1109,7 @@ router.get('/richieste/admin', requireAuth, async (req, res) => {
       JOIN squadre s ON rus.squadra_id = s.id
       JOIN users u ON rus.utente_id = u.id
       WHERE l.admin_id = ?
-      ORDER BY rus.data_richiesta DESC
+      ORDER BY rus.data_creazione DESC
     `, [adminId]);
     
     // Combina le richieste

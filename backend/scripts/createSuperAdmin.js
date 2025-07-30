@@ -1,26 +1,20 @@
-import bcrypt from 'bcryptjs';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { getDb } from '../db/postgres.js';
+const bcrypt = require('bcryptjs');
+const { Pool } = require('pg');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Carica le variabili d'ambiente dal file env.local
-dotenv.config({ path: path.join(__dirname, '../env.local') });
-
-const db = getDb();
+// Database connection
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://topleague_user:topleague_password@localhost:5432/topleague_db'
+});
 
 // Funzione per creare il SuperAdmin
 async function createSuperAdmin() {
   try {
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash('password', 10);
     
     // Verifica se l'utente esiste già
-    const existingUser = await db.query(
+    const existingUser = await pool.query(
       'SELECT id FROM users WHERE email = $1',
-      ['admin@topleague.com']
+      ['admin@top-league.org']
     );
 
     if (existingUser.rows.length > 0) {
@@ -29,25 +23,25 @@ async function createSuperAdmin() {
     }
 
     // Inserisci il SuperAdmin
-    await db.query(`
+    await pool.query(`
       INSERT INTO users (nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `, [
-      'Futboly',
       'Admin',
-      'futboly', // username
+      'Test',
+      'admin', // username
       'Roma', // provenienza
       'Roma', // squadra_cuore
       'Setup', // come_conosciuto
-      'admin@topleague.com',
+      'admin@top-league.org',
       hashedPassword,
-      'SuperAdmin'
+      'admin'
     ]);
 
     console.log('SuperAdmin creato con successo!');
-    console.log('Email: admin@topleague.com');
-    console.log('Username: futboly');
-    console.log('Password: admin123');
+    console.log('Email: admin@top-league.org');
+    console.log('Username: admin');
+    console.log('Password: password');
   } catch (error) {
     console.error('Errore creazione SuperAdmin:', error);
   }
@@ -84,7 +78,7 @@ async function createTestUsers() {
 
     for (const user of testUsers) {
       // Verifica se l'utente esiste già
-      const existingUser = await db.query(
+      const existingUser = await pool.query(
         'SELECT id FROM users WHERE email = $1',
         [user.email]
       );
@@ -95,7 +89,7 @@ async function createTestUsers() {
       }
 
       // Inserisci l'utente
-      await db.query(`
+      await pool.query(`
         INSERT INTO users 
         (nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password_hash, ruolo)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -129,6 +123,8 @@ async function main() {
     console.log('Setup completato!');
   } catch (error) {
     console.error('Errore durante il setup:', error);
+  } finally {
+    await pool.end();
   }
 }
 

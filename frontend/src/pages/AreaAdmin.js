@@ -484,22 +484,23 @@ const AreaAdmin = () => {
       console.log('Richieste ricevute:', richiesteData);
       console.log('Richieste data type:', typeof richiesteData);
       console.log('Richieste keys:', Object.keys(richiesteData || {}));
-      console.log('Richieste data:', richiesteData.data);
       
-      // Verifica che richiesteData.data.richieste esista prima di usare forEach
-      if (richiesteData && richiesteData?.data && richiesteData?.data?.richieste && Array.isArray(richiesteData?.data?.richieste)) {
-      // Debug: controlla se le richieste admin hanno lega_id
-        richiesteData.data.richieste.forEach((richiesta, index) => {
-        if (richiesta.tipo_richiesta === 'admin') {
-          console.log(`Richiesta admin ${index}:`, {
-            id: richiesta?.id,
-            lega_id: richiesta?.lega_id,
-            lega_nome: richiesta?.lega_nome,
-            squadra_nome: richiesta?.squadra_nome
-          });
-        }
-      });
-        setRichieste(richiesteData.data.richieste);
+      // Gestione compatibile con mock API (risposta diretta) e API reale (risposta.data)
+      const richiesteArray = richiesteData?.data?.richieste || richiesteData?.richieste || [];
+      
+      if (Array.isArray(richiesteArray)) {
+        // Debug: controlla se le richieste admin hanno lega_id
+        richiesteArray.forEach((richiesta, index) => {
+          if (richiesta.tipo_richiesta === 'admin') {
+            console.log(`Richiesta admin ${index}:`, {
+              id: richiesta?.id,
+              lega_id: richiesta?.lega_id,
+              lega_nome: richiesta?.lega_nome,
+              squadra_nome: richiesta?.squadra_nome
+            });
+          }
+        });
+        setRichieste(richiesteArray);
       } else {
         console.warn('Richieste non trovate o formato non valido:', richiesteData);
         setRichieste([]);
@@ -544,17 +545,33 @@ const AreaAdmin = () => {
     try {
       setProcessingResponse(true);
       
-      const response = await api.post(`/richieste-admin/${richiesta.id}/gestisci`, {
-        azione: risposta === 'accetta' ? 'accepted' : 'rejected',
-        note_admin: responseMessage,
-        valore_costo: richiesta.dati_richiesta?.valore_costo || 0
-      }, token);
+      let response;
+      
+      // Gestisci diversi tipi di richieste
+      if (richiesta.tipo_richiesta === 'unione_squadra') {
+        // Richiesta di unione squadra
+        response = await api.post(`/squadre/richieste-unione/${richiesta.id}/rispondi`, {
+          risposta: risposta,
+          messaggio: responseMessage
+        }, token);
+      } else {
+        // Richiesta admin normale
+        response = await api.post(`/richieste-admin/${richiesta.id}/gestisci`, {
+          azione: risposta === 'accetta' ? 'accepted' : 'rejected',
+          note_admin: responseMessage,
+          valore_costo: richiesta.dati_richiesta?.valore_costo || 0
+        }, token);
+      }
 
       if (response.ok) {
-        showNotification(
-          `Richiesta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo!`,
-          'success'
-        );
+        if (showNotification) {
+          showNotification(
+            `Richiesta ${risposta === 'accetta' ? 'accettata' : 'rifiutata'} con successo!`,
+            'success'
+          );
+        } else {
+          console.log('showNotification non disponibile');
+        }
         
         // Ricarica i dati
         await loadAdminData();
@@ -563,12 +580,20 @@ const AreaAdmin = () => {
         setShowRequestResponseModal(false);
         setSelectedRequest(null);
         setResponseMessage('');
-            } else {
-        showNotification('Errore durante la gestione della richiesta', 'error');
-            }
-          } catch (error) {
+      } else {
+        if (showNotification) {
+          showNotification('Errore durante la gestione della richiesta', 'error');
+        } else {
+          console.error('showNotification non disponibile');
+        }
+      }
+    } catch (error) {
       console.error('Errore gestione richiesta admin:', error);
-      showNotification('Errore durante la gestione della richiesta', 'error');
+      if (showNotification) {
+        showNotification('Errore durante la gestione della richiesta', 'error');
+      } else {
+        console.error('showNotification non disponibile');
+      }
     } finally {
       setProcessingResponse(false);
     }
@@ -590,6 +615,14 @@ const AreaAdmin = () => {
 
   // Funzione per ottenere lo stato della richiesta
   const getRequestStatus = (richiesta) => {
+    // Gestisci stati per richieste di unione squadra
+    if (richiesta.tipo_richiesta === 'unione_squadra') {
+      if (richiesta.stato === 'accettata') return { text: 'Richiesta Accettata', color: '#10b981' };
+      if (richiesta.stato === 'rifiutata') return { text: 'Richiesta Rifiutata', color: '#ef4444' };
+      return { text: 'In Attesa', color: '#6b7280' };
+    }
+    
+    // Gestisci stati per richieste admin normali
     if (richiesta.stato === 'accepted') return { text: 'Richiesta Confermata', color: '#10b981' };
     if (richiesta.stato === 'rejected') return { text: 'Richiesta Rifiutata', color: '#ef4444' };
     if (richiesta.stato === 'revision') return { text: 'In Revisione', color: '#f59e0b' };
@@ -632,7 +665,9 @@ const AreaAdmin = () => {
       'richiesta_ingresso': 'Richiesta Ingresso',
       'richiesta_admin': 'Richiesta Admin',
       'admin': 'Richiesta Admin',
-      'user': 'Richiesta Ingresso'
+      'user': 'Richiesta Ingresso',
+      'unione_squadra': 'Richiesta Unione Squadra',
+      'ingresso': 'Richiesta Ingresso'
     };
     
     return typeMap[requestType] || requestType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -971,8 +1006,13 @@ const AreaAdmin = () => {
                     <RequestDetails>
                         <div><strong>Lega:</strong> {richiesta.lega_nome}</div>
                         <div><strong>Squadra:</strong> {richiesta.squadra_nome}</div>
-                        <div><strong>Utente:</strong> {richiesta.utente_nome || 'N/A'}</div>
-                        <div><strong>Email:</strong> {richiesta.utente_email || 'N/A'}</div>
+                        <div><strong>Utente:</strong> {
+                          richiesta.utente_nome || 
+                          (richiesta.richiedente_nome && richiesta.richiedente_cognome 
+                            ? `${richiesta.richiedente_nome} ${richiesta.richiedente_cognome}`.trim()
+                            : richiesta.richiedente_nome || richiesta.richiedente_username || 'N/A')
+                        }</div>
+                        <div><strong>Email:</strong> {richiesta.utente_email || richiesta.richiedente_email || 'N/A'}</div>
                         <div><strong>Data:</strong> {formatDate(richiesta.data_creazione || richiesta.data_richiesta)}</div>
                         {richiesta.tipo_richiesta_richiesta && (
                           <div><strong>Tipo Richiesta:</strong> {formatRequestType(richiesta.tipo_richiesta_richiesta)}</div>
@@ -1168,8 +1208,13 @@ const AreaAdmin = () => {
                 <RequestDetails>
                   <div><strong>Lega:</strong> {selectedRequest.lega_nome}</div>
                   <div><strong>Squadra:</strong> {selectedRequest.squadra_nome}</div>
-                  <div><strong>Utente:</strong> {selectedRequest.utente_nome || 'N/A'}</div>
-                  <div><strong>Email:</strong> {selectedRequest.utente_email || 'N/A'}</div>
+                  <div><strong>Utente:</strong> {
+                    selectedRequest.utente_nome || 
+                    (selectedRequest.richiedente_nome && selectedRequest.richiedente_cognome 
+                      ? `${selectedRequest.richiedente_nome} ${selectedRequest.richiedente_cognome}`.trim()
+                      : selectedRequest.richiedente_nome || selectedRequest.richiedente_username || 'N/A')
+                  }</div>
+                  <div><strong>Email:</strong> {selectedRequest.utente_email || selectedRequest.richiedente_email || 'N/A'}</div>
                   <div><strong>Data:</strong> {formatDate(selectedRequest.data_creazione || selectedRequest.data_richiesta)}</div>
                   {selectedRequest.tipo_richiesta_richiesta && (
                     <div><strong>Tipo Richiesta:</strong> {formatRequestType(selectedRequest.tipo_richiesta_richiesta)}</div>

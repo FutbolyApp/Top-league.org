@@ -5,7 +5,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { requireAuth, requireSubadminOrAdmin } from '../middleware/auth.js';
 import { getDb } from '../db/mariadb.js';
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 const router = express.Router();
 
@@ -143,10 +143,17 @@ router.post('/upload', requireSubadminOrAdmin, upload.single('file'), async (req
     }
     
     // Leggi il file Excel
-    const workbook = XLSX.readFile(req.file.path);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(req.file.path);
+    const worksheet = workbook.worksheets[0];
+    const data = [];
+    worksheet.eachRow((row, rowNumber) => {
+      const rowData = [];
+      row.eachCell((cell, colNumber) => {
+        rowData[colNumber - 1] = cell.value || '';
+      });
+      data.push(rowData);
+    });
     
     // Rimuovi l'intestazione
     const headers = data[0];
@@ -399,10 +406,17 @@ router.post('/upload-stats', requireSubadminOrAdmin, upload.single('file'), asyn
     }
     
     // Leggi il file Excel
-    const workbook = XLSX.readFile(req.file.path);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(req.file.path);
+    const worksheet = workbook.worksheets[0];
+    const data = [];
+    worksheet.eachRow((row, rowNumber) => {
+      const rowData = [];
+      row.eachCell((cell, colNumber) => {
+        rowData[colNumber - 1] = cell.value || '';
+      });
+      data.push(rowData);
+    });
     
     // Rimuovi l'intestazione
     const headers = data[0];

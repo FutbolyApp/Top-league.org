@@ -195,6 +195,7 @@ const createTables = async () => {
         permessi JSON,
         attivo BOOLEAN DEFAULT TRUE,
         data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        data_nomina TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(lega_id) REFERENCES leghe(id),
         FOREIGN KEY(utente_id) REFERENCES users(id),
         UNIQUE KEY unique_lega_utente (lega_id, utente_id)

@@ -543,8 +543,17 @@ const ModificaSquadraCompleta = () => {
         ]);
         
         const squadra = squadraRes?.data?.squadra || squadraRes?.squadra;
-        const giocatori = giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || [];
-        
+        // Estrazione robusta dei dati
+        let giocatori = [];
+        if (giocatoriRes && giocatoriRes.ok && giocatoriRes.data) {
+          giocatori = giocatoriRes.data.giocatori || giocatoriRes.data || [];
+        } else if (giocatoriRes && giocatoriRes.giocatori) {
+          giocatori = giocatoriRes.giocatori;
+        } else if (Array.isArray(giocatoriRes)) {
+          giocatori = giocatoriRes;
+        } else {
+          console.error('Nessun dato valido trovato per giocatori:', giocatoriRes);
+        }
         setSquadra(squadra);
         setGiocatori(giocatori);
         
@@ -564,7 +573,13 @@ const ModificaSquadraCompleta = () => {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
-              const data = await response.json();
+              let data = null;
+              try {
+                data = await response.json();
+              } catch (jsonError) {
+                console.error('🚨 Failed to parse squadre lega response JSON:', jsonError);
+                data = { squadre: [] };
+              }
               setSquadreLega(data?.squadre || []);
             }
           } catch (err) {
@@ -586,8 +601,14 @@ const ModificaSquadraCompleta = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const data = await response.json();
-        return data.giocatori ? data.giocatori?.length || 0 : 0;
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error('🚨 Failed to parse giocatori count response JSON:', jsonError);
+          data = { giocatori: [] };
+        }
+        return data?.giocatori ? data.giocatori?.length || 0 : 0;
       }
     } catch (err) {
       console.error('Errore nel conteggio giocatori:', err);
@@ -781,10 +802,29 @@ const ModificaSquadraCompleta = () => {
       
       // Ricarica la lista dei giocatori
       const giocatoriRes = await getGiocatoriBySquadra(id, token);
-      setGiocatori(giocatoriRes.giocatori || []);
-    } catch (err) {
-      setError(`Errore nell'eliminazione del giocatore: ${err.message}`);
-    }
+      // Estrazione robusta dei dati
+      let giocatori = [];
+      if (giocatoriRes && giocatoriRes.ok && giocatoriRes.data) {
+        giocatori = giocatoriRes.data.giocatori || giocatoriRes.data || [];
+      } else if (giocatoriRes && giocatoriRes.giocatori) {
+        giocatori = giocatoriRes.giocatori;
+      } else if (Array.isArray(giocatoriRes)) {
+        giocatori = giocatoriRes;
+      } else {
+        console.error('Nessun dato valido trovato per giocatori:', giocatoriRes);
+      }
+      setGiocatori(giocatori);
+          } catch (err) {
+        console.error('Errore nell\'eliminazione del giocatore:', err);
+        // Gestione specifica degli errori di rete
+        if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+          setError('Errore di connessione. Verifica la tua connessione e riprova.');
+        } else if (err.message.includes('401') || err.message.includes('Token')) {
+          setError('Sessione scaduta. Effettua di nuovo il login.');
+        } else {
+          setError(`Errore nell'eliminazione del giocatore: ${err.message}`);
+        }
+      }
   };
 
   const handleTransferPlayer = (giocatore) => {
@@ -851,7 +891,18 @@ const ModificaSquadraCompleta = () => {
       
       // Ricarica la lista dei giocatori
       const giocatoriRes = await getGiocatoriBySquadra(id, token);
-      setGiocatori(giocatoriRes.giocatori || []);
+      // Estrazione robusta dei dati
+      let giocatori = [];
+      if (giocatoriRes && giocatoriRes.ok && giocatoriRes.data) {
+        giocatori = giocatoriRes.data.giocatori || giocatoriRes.data || [];
+      } else if (giocatoriRes && giocatoriRes.giocatori) {
+        giocatori = giocatoriRes.giocatori;
+      } else if (Array.isArray(giocatoriRes)) {
+        giocatori = giocatoriRes;
+      } else {
+        console.error('Nessun dato valido trovato per giocatori:', giocatoriRes);
+      }
+      setGiocatori(giocatori);
       
     } catch (err) {
       setError(`Errore nel trasferimento del giocatore: ${err.message}`);

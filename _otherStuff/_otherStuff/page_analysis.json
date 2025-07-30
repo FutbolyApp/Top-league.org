@@ -1,0 +1,148 @@
+{
+  "totalLinks": 158,
+  "linkInfo": [
+    {
+      "index": 0,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/centro-avvisi",
+      "text": "Vai al centro avvisi",
+      "visible": false,
+      "class": null
+    },
+    {
+      "index": 1,
+      "href": "https://sport.sky.it/",
+      "text": "",
+      "visible": true,
+      "class": "navbar-brand adver-link"
+    },
+    {
+      "index": 2,
+      "href": "https://www.fantacalcio.it",
+      "text": "Fantacalcio.it",
+      "visible": false,
+      "class": null
+    },
+    {
+      "index": 3,
+      "href": "https://www.fantacalcio.it/probabili-formazioni-serie-a",
+      "text": "Probabili Formazioni",
+      "visible": false,
+      "class": null
+    },
+    {
+      "index": 4,
+      "href": "https://www.fantacalcio.it/voti-fantacalcio-serie-a",
+      "text": "Voti",
+      "visible": false,
+      "class": null
+    },
+    {
+      "index": 5,
+      "href": "https://www.fantacalcio.it/pagelle",
+      "text": "Pagelle",
+      "visible": false,
+      "class": null
+    },
+    {
+      "index": 6,
+      "href": "#",
+      "text": "⁝",
+      "visible": false,
+      "class": "dropdown-toggle"
+    },
+    {
+      "index": 7,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11",
+      "text": "Dashboard",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 8,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/settings",
+      "text": "Opzioni di Lega",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 9,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/rose",
+      "text": "Rose",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 10,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/lista-competizioni",
+      "text": "Competizioni",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 11,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/market",
+      "text": "Mercato",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 12,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/market/players",
+      "text": "Lista calciatori",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 13,
+      "href": null,
+      "text": "Admin",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 14,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/gestione-lega/info-lega",
+      "text": "Info Lega",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 15,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/market/rosters-manager",
+      "text": "Gestione Rose",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 16,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/market/credits-manager",
+      "text": "Gestione Crediti",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 17,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/gestione-lega/gestione-formazioni",
+      "text": "Gestione Formazioni",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 18,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/gestione-lega/calcolo-fantagiornata",
+      "text": "Calcolo Giornata",
+      "visible": false,
+      "class": "no-league btn"
+    },
+    {
+      "index": 19,
+      "href": "https://leghe.fantacalcio.it/fantaleague-11/gestione-lega/gestione-punti",
+      "text": "Penalità e Punti Bonus",
+      "visible": false,
+      "class": "no-league btn"
+    }
+  ],
+  "loginLinks": [],
+  "totalButtons": 26,
+  "loginElements": 17
+}

@@ -304,9 +304,9 @@ const OfferteManager = () => {
 
   const getFilteredOfferte = () => {
     if (selectedLega === 'ricevute') {
-      return offerte.filter(o => o.squadra_destinatario_id === user.squadra_id);
+      return offerte.filter(o => o.squadra_destinatario_id === user?.squadra_id);
     } else if (selectedLega === 'inviate') {
-      return offerte.filter(o => o.squadra_mittente_id === user.squadra_id);
+      return offerte.filter(o => o.squadra_mittente_id === user?.squadra_id);
     }
     return offerte;
   };

@@ -9,12 +9,17 @@ const router = express.Router();
 // Ottieni i dettagli di un giocatore
 router.get('/:giocatoreId', requireAuth, async (req, res) => {
   try {
+    console.log('🔍 GET /giocatori/:giocatoreId - ID richiesto:', req.params.giocatoreId);
+    
     const db = getDb();
     if (!db) {
+      console.log('❌ Database non disponibile');
       return res.status(503).json({ error: 'Database non disponibile' });
     }
     
     const giocatoreId = req.params.giocatoreId;
+    console.log('🔍 Eseguendo query per giocatore ID:', giocatoreId);
+    
     const result = await db.query(`
       SELECT g.*, 
              g.quotazione_attuale,
@@ -31,10 +36,19 @@ router.get('/:giocatoreId', requireAuth, async (req, res) => {
       WHERE g.id = ?
     `, [giocatoreId]);
     
-    if ((result.rows?.length || 0) === 0) return res.status(404).json({ error: 'Giocatore non trovato' });
+    console.log('🔍 Risultato query:', result);
+    console.log('🔍 result.rows length:', result.rows?.length);
+    console.log('🔍 result.rows:', result.rows);
+    
+    if ((result.rows?.length || 0) === 0) {
+      console.log('❌ Giocatore non trovato per ID:', giocatoreId);
+      return res.status(404).json({ error: 'Giocatore non trovato' });
+    }
+    
+    console.log('✅ Giocatore trovato:', result.rows[0]);
     res.json({ giocatore: result.rows[0] });
   } catch (err) {
-    console.error('Errore DB:', err);
+    console.error('❌ Errore DB:', err);
     res.status(500).json({ error: 'Errore DB', details: err.message });
   }
 });
@@ -42,12 +56,17 @@ router.get('/:giocatoreId', requireAuth, async (req, res) => {
 // Ottieni giocatori di una squadra
 router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
   try {
+    console.log('🔍 GET /giocatori/squadra/:squadraId - Squadra ID:', req.params.squadraId);
+    
     const db = getDb();
     if (!db) {
+      console.log('❌ Database non disponibile');
       return res.status(503).json({ error: 'Database non disponibile' });
     }
     
     const squadraId = req.params.squadraId;
+    console.log('🔍 Eseguendo query per squadra ID:', squadraId);
+    
     const result = await db.query(`
       SELECT g.*, 
              g.quotazione_attuale,
@@ -56,9 +75,14 @@ router.get('/squadra/:squadraId', requireAuth, async (req, res) => {
       LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
       WHERE g.squadra_id = ?
     `, [squadraId]);
+    
+    console.log('🔍 Risultato query:', result);
+    console.log('🔍 result.rows length:', result.rows?.length);
+    console.log('🔍 result.rows:', result.rows);
+    
     res.json({ giocatori: result.rows });
   } catch (err) {
-    console.error('Errore DB:', err);
+    console.error('❌ Errore DB:', err);
     res.status(500).json({ error: 'Errore DB', details: err.message });
   }
 });

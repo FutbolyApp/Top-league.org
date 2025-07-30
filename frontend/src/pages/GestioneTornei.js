@@ -585,7 +585,6 @@ const GestioneTornei = () => {
     tipo: 'campionato',
     formato: 'girone_unico',
     giornate_totali: 1,
-    data_inizio: '',
     descrizione: '',
     squadre_partecipanti: [],
     informazioni_utente: ''
@@ -613,6 +612,26 @@ const GestioneTornei = () => {
     loadData();
   }, [loadData]);
 
+  // Gestisci torneo passato tramite state (per modifica)
+  useEffect(() => {
+    const location = window.location;
+    if (location.state?.editingTorneo) {
+      const torneo = location.state.editingTorneo;
+      setEditingTorneo(torneo);
+      setFormData({
+        nome: torneo?.nome || 'Nome' || '',
+        tipo: torneo.tipo || 'campionato',
+        formato: torneo.formato || 'girone_unico',
+        giornate_totali: torneo.giornate_totali || 1,
+        descrizione: torneo.descrizione || '',
+        squadre_partecipanti: torneo.squadre_partecipanti?.map(s => s.id) || [],
+        informazioni_utente: torneo.informazioni_utente || ''
+      });
+      setShowForm(true);
+      setErrors({});
+    }
+  }, []);
+
   const validateForm = () => {
     const newErrors = {};
     
@@ -620,9 +639,7 @@ const GestioneTornei = () => {
       newErrors.nome = 'Il nome del torneo è obbligatorio';
     }
     
-    if (!formData.data_inizio) {
-      newErrors.data_inizio = 'La data di inizio è obbligatoria';
-    }
+
     
     if (formData.giornate_totali < 1) {
       newErrors.giornate_totali = 'Le giornate totali devono essere almeno 1';
@@ -682,7 +699,6 @@ const GestioneTornei = () => {
       tipo: torneo.tipo || 'campionato',
       formato: torneo.formato || 'girone_unico',
       giornate_totali: torneo.giornate_totali || 1,
-      data_inizio: torneo.data_inizio ? torneo.data_inizio.split('T')[0] : '',
       descrizione: torneo.descrizione || '',
       squadre_partecipanti: torneo.squadre_partecipanti?.map(s => s.id) || [],
       informazioni_utente: torneo.informazioni_utente || ''
@@ -713,7 +729,6 @@ const GestioneTornei = () => {
       tipo: 'campionato',
       formato: 'girone_unico',
       giornate_totali: 1,
-      data_inizio: '',
       descrizione: '',
       squadre_partecipanti: [],
       informazioni_utente: ''
@@ -908,16 +923,7 @@ const GestioneTornei = () => {
                       {errors?.nome && <div style={{ color: '#e53e3e', fontSize: '0.8rem' }}>{errors?.nome}</div>}
                     </FormGroup>
 
-                    <FormGroup>
-                      <Label required>Data Inizio</Label>
-                      <Input
-                        type="date"
-                        value={formData.data_inizio}
-                        onChange={(e) => setFormData(prev => ({ ...prev, data_inizio: e.target.value }))}
-                        className={errors.data_inizio ? 'error' : ''}
-                      />
-                      {errors.data_inizio && <div style={{ color: '#e53e3e', fontSize: '0.8rem' }}>{errors.data_inizio}</div>}
-                    </FormGroup>
+
                   </FormGrid>
 
                   <FormGroup>

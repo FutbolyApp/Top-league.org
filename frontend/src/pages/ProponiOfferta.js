@@ -625,9 +625,23 @@ const ProponiOfferta = () => {
         const squadraRes = await fetch(`${api.baseUrl}/squadre/${squadraId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        const squadraData = await squadraRes.json();
         
-        if (!squadraRes.ok) throw new Error(squadraData.error || 'Errore caricamento squadra');
+        if (!squadraRes) {
+          throw new Error('Errore di connessione: risposta non valida');
+        }
+        
+        let squadraData = null;
+        try {
+          squadraData = await squadraRes.json();
+        } catch (jsonError) {
+          console.error('🚨 Failed to parse squadra response JSON:', jsonError);
+          throw new Error('Errore nel parsing della risposta del server');
+        }
+        
+        if (!squadraRes.ok) {
+          const errorMessage = squadraData?.error || squadraData?.message || 'Errore caricamento squadra';
+          throw new Error(errorMessage);
+        }
         
         const legaId = squadraData?.squadra?.lega_id;
         if (!legaId) {
@@ -641,12 +655,22 @@ const ProponiOfferta = () => {
           getSquadreByLega(legaId, token),
           getGiocatoriByLega(legaId, token)
         ]);
-        
         // Filtra le squadre escludendo la squadra dell'utente (non invia offerte a se stesso)
         const squadre = squadreRes?.data?.squadre || squadreRes?.squadre || [];
         const filteredSquadre = squadre?.filter(s => s?.id !== parseInt(squadraId)) || [];
         setSquadre(filteredSquadre);
-        setGiocatori(giocatoriRes?.data?.giocatori || giocatoriRes?.giocatori || []);
+        // Estrazione robusta dei dati per giocatori
+        let giocatori = [];
+        if (giocatoriRes && giocatoriRes.ok && giocatoriRes.data) {
+          giocatori = giocatoriRes.data.giocatori || giocatoriRes.data || [];
+        } else if (giocatoriRes && giocatoriRes.giocatori) {
+          giocatori = giocatoriRes.giocatori;
+        } else if (Array.isArray(giocatoriRes)) {
+          giocatori = giocatoriRes;
+        } else {
+          console.error('Nessun dato valido trovato per giocatori:', giocatoriRes);
+        }
+        setGiocatori(giocatori);
         
         // Estrai i tornei unici dalle squadre
         const uniqueTornei = [...new Set(filteredSquadre.map(s => s.torneo || 'N/A'))];
@@ -752,8 +776,14 @@ const ProponiOfferta = () => {
         alert('Offerta inviata con successo!');
         handleCloseModal();
       } else {
-        const errorData = await response.json();
-        alert('Errore nell\'invio dell\'offerta: ' + (errorData.error || 'Errore sconosciuto'));
+        let errorData = null;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          console.error('🚨 Failed to parse error response JSON:', jsonError);
+          errorData = { error: 'Errore sconosciuto' };
+        }
+        alert('Errore nell\'invio dell\'offerta: ' + (errorData?.error || 'Errore sconosciuto'));
       }
     } catch (error) {
       alert('Errore nell\'invio dell\'offerta: ' + error.message);
@@ -844,8 +874,14 @@ const ProponiOfferta = () => {
         alert('Offerta di scambio inviata con successo!');
         handleCloseSwapModal();
       } else {
-        const errorData = await response.json();
-        alert('Errore nell\'invio dell\'offerta: ' + (errorData.error || 'Errore sconosciuto'));
+        let errorData = null;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          console.error('🚨 Failed to parse swap error response JSON:', jsonError);
+          errorData = { error: 'Errore sconosciuto' };
+        }
+        alert('Errore nell\'invio dell\'offerta: ' + (errorData?.error || 'Errore sconosciuto'));
       }
     } catch (error) {
       alert('Errore nell\'invio dell\'offerta: ' + error.message);

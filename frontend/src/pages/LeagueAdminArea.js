@@ -507,8 +507,14 @@ const LeagueAdminArea = () => {
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setSquadreOriginali(prev => ({ ...prev, ...data.squadre }));
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error('🚨 Failed to parse squadre originali response JSON:', jsonError);
+          data = { squadre: {} };
+        }
+        setSquadreOriginali(prev => ({ ...prev, ...data?.squadre }));
       } else {
         console.error('Errore risposta API:', response.status, response.statusText);
       }

@@ -181,6 +181,10 @@ router.get('/roster/:squadraId', authenticateToken, async (req, res) => {
     const legaId = legaIdResult.rows[0]?.lega_id;
     const rosterManager = createRosterManager(legaId);
     const giocatori = await rosterManager.getGiocatoriByRoster(squadraId);
+    
+    console.log(`🔍 Roster API - Squadra ${squadraId}:`, giocatori);
+    console.log(`🔍 RosterA length:`, giocatori?.rosterA?.length);
+    console.log(`🔍 RosterB length:`, giocatori?.rosterB?.length);
 
     res.json(giocatori);
   } catch (error) {

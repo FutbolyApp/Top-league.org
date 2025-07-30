@@ -264,7 +264,17 @@ const RichiestaAdmin = () => {
   const loadGiocatori = async (squadra_id) => {
     try {
       const response = await getGiocatoriBySquadra(squadra_id, token);
-      const giocatori = response?.data?.giocatori || response?.giocatori || [];
+      // Estrazione robusta dei dati
+      let giocatori = [];
+      if (response && response.ok && response.data) {
+        giocatori = response.data.giocatori || response.data || [];
+      } else if (response && response.giocatori) {
+        giocatori = response.giocatori;
+      } else if (Array.isArray(response)) {
+        giocatori = response;
+      } else {
+        console.error('Nessun dato valido trovato per giocatori:', response);
+      }
       setGiocatori(giocatori);
     } catch (error) {
       console.error('Errore caricamento giocatori:', error);
@@ -612,8 +622,14 @@ const RichiestaAdmin = () => {
                         });
                         
                         if (response.ok) {
-                          const data = await response.json();
-                          setFormData({...formData, logo_url: data.filename});
+                          let data = null;
+                          try {
+                            data = await response.json();
+                          } catch (jsonError) {
+                            console.error('🚨 Failed to parse logo upload response JSON:', jsonError);
+                            data = { filename: null };
+                          }
+                          setFormData({...formData, logo_url: data?.filename});
                         } else {
                           console.error('Errore upload logo');
                           alert('Errore nel caricamento del logo');

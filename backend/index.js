@@ -7,12 +7,10 @@ import dotenv from 'dotenv';
 import { initializeDatabase, getDb } from './db/mariadb.js';
 import { fixNotificheColumns } from './scripts/fix_remaining_columns.js';
 
-// Carica le variabili d'ambiente in base all'ambiente
-if (process.env.NODE_ENV === 'production') {
-  dotenv.config({ path: './env.render' });
-} else {
-  dotenv.config({ path: './env.local' });
-}
+// Carica le variabili d'ambiente dal file corretto in base all'ambiente
+const envFile = process.env.NODE_ENV === 'production' ? './env.ionos' : './env.local';
+console.log(`🔍 Loading environment from: ${envFile} (NODE_ENV: ${process.env.NODE_ENV})`);
+dotenv.config({ path: envFile });
 import { initializeWebSocket } from './websocket.js';
 import legheRouter from './routes/leghe.js';
 import authRouter from './routes/auth.js';
@@ -50,8 +48,6 @@ app.use(cors({
     'https://topleague-frontend.onrender.com',
     'https://topleaguem.onrender.com',
     'https://top-league.org',
-    'https://www.top-league.org',
-    'https://top-league-org.onrender.com',
     'http://localhost:3000',
     'http://localhost:3001'
   ],
@@ -105,15 +101,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Servi file statici dalla cartella uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Root route for testing
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'TopLeague Backend API',
-    status: 'running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
+
 
 // Rendi il database accessibile alle route
 app.locals.db = getDb();

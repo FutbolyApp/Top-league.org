@@ -204,7 +204,7 @@ const DashboardAvanzata = () => {
       ]);
 
       setSquadra(squadraData?.data?.squadra || squadraData?.squadra);
-      setGiocatori(giocatoriData?.data?.giocatori || giocatoriData?.giocatori);
+      setGiocatori(giocatoriData?.data?.giocatori || giocatoriData?.giocatori || Array.isArray(giocatoriData) ? giocatoriData : []);
       setBilancio(bilancioData?.data?.bilancio || bilancioData?.bilancio);
       setTransazioni(transazioniData?.data?.transazioni || transazioniData?.transazioni);
       setReport(reportData?.data || reportData);

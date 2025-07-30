@@ -1,0 +1,105 @@
+ANALISI SCREENSHOT PLAYWRIGHT SCRAPING
+=====================================
+
+Questo file contiene l'elenco di tutti gli screenshot catturati durante lo scraping con Playwright,
+con le relative URL, descrizioni e analisi.
+
+ULTIMO AGGIORNAMENTO: 2025-06-26 18:31:37
+
+SCREENSHOT CATTURATI:
+--------------------
+
+1. LEAGUE_PAGE
+   - File: uploads/playwright_debug/playwright_league_page_2025-06-26T18-30-38-936Z.png
+   - URL: https://leghe.fantacalcio.it/fantaleague-11
+   - Descrizione: Pagina principale della lega fantaleague-11
+   - Stato: Pagina caricata, utente non loggato
+   - Elementi visibili: Menu di navigazione, contenuto della lega
+
+2. BEFORE_COOKIE
+   - File: uploads/playwright_debug/playwright_before_cookie_2025-06-26T18-30-42-447Z.png
+   - URL: https://leghe.fantacalcio.it/fantaleague-11
+   - Descrizione: Pagina prima della gestione popup cookie/privacy
+   - Stato: Popup cookie visibili
+   - Elementi visibili: Banner cookie/privacy, bottoni "continua senza accettare"
+
+3. AFTER_COOKIE
+   - File: uploads/playwright_debug/playwright_after_cookie_2025-06-26T18-30-47-888Z.png
+   - URL: https://leghe.fantacalcio.it/fantaleague-11
+   - Descrizione: Pagina dopo la gestione popup cookie/privacy
+   - Stato: Popup rimossi, pagina pulita
+   - Elementi visibili: Pagina senza banner, contenuto principale visibile
+
+4. LOGIN_PAGE_FROM_LEAGUE
+   - File: uploads/playwright_debug/playwright_login_page_from_league_2025-06-26T18-30-53-721Z.png
+   - URL: https://leghe.fantacalcio.it/login (o simile)
+   - Descrizione: Pagina di login dopo click su link di accesso
+   - Stato: Form di login visibile
+   - Elementi visibili: Campi username/password, bottone login
+
+5. CREDENTIALS_FILLED
+   - File: uploads/playwright_debug/playwright_credentials_filled_2025-06-26T18-30-54-156Z.png
+   - URL: https://leghe.fantacalcio.it/login
+   - Descrizione: Form di login con credenziali inserite
+   - Stato: Campi compilati, pronto per submit
+   - Elementi visibili: Username "nemeneme" inserito, password mascherata
+
+6. AFTER_LOGIN
+   - File: uploads/playwright_debug/playwright_after_login_2025-06-26T18-30-59-526Z.png
+   - URL: https://leghe.fantacalcio.it/lega-fantacarcio-mantra
+   - Descrizione: Pagina dopo login riuscito
+   - Stato: Utente loggato, redirect completato
+   - Elementi visibili: Dashboard utente, menu personalizzato
+
+7. ROSE_PAGE
+   - File: uploads/playwright_debug/playwright_rose_page_2025-06-26T18-31-11-171Z.png
+   - URL: https://leghe.fantacalcio.it/fantaleague-11/rose
+   - Descrizione: Pagina delle rose della lega
+   - Stato: Pagina caricata, utente loggato
+   - Elementi visibili: Contenuto della pagina rose (possibilmente vuoto o non accessibile)
+
+8. CLASSIFICA_PAGE
+   - File: uploads/playwright_debug/playwright_classifica_page_2025-06-26T18-31-25-437Z.png
+   - URL: https://leghe.fantacalcio.it/fantaleague-11/classifica
+   - Descrizione: Pagina della classifica della lega
+   - Stato: Pagina caricata, utente loggato
+   - Elementi visibili: Contenuto della pagina classifica (possibilmente vuoto o non accessibile)
+
+ANALISI DEI RISULTATI:
+---------------------
+
+RISULTATI SCRAPING:
+- Rose: 0 squadre trovate
+- Classifica: 0 posizioni trovate  
+- Formazioni: 0 formazioni trovate
+
+PROBLEMI IDENTIFICATI:
+1. Login funzionante ma dati non estratti
+2. Possibili cause:
+   - Credenziali di test non hanno accesso ai dati reali
+   - Selettori CSS non corretti per la struttura del sito
+   - Pagine richiedono permessi specifici
+   - Dati non disponibili per questa lega specifica
+
+STATO SISTEMA:
+- ✅ Login automatico funzionante
+- ✅ Gestione popup cookie/privacy funzionante
+- ✅ Navigazione tra pagine funzionante
+- ✅ Screenshot di debug funzionanti
+- ❌ Estrazione dati non funzionante
+- ❌ Salvataggio database non funzionante (errore getDb)
+
+NEXT STEPS:
+1. Verificare credenziali reali
+2. Analizzare screenshot per ottimizzare selettori
+3. Testare con lega diversa
+4. Verificare permessi utente sulla lega
+
+NOTE TECNICHE:
+- Browser: Playwright Chromium headless
+- User Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)
+- Viewport: 1920x1080
+- Timeout: 30 secondi per pagina
+- Profili temporanei: Rimossi automaticamente
+
+FINE ANALISI 

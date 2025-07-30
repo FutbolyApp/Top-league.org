@@ -600,45 +600,34 @@ const NotifichePage = () => {
       
       console.log('📊 Notification response:', response);
       
-      if (response.ok) {
-        const data = response.data;
-        const notifiche = data.notifiche || [];
+      if (response && (response.ok || response.notifiche)) {
+        // Gestione compatibile con mock API (risposta diretta) e API reale (risposta.data)
+        const notificheData = response?.data?.notifiche || response?.notifiche || [];
         
-        console.log('📋 Found notifications:', notifiche?.length || 0);
-        
-        // Normalizza le notifiche per gestire entrambi i campi (letta e letto)
-        const notificheNormalizzate = notifiche?.map(n => {
-          let dati_aggiuntivi = {};
+        if (Array.isArray(notificheData)) {
+          const notificheNormalizzate = notificheData.map(n => {
+            const dati_aggiuntivi = n.dati_aggiuntivi ? 
+              (typeof n.dati_aggiuntivi === 'string' ? JSON.parse(n.dati_aggiuntivi) : n.dati_aggiuntivi) : 
+              {};
+            
+            return {
+              ...n,
+              letta: n.letta || n.letto === 1,
+              dati_aggiuntivi: dati_aggiuntivi
+            };
+          });
           
-          if (n.dati_aggiuntivi) {
-            try {
-              // Se è già un oggetto, usalo direttamente
-              if (typeof n.dati_aggiuntivi === 'object') {
-                dati_aggiuntivi = n.dati_aggiuntivi;
-              } else {
-                // Altrimenti prova a parsarlo come JSON
-                dati_aggiuntivi = JSON.parse(n.dati_aggiuntivi);
-              }
-            } catch (error) {
-              console.error('Errore parsing dati_aggiuntivi per notifica:', n.id, error);
-              dati_aggiuntivi = {};
-            }
-          }
-          
-          return {
-            ...n,
-            letta: n.letta || n.letto === 1,
-            dati_aggiuntivi: dati_aggiuntivi
-          };
-        });
-        
-        setNotifications(notificheNormalizzate);
-        setDisplayedNotifications(notificheNormalizzate.slice(0, notificationsPerPage));
-        setCurrentPage(1);
-        console.log('✅ Notifications loaded successfully');
+          setNotifications(notificheNormalizzate);
+          setDisplayedNotifications(notificheNormalizzate.slice(0, notificationsPerPage));
+          setCurrentPage(1);
+          console.log('✅ Notifications loaded successfully');
+        } else {
+          console.error('❌ Invalid notifications data format:', notificheData);
+          setError('Formato dati notifiche non valido');
+        }
       } else {
         console.error('❌ Notification API error:', response);
-        setError('Errore nel caricamento delle notifiche: ' + (response.error || 'Errore sconosciuto'));
+        setError('Errore nel caricamento delle notifiche: ' + (response?.error || 'Errore sconosciuto'));
       }
     } catch (error) {
       console.error('❌ Notification loading error:', error);
@@ -724,7 +713,14 @@ const NotifichePage = () => {
         // Apri il popup per gestire la richiesta admin
         openResponseModal(notification);
         break;
+      case 'richiesta_unione_squadra':
+        // Naviga alla pagina delle richieste di unione squadra
+        navigate('/area-admin');
+        break;
       case 'risposta_richiesta_admin':
+        navigate('/area-admin');
+        break;
+      case 'risposta_richiesta_unione':
         navigate('/area-admin');
         break;
       default:

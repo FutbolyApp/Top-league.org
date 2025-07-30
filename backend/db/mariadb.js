@@ -1,6 +1,5 @@
 import mysql from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
-import fs from 'fs';
 
 // Configurazione MariaDB
 let pool = null;
@@ -8,18 +7,62 @@ let pool = null;
 export function getDb() {
   console.log('🔍 getDb() called - pool:', pool ? 'available' : 'null');
   console.log('🔍 DATABASE_URL:', process.env.DATABASE_URL ? 'set' : 'not set');
-  if (!pool) {
-    console.log('⚠️ DATABASE_URL not set, database functionality will be disabled');
-    return null;
+  
+  // If pool is null but DATABASE_URL is set, try to initialize
+  if (!pool && process.env.DATABASE_URL) {
+    console.log('⚠️ Pool is null but DATABASE_URL is set - attempting initialization...');
+    // Don't initialize here, just return the fallback
+    return {
+      query: async (sql, params = []) => {
+        console.error('❌ Database query attempted but pool is null:', sql);
+        throw new Error('Database not available - pool is null');
+      },
+      execute: async (sql, params = []) => {
+        console.error('❌ Database execute attempted but pool is null:', sql);
+        throw new Error('Database not available - pool is null');
+      }
+    };
   }
+  
+  if (!pool) {
+    console.log('⚠️ Database pool not available, database functionality will be disabled');
+    return {
+      query: async (sql, params = []) => {
+        console.error('❌ Database query attempted but pool is null:', sql);
+        throw new Error('Database not available - pool is null');
+      },
+      execute: async (sql, params = []) => {
+        console.error('❌ Database execute attempted but pool is null:', sql);
+        throw new Error('Database not available - pool is null');
+      }
+    };
+  }
+  
   return {
     query: async (sql, params = []) => {
+      try {
       const result = await pool.execute(sql, params);
       return { 
         rows: result[0], 
         fields: result[1],
         insertId: result[0].insertId || result[0].insert_id
       };
+      } catch (error) {
+        console.error('❌ Database query error:', error.message);
+        console.error('❌ SQL:', sql);
+        console.error('❌ Params:', params);
+        throw error;
+      }
+    },
+    execute: async (sql, params = []) => {
+      try {
+        return await pool.execute(sql, params);
+      } catch (error) {
+        console.error('❌ Database execute error:', error.message);
+        console.error('❌ SQL:', sql);
+        console.error('❌ Params:', params);
+        throw error;
+      }
     }
   };
 }
@@ -34,6 +77,7 @@ export async function initializeDatabase() {
 
   try {
     console.log('🔄 Connecting to MariaDB database...');
+    console.log('🔍 DATABASE_URL:', databaseUrl.substring(0, 20) + '...');
     
     // Parse DATABASE_URL per MariaDB
     const url = new URL(databaseUrl);
@@ -43,21 +87,40 @@ export async function initializeDatabase() {
       user: url.username,
       password: url.password,
       database: url.pathname.slice(1), // Rimuovi lo slash iniziale
-      ssl: {
-        rejectUnauthorized: false
-      },
       // Configurazione per performance
-      connectionLimit: 10
+      connectionLimit: 10,
+      acquireTimeout: 60000,
+      timeout: 60000,
+      reconnect: true
     };
+
+    console.log('🔍 Database config:', {
+      host: config.host,
+      port: config.port,
+      user: config.user,
+      database: config.database
+    });
 
     pool = mysql.createPool(config);
 
-    // Test connection
+    // Test connection with retry
+    let retries = 3;
+    while (retries > 0) {
+      try {
     const connection = await pool.getConnection();
     await connection.query('SELECT NOW()');
     connection.release();
-    
     console.log('✅ Connected to MariaDB database');
+        break;
+      } catch (error) {
+        retries--;
+        console.error(`❌ Database connection attempt failed (${3-retries}/3):`, error.message);
+        if (retries === 0) {
+          throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds before retry
+      }
+    }
     
     // Create missing tables
     await createMissingTables();
@@ -65,8 +128,7 @@ export async function initializeDatabase() {
     // Update existing tables with missing columns
     await updateExistingTables();
     
-    // Migrate data from SQLite if needed
-    await migrateDataIfNeeded();
+    console.log('✅ Database initialization completed');
     
   } catch (error) {
     console.error('❌ Database connection error:', error.message);
@@ -78,7 +140,100 @@ async function createMissingTables() {
   try {
     console.log('📄 Creating missing tables...');
     
-    const tables = [
+    // Prima creiamo le tabelle base (senza foreign key)
+    const baseTables = [
+      // Tabella users
+      `CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nome VARCHAR(255) NOT NULL,
+        cognome VARCHAR(255) NOT NULL,
+        username VARCHAR(255) UNIQUE,
+        provenienza VARCHAR(255),
+        squadra_cuore VARCHAR(255),
+        come_conosciuto TEXT,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        ruolo VARCHAR(50) NOT NULL DEFAULT 'Utente',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`,
+      
+      // Tabella leghe
+      `CREATE TABLE IF NOT EXISTS leghe (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nome TEXT NOT NULL,
+        descrizione TEXT,
+        admin_id INT NOT NULL,
+        modalita TEXT DEFAULT 'Classic Serie A',
+        max_squadre INT DEFAULT 20,
+        is_pubblica BOOLEAN DEFAULT true,
+        data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        data_modifica TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        stato TEXT DEFAULT 'attiva',
+        password TEXT,
+        is_privata BOOLEAN DEFAULT false,
+        subadmin_id INT,
+        roster_ab INT DEFAULT 0,
+        cantera INT DEFAULT 0,
+        contratti INT DEFAULT 0,
+        triggers INT DEFAULT 0,
+        max_portieri INT DEFAULT 3,
+        min_portieri INT DEFAULT 2,
+        max_difensori INT DEFAULT 8,
+        min_difensori INT DEFAULT 5,
+        max_centrocampisti INT DEFAULT 8,
+        min_centrocampisti INT DEFAULT 5,
+        max_attaccanti INT DEFAULT 6,
+        min_attaccanti INT DEFAULT 3,
+        FOREIGN KEY (admin_id) REFERENCES users(id),
+        FOREIGN KEY (subadmin_id) REFERENCES users(id)
+      )`,
+      
+      // Tabella squadre
+      `CREATE TABLE IF NOT EXISTS squadre (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        lega_id INT NOT NULL,
+        nome VARCHAR(255) NOT NULL,
+        proprietario_id INT,
+        club_level INT DEFAULT 1,
+        casse_societarie INT DEFAULT 0,
+        costo_salariale_totale INT DEFAULT 0,
+        costo_salariale_annuale INT DEFAULT 0,
+        valore_squadra INT DEFAULT 0,
+        is_orfana BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        proprietario_username VARCHAR(255),
+        logo_url TEXT,
+        FOREIGN KEY (lega_id) REFERENCES leghe(id),
+        FOREIGN KEY (proprietario_id) REFERENCES users(id)
+      )`,
+      
+      // Tabella giocatori
+      `CREATE TABLE IF NOT EXISTS giocatori (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        squadra_id INT NOT NULL,
+        nome VARCHAR(255) NOT NULL,
+        cognome VARCHAR(255) NOT NULL,
+        ruolo VARCHAR(10) NOT NULL,
+        quotazione INT DEFAULT 0,
+        fv_mp VARCHAR(50),
+        qi DECIMAL(10,2),
+        qa DECIMAL(10,2),
+        site_id VARCHAR(255),
+        nazione_campionato VARCHAR(255),
+        fvm INT DEFAULT 0,
+        media_voto DECIMAL(10,2),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (squadra_id) REFERENCES squadre(id)
+      )`
+    ];
+    
+    // Creiamo prima le tabelle base
+    for (const table of baseTables) {
+      await pool.execute(table);
+    }
+    
+    // Ora creiamo le tabelle con foreign key
+    const dependentTables = [
       // Tabella tornei
       `CREATE TABLE IF NOT EXISTS tornei (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -145,7 +300,7 @@ async function createMissingTables() {
         UNIQUE KEY unique_torneo_squadra (torneo_id, squadra_id)
       )`,
       
-      // Tabella notifiche (se non esiste)
+      // Tabella notifiche
       `CREATE TABLE IF NOT EXISTS notifiche (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
@@ -156,20 +311,6 @@ async function createMissingTables() {
         data_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         data_lettura TIMESTAMP NULL,
         FOREIGN KEY (user_id) REFERENCES users(id)
-      )`,
-      
-      // Tabella transazioni
-      `CREATE TABLE IF NOT EXISTS transazioni (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        squadra_id INT NOT NULL,
-        tipo ENUM('entrata', 'uscita') NOT NULL,
-        categoria VARCHAR(100) NOT NULL,
-        importo DECIMAL(10,2) NOT NULL,
-        descrizione TEXT,
-        giocatore_id INT,
-        data_transazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (squadra_id) REFERENCES squadre(id),
-        FOREIGN KEY (giocatore_id) REFERENCES giocatori(id)
       )`,
       
       // Tabella richieste_ingresso
@@ -283,17 +424,59 @@ async function createMissingTables() {
         id INT AUTO_INCREMENT PRIMARY KEY,
         lega_id INT NOT NULL,
         giocatore VARCHAR(255) NOT NULL,
-        squadra_attuale VARCHAR(255),
-        squadra_destinazione VARCHAR(255),
-        tipo_operazione VARCHAR(50),
-        valore DECIMAL(10,2),
+        da VARCHAR(255),
+        a VARCHAR(255),
+        prezzo VARCHAR(255),
+        tipo VARCHAR(50),
         data_scraping TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        fonte_scraping VARCHAR(50) DEFAULT 'puppeteer',
+        fonte_scraping VARCHAR(50) DEFAULT 'playwright',
         FOREIGN KEY (lega_id) REFERENCES leghe(id)
+      )`,
+      
+      // Tabella qa_history
+      `CREATE TABLE IF NOT EXISTS qa_history (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        giocatore_id INT NOT NULL,
+        qa_value DECIMAL(10,2) NOT NULL,
+        data_registrazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        fonte VARCHAR(50) DEFAULT 'scraping',
+        FOREIGN KEY (giocatore_id) REFERENCES giocatori(id)
+      )`,
+      
+      // Tabella tornei_preferiti
+      `CREATE TABLE IF NOT EXISTS tornei_preferiti (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        utente_id INT NOT NULL,
+        lega_id INT NOT NULL,
+        torneo_id VARCHAR(255) NOT NULL,
+        torneo_nome VARCHAR(255) NOT NULL,
+        torneo_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (utente_id) REFERENCES users(id),
+        FOREIGN KEY (lega_id) REFERENCES leghe(id),
+        UNIQUE KEY unique_utente_lega_torneo (utente_id, lega_id, torneo_id)
+      )`,
+      
+      // Tabella pending_changes
+      `CREATE TABLE IF NOT EXISTS pending_changes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        lega_id INT NOT NULL,
+        subadmin_id INT NOT NULL,
+        action_type VARCHAR(255) NOT NULL,
+        action_data TEXT NOT NULL,
+        status VARCHAR(50) DEFAULT 'pending',
+        admin_response TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        reviewed_at TIMESTAMP NULL,
+        description TEXT,
+        details TEXT,
+        FOREIGN KEY (lega_id) REFERENCES leghe(id),
+        FOREIGN KEY (subadmin_id) REFERENCES users(id)
       )`
     ];
-
-    for (const table of tables) {
+    
+    // Creiamo le tabelle dipendenti
+    for (const table of dependentTables) {
       await pool.execute(table);
     }
     
@@ -301,6 +484,7 @@ async function createMissingTables() {
     
   } catch (error) {
     console.error('❌ Error creating tables:', error.message);
+    throw error;
   }
 }
 
@@ -345,22 +529,6 @@ async function updateExistingTables() {
     
   } catch (error) {
     console.error('❌ Error updating tables:', error.message);
-  }
-}
-
-async function migrateDataIfNeeded() {
-  try {
-    console.log('🔄 Checking for data migration...');
-    
-    // Verifica se ci sono dati da migrare da SQLite
-    const sqliteFile = './db/topleague.db';
-    if (fs.existsSync(sqliteFile)) {
-      console.log('📦 SQLite database found, migration may be needed');
-      // Qui puoi aggiungere la logica di migrazione se necessario
-    }
-    
-  } catch (error) {
-    console.error('❌ Error during migration check:', error.message);
   }
 }
 

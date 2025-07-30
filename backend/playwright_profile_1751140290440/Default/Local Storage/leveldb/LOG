@@ -1,5 +1,0 @@
-2025/06/28-20:51:30.593 913901 Creating DB /Users/massimolasorsa/TopLeagueC/backend/playwright_profile_1751140290440/Default/Local Storage/leveldb since it was missing.
-2025/06/28-20:51:30.614 913901 Reusing MANIFEST /Users/massimolasorsa/TopLeagueC/backend/playwright_profile_1751140290440/Default/Local Storage/leveldb/MANIFEST-000001
-2025/06/28-20:51:42.621 913901 Level-0 table #5: started
-2025/06/28-20:51:42.641 913901 Level-0 table #5: 59030 bytes OK
-2025/06/28-20:51:42.651 913901 Delete type=0 #3

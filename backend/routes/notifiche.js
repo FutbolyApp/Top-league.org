@@ -7,6 +7,9 @@ const router = express.Router();
 // Ottieni tutte le notifiche dell'utente loggato
 router.get('/', requireAuth, async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Utente non autenticato' });
+    }
     const userId = req.user.id;
     const db = getDb();
     
@@ -26,6 +29,9 @@ router.get('/', requireAuth, async (req, res) => {
 // Ottieni tutte le notifiche dell'utente loggato (alias)
 router.get('/utente', requireAuth, async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Utente non autenticato' });
+    }
     const userId = req.user.id;
     const db = getDb();
     const result = await db.query(`
@@ -45,6 +51,9 @@ router.get('/utente', requireAuth, async (req, res) => {
 // Ottieni notifiche per admin di una lega
 router.get('/admin/:legaId', requireAuth, async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Utente non autenticato' });
+    }
     const legaId = req.params.legaId;
     const adminId = req.user.id;
     const db = getDb();
@@ -75,6 +84,9 @@ router.get('/admin/:legaId', requireAuth, async (req, res) => {
 // Crea notifica per admin
 router.post('/admin', requireAuth, async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Utente non autenticato' });
+    }
     const { lega_id, tipo, messaggio, giocatore_id, squadra_id } = req.body;
     const userId = req.user.id;
     const db = getDb();

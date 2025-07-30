@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
+import RouterWrapper from './components/RouterWrapper';
 import App from './App';
 import './index.css';
 
@@ -17,9 +17,11 @@ const theme = {
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <ThemeProvider theme={theme}>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  </ThemeProvider>
+  <React.StrictMode>
+    <ThemeProvider theme={theme}>
+      <RouterWrapper>
+        <App />
+      </RouterWrapper>
+    </ThemeProvider>
+  </React.StrictMode>
 );

@@ -1,6 +1,5 @@
 import express from 'express';
-import { getDb } from '../db/mariadb.js';
-import { initDb } from '../db/mariadb.js';
+import { getDb, initializeDatabase } from '../db/mariadb.js';
 
 const router = express.Router();
 
@@ -18,7 +17,7 @@ router.post('/update', async (req, res) => {
     }
 
     // Inizializza il database con tutte le tabelle
-    await initDb();
+    await initializeDatabase();
     
     console.log('✅ Schema update completed successfully');
     

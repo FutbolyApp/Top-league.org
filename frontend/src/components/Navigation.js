@@ -509,9 +509,9 @@ const Navigation = () => {
               
               {isSuperAdmin && (
                 <div style={{ position: 'relative', display: 'inline-block' }}>
-                <NavLink to="/super-admin-dashboard" className={isActive('/super-admin-dashboard') ? 'active' : ''}>
-                  Super Admin
-                </NavLink>
+                  <NavLink to="/super-admin-dashboard" className={isActive('/super-admin-dashboard') ? 'active' : ''}>
+                    Super Admin
+                  </NavLink>
                 </div>
               )}
               

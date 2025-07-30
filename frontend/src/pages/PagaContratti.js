@@ -414,7 +414,18 @@ const PagaContratti = () => {
   const fetchGiocatori = async (squadraId) => {
     try {
       const res = await getGiocatoriBySquadra(squadraId, token);
-      setGiocatori(res?.data?.giocatori || res?.giocatori || []);
+      // Estrazione robusta dei dati
+      let giocatori = [];
+      if (res && res.ok && res.data) {
+        giocatori = res.data.giocatori || res.data || [];
+      } else if (res && res.giocatori) {
+        giocatori = res.giocatori;
+      } else if (Array.isArray(res)) {
+        giocatori = res;
+      } else {
+        console.error('Nessun dato valido trovato per giocatori:', res);
+      }
+      setGiocatori(giocatori);
     } catch (err) {
       setError(err.message);
     }

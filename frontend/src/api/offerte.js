@@ -22,7 +22,7 @@ export const rifiutaOfferta = async (offertaId, token) => {
 
 // Ottieni log operazioni per un giocatore
 export const getLogGiocatore = async (giocatoreId, token) => {
-  return api.get(`/offerte/log-giocatore/${giocatoreId}`, token);
+  return api.get(`/contratti/log-giocatore/${giocatoreId}`, token);
 };
 
 export async function getOfferteByLega(lega_id, token) {

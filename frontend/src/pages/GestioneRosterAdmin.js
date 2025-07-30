@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { api } from '../api/config';
 import RosterABManager from '../components/RosterABManager';
+import ConnectionErrorModal from '../components/ConnectionErrorModal';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -186,38 +187,64 @@ const GestioneRosterAdmin = () => {
   const [squadre, setSquadre] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showConnectionError, setShowConnectionError] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Verifica che l'utente sia admin, superadmin o subadmin
+      const ruoliAutorizzati = ['admin', 'superadmin', 'subadmin', 'Admin', 'SuperAdmin', 'SubAdmin'];
+      if (!ruoliAutorizzati.includes(user?.ruolo)) {
+        setError('Accesso negato. Solo admin, superadmin e subadmin possono gestire i roster.');
+        return;
+      }
+
+      // Carica informazioni della lega
+      const legaResponse = await api.get(`/leghe/${legaId}`, token);
+      setLega(legaResponse);
+
+      // Carica squadre della lega
+      const squadreResponse = await api.get(`/leghe/${legaId}/squadre`, token);
+      console.log('🔍 Squadre response:', squadreResponse);
+      console.log('🔍 Squadre response type:', typeof squadreResponse);
+      console.log('🔍 Squadre response keys:', Object.keys(squadreResponse || {}));
+      
+      // Assicurati che squadre sia sempre un array
+      let squadreArray = [];
+      if (Array.isArray(squadreResponse)) {
+        squadreArray = squadreResponse;
+        console.log('🔍 Caso 1: Array diretto');
+      } else if (squadreResponse?.squadre && Array.isArray(squadreResponse.squadre)) {
+        squadreArray = squadreResponse.squadre;
+        console.log('🔍 Caso 2: squadreResponse.squadre');
+      } else if (squadreResponse?.data?.squadre && Array.isArray(squadreResponse.data.squadre)) {
+        squadreArray = squadreResponse.data.squadre;
+        console.log('🔍 Caso 3: squadreResponse.data.squadre');
+      } else if (squadreResponse?.data && Array.isArray(squadreResponse.data)) {
+        squadreArray = squadreResponse.data;
+        console.log('🔍 Caso 4: squadreResponse.data');
+      } else {
+        console.log('🔍 Caso 5: Nessun array trovato');
+      }
+      console.log('🔍 Squadre array finale:', squadreArray);
+      console.log('🔍 Squadre array length:', squadreArray.length);
+      setSquadre(squadreArray);
+
+    } catch (err) {
+      console.error('Errore fetch data:', err);
+      if (err.message.includes('Failed to fetch') || err.message.includes('ERR_CONNECTION_REFUSED')) {
+        setShowConnectionError(true);
+      } else {
+        setError('Errore nel caricamento dei dati');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Verifica che l'utente sia admin, superadmin o subadmin
-        const ruoliAutorizzati = ['admin', 'superadmin', 'subadmin', 'Admin', 'SuperAdmin', 'SubAdmin'];
-        if (!ruoliAutorizzati.includes(user?.ruolo)) {
-          setError('Accesso negato. Solo admin, superadmin e subadmin possono gestire i roster.');
-          return;
-        }
-
-        // Carica informazioni della lega
-        const legaResponse = await api.get(`/leghe/${legaId}`, token);
-        setLega(legaResponse);
-
-        // Carica squadre della lega
-        const squadreResponse = await api.get(`/squadre/lega/${legaId}`, token);
-        // Assicurati che squadre sia sempre un array
-        const squadreArray = Array.isArray(squadreResponse) ? squadreResponse : 
-                            (squadreResponse?.squadre || squadreResponse?.data || []);
-        setSquadre(squadreArray);
-
-      } catch (err) {
-        setError('Errore nel caricamento dei dati');
-        console.error('Errore fetch data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
     if (token && user) {
       fetchData();
@@ -301,13 +328,13 @@ const GestioneRosterAdmin = () => {
           </LeagueStats>
         </LeagueInfo>
 
-        {!Array.isArray(squadre) || squadre?.length || 0 === 0 ? (
+        {!Array.isArray(squadre) || squadre.length === 0 ? (
           <EmptyState>
             Nessuna squadra trovata in questa lega
           </EmptyState>
         ) : (
           <TeamsGrid>
-            {Array.isArray(squadre) && squadre?.map(squadra => (
+            {squadre.map(squadra => (
               <TeamCard key={squadra.id}>
                 <TeamHeader>
                   <div>
@@ -328,6 +355,20 @@ const GestioneRosterAdmin = () => {
             ))}
           </TeamsGrid>
         )}
+        
+        <ConnectionErrorModal
+          isOpen={showConnectionError}
+          onClose={() => setShowConnectionError(false)}
+          onRetry={() => {
+            setLoading(true);
+            setError(null);
+            setShowConnectionError(false);
+            // Ricarica i dati
+            setTimeout(() => {
+              fetchData();
+            }, 1000);
+          }}
+        />
       </ContentWrapper>
     </Container>
   );

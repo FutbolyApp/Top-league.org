@@ -283,11 +283,23 @@ const LogSquadraPage = () => {
       });
       
       if (response.ok) {
-        const data = await response.json();
-        setLogs(data.logs || []);
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error('🚨 Failed to parse logs response JSON:', jsonError);
+          data = { logs: [] };
+        }
+        setLogs(data?.logs || []);
       } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Errore nel caricamento dei log');
+        let errorData = null;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          console.error('🚨 Failed to parse logs error response JSON:', jsonError);
+          errorData = { error: 'Errore nel caricamento dei log' };
+        }
+        setError(errorData?.error || 'Errore nel caricamento dei log');
       }
     } catch (err) {
       setError('Errore di connessione');

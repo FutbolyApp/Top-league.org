@@ -1,0 +1,5 @@
+open access-5018267600.webspace-host.com
+user a749398 TopLeague.1
+cd /
+put -r ionos-deploy/*
+bye

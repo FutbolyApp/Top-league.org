@@ -4,24 +4,26 @@
     <meta charset="utf-8">
     <title>TopLeague</title>
     <script>
-        // Single Page Apps for GitHub Pages / Static Sites
-        // https://github.com/rafgraph/spa-github-pages
-        // This script takes the current url and converts the path and query
-        // string into just a query string, and then redirects the browser
-        // to the new url with only a query string and hash fragment.
-        var pathSegmentsToKeep = 0;
-
-        var l = window.location;
-        l.replace(
-            l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-            l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-            l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-            (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-            l.hash
-        );
+        console.log('🔧 404.html redirect script');
+        
+        // Simpler, more reliable redirect
+        const currentPath = window.location.pathname;
+        const currentSearch = window.location.search;
+        const currentHash = window.location.hash;
+        
+        // Create clean redirect URL
+        const redirectUrl = '/?' + currentPath.slice(1) + 
+                           (currentSearch ? '&' + currentSearch.slice(1) : '') + 
+                           currentHash;
+        
+        console.log('🔧 404 redirecting to:', redirectUrl);
+        window.location.replace(redirectUrl);
     </script>
 </head>
 <body>
-    Redirecting to TopLeague...
+    <div style="text-align:center;padding:2rem;font-family:Arial,sans-serif;">
+        <h2>Redirecting to TopLeague...</h2>
+        <p>If you are not redirected automatically, <a href="/">click here</a>.</p>
+    </div>
 </body>
 </html> 

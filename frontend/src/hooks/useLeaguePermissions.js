@@ -16,14 +16,14 @@ export const useLeaguePermissions = (legaId) => {
       }
 
       // Se è superadmin, ha sempre accesso
-      if (user.ruolo === 'superadmin' || user.ruolo === 'SuperAdmin') {
+      if (user?.ruolo === 'superadmin' || user?.ruolo === 'SuperAdmin') {
         setIsAdmin(true);
         setLoading(false);
         return;
       }
 
       // Se è admin globale, ha sempre accesso
-      if (user.ruolo === 'admin') {
+      if (user?.ruolo === 'admin') {
         setIsAdmin(true);
         setLoading(false);
         return;

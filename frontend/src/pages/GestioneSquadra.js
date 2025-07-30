@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { getMyTeamByLeague } from '../api/squadre';
 import { pagaContratto, pagaContrattiMultipli, rinnovaContratto, aggiornaImpostazioniTrasferimento, getLogRinnoviGiocatore } from '../api/contratti';
+import { getGiocatoriBySquadra } from '../api/giocatori';
 import styled from 'styled-components';
 import { getRoleClass } from '../utils/roleUtils';
 import { api, API_BASE_URL } from '../api/config.js';
@@ -576,6 +577,8 @@ const GestioneSquadra = () => {
     is_classic: false
   });
 
+  const [giocatori, setGiocatori] = useState([]);
+
   useEffect(() => {
     fetchSquadra();
   }, [legaId, token]);
@@ -627,7 +630,13 @@ const GestioneSquadra = () => {
       });
       
       if (response.ok) {
-        const data = await response.json();
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error('🚨 Failed to parse roster response JSON:', jsonError);
+          data = { error: 'Errore nel parsing della risposta' };
+        }
         setRosterData(data);
       } else {
         console.error('fetchRosterData: errore response:', response.status, response.statusText);
@@ -759,8 +768,14 @@ const GestioneSquadra = () => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Errore durante la conclusione del prestito');
+        let errorData = null;
+        try {
+          errorData = await response.json();
+        } catch (jsonError) {
+          console.error('🚨 Failed to parse end loan error response JSON:', jsonError);
+          errorData = { message: 'Errore durante la conclusione del prestito' };
+        }
+        throw new Error(errorData?.message || 'Errore durante la conclusione del prestito');
       }
       
       await fetchSquadra();
@@ -772,8 +787,10 @@ const GestioneSquadra = () => {
   };
 
   const formatMoney = (amount) => {
-    if (!amount) return 'FM 0';
-    return `FM ${amount}`;
+    if (!amount && amount !== 0) return 'FM 0';
+    // Converti sempre in numero per evitare concatenazioni
+    const numValue = parseFloat(amount) || 0;
+    return `FM ${numValue.toLocaleString()}`;
   };
 
   const splitRoles = (ruolo) => {
@@ -797,6 +814,26 @@ const GestioneSquadra = () => {
       if (indexB !== -1) return 1;
       return roleA.localeCompare(roleB);
     });
+  };
+
+  const loadGiocatori = async (squadraId) => {
+    try {
+      const giocatoriRes = await getGiocatoriBySquadra(squadraId, token);
+      // Estrazione robusta dei dati
+      let giocatori = [];
+      if (giocatoriRes && giocatoriRes.ok && giocatoriRes.data) {
+        giocatori = giocatoriRes.data.giocatori || giocatoriRes.data || [];
+      } else if (giocatoriRes && giocatoriRes.giocatori) {
+        giocatori = giocatoriRes.giocatori;
+      } else if (Array.isArray(giocatoriRes)) {
+        giocatori = giocatoriRes;
+      } else {
+        console.error('Nessun dato valido trovato per giocatori:', giocatoriRes);
+      }
+      setGiocatori(giocatori);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   if (loading) {

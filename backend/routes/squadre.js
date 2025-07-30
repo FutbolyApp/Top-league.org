@@ -1,4 +1,7 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { requireAuth } from '../middleware/auth.js';
 import { getSquadraById, updateSquadra, deleteSquadra } from '../models/squadra.js';
 import { getLegaById } from '../models/lega.js';

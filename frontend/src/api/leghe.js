@@ -18,12 +18,44 @@ export async function getSquadreByLega(id, token) {
 
 export async function creaLega(data, token) {
   // data: { nome, modalita, admin_id, is_pubblica, password, max_squadre, min_giocatori, max_giocatori, roster_ab, cantera, contratti, triggers, regolamento_pdf (File), excel (File) }
-  const formData = new FormData();
-  Object.entries(data).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) formData.append(key, value);
+  console.log('🔍 [creaLega] Inizio creazione lega...');
+  console.log('🔍 [creaLega] Dati ricevuti:', {
+    nome: data.nome,
+    modalita: data.modalita,
+    admin_id: data.admin_id,
+    is_pubblica: data.is_pubblica,
+    max_squadre: data.max_squadre,
+    min_giocatori: data.min_giocatori,
+    max_giocatori: data.max_giocatori,
+    excel_size: data.excel?.size,
+    excel_name: data.excel?.name,
+    excel_type: data.excel?.type,
+    pdf_size: data.regolamento_pdf?.size,
+    pdf_name: data.regolamento_pdf?.name
   });
   
-  return api.postFormData('/leghe/create', formData, token);
+  const formData = new FormData();
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      formData.append(key, value);
+      console.log(`🔍 [creaLega] Aggiunto al FormData: ${key} = ${value instanceof File ? `File(${value.size} bytes, ${value.type})` : value}`);
+    }
+  });
+  
+  console.log('🔍 [creaLega] FormData creato, invio richiesta...');
+  console.log('🔍 [creaLega] FormData entries:');
+  for (let [key, value] of formData.entries()) {
+    console.log(`  ${key}: ${value instanceof File ? `File(${value.size} bytes, ${value.type})` : value}`);
+  }
+  
+  try {
+    const result = await api.postFormData('/leghe/create', formData, token);
+    console.log('✅ [creaLega] Risposta server:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ [creaLega] Errore durante la creazione:', error);
+    throw error;
+  }
 }
 
 export async function joinLega(legaId, password, token) {

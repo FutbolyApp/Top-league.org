@@ -4,7 +4,19 @@ let socketClient = null;
 let isInitialized = false;
 
 // Initialize WebSocket connection
-export const initSocket = (url = (process.env.NODE_ENV === 'development' ? 'ws://localhost:3001/ws' : 'wss://topleaguem.onrender.com/ws')) => {
+export const initSocket = (url = (() => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isIonos = process.env.REACT_APP_HOSTING === 'ionos';
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  
+  if (isDevelopment || isLocalhost) {
+    return 'ws://localhost:3001/ws';
+  } else if (isIonos || window.location.hostname === 'top-league.org') {
+    return 'wss://top-league.org/ws';
+  } else {
+    return 'wss://topleaguem.onrender.com/ws';
+  }
+})()) => {
   if (isInitialized) {
     return socketClient;
   }

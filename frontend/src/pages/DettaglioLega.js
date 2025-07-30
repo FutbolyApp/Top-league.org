@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 import { getLegaById, getSquadreByLega, deleteLeague } from '../api/leghe';
 import { getTorneiLega } from '../api/tornei';
+import { api } from '../api/config';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -12,6 +13,31 @@ const Container = styled.div`
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f8f9fa;
   min-height: 100vh;
+`;
+
+const Title = styled.h1`
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin: 0 0 1rem 0;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  font-size: 1rem;
+  color: #86868b;
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  font-size: 1rem;
+  color: #dc3545;
 `;
 
 const BackButton = styled.button`
@@ -230,24 +256,6 @@ const TeamStatus = styled.span`
   color: ${props => props.$orphan ? '#c62828' : '#2e7d32'};
 `;
 
-const LoadingContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-  font-size: 1rem;
-  color: #86868b;
-`;
-
-const ErrorContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-  font-size: 1rem;
-  color: #dc3545;
-`;
-
 const DeleteButton = styled.button`
   background: #ff3b30;
   color: white;
@@ -398,8 +406,10 @@ const DettaglioLega = ({ setCurrentLeague, setCurrentTeam }) => {
   }, [id, token, setCurrentLeague, setCurrentTeam]);
 
   const formatMoney = (value) => {
-    if (!value) return 'FM 0';
-    return `FM ${value.toLocaleString()}`;
+    if (!value && value !== 0) return 'FM 0';
+    // Converti sempre in numero per evitare concatenazioni
+    const numValue = parseFloat(value) || 0;
+    return `FM ${numValue.toLocaleString()}`;
   };
 
   const getLeagueStats = () => {
