@@ -82,6 +82,7 @@ function parseSquadreFromSheet(data, sheetName) {
   const squadre = [];
   
   console.log(`🔍 [${sheetName}] Parsing struttura: colonna E divisore, 2 squadre per riga (A-D e F-I)`);
+  console.log(`🔍 [${sheetName}] Dimensione dati: ${data.length} righe`);
   
   // Lista di parole da escludere dal riconoscimento nomi squadra
   const excludeWords = [
@@ -93,6 +94,7 @@ function parseSquadreFromSheet(data, sheetName) {
   for (let currentRow = 4; currentRow < data.length; currentRow++) {
     const row = data[currentRow];
     if (!row || row.length < 9) {
+      console.log(`⚠️ [${sheetName}] Riga ${currentRow} saltata: row=${!!row}, length=${row?.length}`);
       continue;
     }
     
@@ -108,18 +110,30 @@ function parseSquadreFromSheet(data, sheetName) {
     
     // Processa la prima squadra se valida
     if (squadra1Valida) {
+      console.log(`⚽ [${sheetName}] Processando squadra 1: ${squadra1}`);
       const squadra = processSquadraTable(data, currentRow, 0, squadra1, sheetName);
       if (squadra && squadra.giocatori.length > 0) {
         squadre.push(squadra);
+        console.log(`✅ [${sheetName}] Squadra 1 aggiunta: ${squadra1} con ${squadra.giocatori.length} giocatori`);
+      } else {
+        console.log(`⚠️ [${sheetName}] Squadra 1 scartata: ${squadra1} (nessun giocatore trovato)`);
       }
+    } else {
+      console.log(`❌ [${sheetName}] Squadra 1 non valida: ${squadra1}`);
     }
     
     // Processa la seconda squadra se valida
     if (squadra2Valida) {
+      console.log(`⚽ [${sheetName}] Processando squadra 2: ${squadra2}`);
       const squadra = processSquadraTable(data, currentRow, 5, squadra2, sheetName);
       if (squadra && squadra.giocatori.length > 0) {
         squadre.push(squadra);
+        console.log(`✅ [${sheetName}] Squadra 2 aggiunta: ${squadra2} con ${squadra.giocatori.length} giocatori`);
+      } else {
+        console.log(`⚠️ [${sheetName}] Squadra 2 scartata: ${squadra2} (nessun giocatore trovato)`);
       }
+    } else {
+      console.log(`❌ [${sheetName}] Squadra 2 non valida: ${squadra2}`);
     }
   }
   
@@ -128,18 +142,23 @@ function parseSquadreFromSheet(data, sheetName) {
 }
 
 function isValidSquadraName(nome, excludeWords) {
-  if (!nome || nome.length < 3) return false;
+  if (!nome || nome.length < 3) {
+    console.log(`🔍 isValidSquadraName: "${nome}" - troppo corto o vuoto`);
+    return false;
+  }
   
   const nomeLower = nome.toLowerCase().trim();
   
   // Escludi parole di servizio
   if (excludeWords.some(word => nomeLower.includes(word.toLowerCase()))) {
+    console.log(`🔍 isValidSquadraName: "${nome}" - contiene parola esclusa`);
     return false;
   }
   
   // Escludi se è solo un ruolo
   const roleWords = ['p', 'por', 'd', 'dd', 'dc', 'ds', 'e', 'c', 'm', 't', 'w', 'a', 'pc', 'b'];
   if (roleWords.includes(nomeLower)) {
+    console.log(`🔍 isValidSquadraName: "${nome}" - è solo un ruolo`);
     return false;
   }
   
@@ -147,10 +166,18 @@ function isValidSquadraName(nome, excludeWords) {
   if (nomeLower.includes(';')) {
     const parts = nomeLower.split(';').map(part => part.trim());
     if (parts.length > 1 && parts.every(part => roleWords.includes(part))) {
+      console.log(`🔍 isValidSquadraName: "${nome}" - è combinazione di ruoli`);
       return false;
     }
   }
   
+  // Controlli aggiuntivi per evitare falsi positivi
+  if (nomeLower.includes('crediti') || nomeLower.includes('residui')) {
+    console.log(`🔍 isValidSquadraName: "${nome}" - contiene crediti/residui`);
+    return false;
+  }
+  
+  console.log(`✅ isValidSquadraName: "${nome}" - VALIDO`);
   return true;
 }
 
@@ -290,7 +317,14 @@ function processSquadraTable(data, startRow, startCol, nomeSquadra, sheetName) {
         }
       } else {
         console.log(`⚠️ [${sheetName}] Riga ${currentRow} non è un giocatore valido: firstCell="${firstCell}", isRoleValid=${isRoleValid(firstCell)}, row.length=${row.length}`);
+        
+        // Debug aggiuntivo per capire perché non è valido
+        if (firstCell && firstCell.length > 0) {
+          console.log(`🔍 [${sheetName}] Debug firstCell: "${firstCell}", length: ${firstCell.length}, contains role: ${validRoles.some(role => firstCell.toLowerCase().includes(role))}`);
+        }
       }
+    } else {
+      console.log(`🔍 [${sheetName}] Intestazioni non ancora trovate alla riga ${currentRow}`);
     }
     
     currentRow++;
@@ -384,6 +418,54 @@ if (process.argv[1] && process.argv[1].endsWith('excelParser.js') && process.arg
     console.log('Risultato parsing:', JSON.stringify(result, null, 2));
   } catch (error) {
     console.error('Errore:', error.message);
+  }
+}
+
+// Funzione di debug per analizzare la struttura del file Excel
+export async function debugExcelStructure(filePath) {
+  try {
+    console.log('🔍 Debug struttura Excel:', filePath);
+    
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.readFile(filePath);
+    
+    console.log('📋 Fogli disponibili:', workbook.worksheets.map(ws => ws.name));
+    
+    for (const worksheet of workbook.worksheets) {
+      const sheetName = worksheet.name;
+      console.log(`\n📄 Analisi foglio: ${sheetName}`);
+      
+      // Converti il foglio in array di righe
+      const sheetData = [];
+      worksheet.eachRow((row, rowNumber) => {
+        const rowData = [];
+        row.eachCell((cell, colNumber) => {
+          rowData[colNumber - 1] = cell.value || '';
+        });
+        sheetData.push(rowData);
+      });
+      
+      console.log(`📊 Righe totali: ${sheetData.length}`);
+      
+      // Analizza le prime 10 righe per capire la struttura
+      for (let i = 0; i < Math.min(10, sheetData.length); i++) {
+        const row = sheetData[i];
+        console.log(`Riga ${i + 1}: [${row.slice(0, 10).map(cell => `"${cell}"`).join(', ')}]`);
+      }
+      
+      // Cerca possibili nomi squadra nelle righe 4-10
+      console.log('\n🔍 Ricerca nomi squadra nelle righe 4-10:');
+      for (let i = 4; i < Math.min(11, sheetData.length); i++) {
+        const row = sheetData[i];
+        if (row && row.length >= 9) {
+          const squadra1 = String(row[0] || '').trim();
+          const squadra2 = String(row[5] || '').trim();
+          console.log(`Riga ${i + 1}: Squadra1="${squadra1}", Squadra2="${squadra2}"`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Errore debug Excel:', error);
   }
 }
 
