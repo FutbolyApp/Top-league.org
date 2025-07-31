@@ -7,138 +7,114 @@ import fs from 'fs';
  * Ogni tabella inizia con il nome della squadra, ha intestazioni Ruolo/Calciatore/Squadra/Costo
  * e termina con "Crediti Residui"
  */
-export async function parseSquadreFromExcel(filePath, validationParams = {}) {
-  try {
-    console.log('Inizio parsing Excel:', filePath);
-    console.log('Parametri di validazione:', validationParams);
+export async function parseSquadreFromExcel(filePath) {
+    console.log(`🚀 [parseSquadreFromExcel] Inizio parsing file: ${filePath}`);
     
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
-    console.log('📋 Fogli disponibili nel file:', workbook.worksheets.map(ws => ws.name));
-    
-    let allSquadre = [];
-    
-    for (const worksheet of workbook.worksheets) {
-      const sheetName = worksheet.name;
-      console.log(`📄 Processando foglio: ${sheetName}`);
-      
-      if (!worksheet) {
-        console.log(`⚠️ Foglio ${sheetName} vuoto, salto`);
-        continue;
-      }
-      
-      // Converti il foglio in array di righe
-      const sheetData = [];
-      worksheet.eachRow((row, rowNumber) => {
-        const rowData = [];
-        row.eachCell((cell, colNumber) => {
-          rowData[colNumber - 1] = cell.value || '';
+    try {
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.readFile(filePath);
+        
+        console.log(`📊 [parseSquadreFromExcel] File caricato, fogli trovati: ${workbook.worksheets.length}`);
+        workbook.worksheets.forEach((sheet, index) => {
+            console.log(`📋 [parseSquadreFromExcel] Foglio ${index + 1}: "${sheet.name}" (${sheet.rowCount} righe, ${sheet.columnCount} colonne)`);
         });
-        sheetData.push(rowData);
-      });
-      
-      console.log(`📊 Foglio ${sheetName}: ${sheetData.length} righe, ${sheetData[0] ? sheetData[0].length : 0} colonne`);
-      
-      if (sheetData.length < 2) {
-        console.log(`⚠️ Foglio ${sheetName} troppo piccolo, salto`);
-        continue;
-      }
-      
-      const sheetSquadre = parseSquadreFromSheet(sheetData, sheetName);
-      console.log(`✅ Foglio ${sheetName}: trovate ${sheetSquadre.length} squadre`);
-      
-      allSquadre = allSquadre.concat(sheetSquadre);
+        
+        const squadre = [];
+        let totalSquadreFound = 0;
+        
+        for (const worksheet of workbook.worksheets) {
+            const sheetName = worksheet.name;
+            console.log(`🔍 [parseSquadreFromExcel] Analizzando foglio: "${sheetName}"`);
+            
+            try {
+                const squadreInSheet = await parseSquadreFromSheet(worksheet, sheetName);
+                console.log(`✅ [parseSquadreFromExcel] Foglio "${sheetName}": trovate ${squadreInSheet.length} squadre`);
+                
+                squadre.push(...squadreInSheet);
+                totalSquadreFound += squadreInSheet.length;
+                
+                // Log dettagliato delle squadre trovate in questo foglio
+                squadreInSheet.forEach((squadra, index) => {
+                    console.log(`🏆 [parseSquadreFromExcel] Squadra ${index + 1} in "${sheetName}": "${squadra.nome}" (${squadra.giocatori.length} giocatori, valore: ${squadra.valoreRosa})`);
+                });
+                
+            } catch (error) {
+                console.error(`❌ [parseSquadreFromExcel] Errore nel foglio "${sheetName}":`, error.message);
+            }
+        }
+        
+        console.log(`🎯 [parseSquadreFromExcel] TOTALE FINALE: ${totalSquadreFound} squadre trovate in tutto il file`);
+        console.log(`📋 [parseSquadreFromExcel] Squadre trovate:`);
+        squadre.forEach((squadra, index) => {
+            console.log(`  ${index + 1}. "${squadra.nome}" - ${squadra.giocatori.length} giocatori - Valore: ${squadra.valoreRosa}`);
+        });
+        
+        return squadre;
+    } catch (error) {
+        console.error(`❌ [parseSquadreFromExcel] Errore generale:`, error.message);
+        throw error;
     }
-    
-    console.log(`📈 TOTALE squadre trovate in tutti i fogli: ${allSquadre.length}`);
-    
-    // Rimuovi duplicati basati sul nome della squadra
-    const uniqueSquadre = [];
-    const seenNames = new Set();
-    
-    for (const squadra of allSquadre) {
-      const normalizedName = squadra.nome.toLowerCase().trim();
-      if (!seenNames.has(normalizedName)) {
-        seenNames.add(normalizedName);
-        uniqueSquadre.push(squadra);
-      } else {
-        console.log(`⚠️ Squadra duplicata rimossa: ${squadra.nome}`);
-      }
-    }
-    
-    console.log(`🎯 Squadre uniche trovate: ${uniqueSquadre.length}`);
-    
-    // Validazione finale
-    validateSquadreData(uniqueSquadre, validationParams);
-    
-    return uniqueSquadre;
-  } catch (error) {
-    console.error('Errore nel parsing Excel:', error);
-    throw new Error(`Errore nel parsing del file Excel: ${error.message}`);
-  }
 }
 
-function parseSquadreFromSheet(data, sheetName) {
-  const squadre = [];
-  
-  console.log(`🔍 [${sheetName}] Parsing struttura: colonna E divisore, 2 squadre per riga (A-D e F-I)`);
-  console.log(`🔍 [${sheetName}] Dimensione dati: ${data.length} righe`);
-  
-  // Lista di parole da escludere dal riconoscimento nomi squadra
-  const excludeWords = [
-    'ruolo', 'calciatore', 'squadra', 'costo', 'crediti', 'residui', 'rose', 'lega', 
-    'fantaleague', 'https', 'calciatori', 'download'
-  ];
-  
-  // Cerca i nomi delle squadre in tutte le righe da 4 in poi
-  for (let currentRow = 4; currentRow < data.length; currentRow++) {
-    const row = data[currentRow];
-    if (!row || row.length < 9) {
-      console.log(`⚠️ [${sheetName}] Riga ${currentRow} saltata: row=${!!row}, length=${row?.length}`);
-      continue;
+async function parseSquadreFromSheet(worksheet, sheetName) {
+    console.log(`🔍 [parseSquadreFromSheet] Inizio analisi foglio: "${sheetName}"`);
+    
+    const squadre = [];
+    const data = [];
+    
+    // Converti il foglio in array
+    worksheet.eachRow((row, rowNumber) => {
+        const rowData = [];
+        row.eachCell((cell, colNumber) => {
+            rowData[colNumber - 1] = cell.value || '';
+        });
+        data.push(rowData);
+    });
+    
+    console.log(`📊 [parseSquadreFromSheet] Foglio "${sheetName}": ${data.length} righe, ${data[0] ? data[0].length : 0} colonne`);
+    
+    if (data.length < 2) {
+        console.log(`⚠️ [parseSquadreFromSheet] Foglio "${sheetName}" troppo piccolo, salto`);
+        return squadre;
     }
     
-    // Estrai i nomi delle due squadre (colonne A-D e F-I)
-    const squadra1 = String(row[0] || '').trim();
-    const squadra2 = String(row[5] || '').trim();
+    // Cerca squadre nel foglio
+    let squadreFoundInSheet = 0;
     
-    // Valida i nomi delle squadre
-    const squadra1Valida = isValidSquadraName(squadra1, excludeWords);
-    const squadra2Valida = isValidSquadraName(squadra2, excludeWords);
-    
-    console.log(`🔍 [${sheetName}] Riga ${currentRow}: Squadra1="${squadra1}" (valida: ${squadra1Valida}), Squadra2="${squadra2}" (valida: ${squadra2Valida})`);
-    
-    // Processa la prima squadra se valida
-    if (squadra1Valida) {
-      console.log(`⚽ [${sheetName}] Processando squadra 1: ${squadra1}`);
-      const squadra = processSquadraTable(data, currentRow, 0, squadra1, sheetName);
-      if (squadra && squadra.giocatori.length > 0) {
-        squadre.push(squadra);
-        console.log(`✅ [${sheetName}] Squadra 1 aggiunta: ${squadra1} con ${squadra.giocatori.length} giocatori`);
-      } else {
-        console.log(`⚠️ [${sheetName}] Squadra 1 scartata: ${squadra1} (nessun giocatore trovato)`);
-      }
-    } else {
-      console.log(`❌ [${sheetName}] Squadra 1 non valida: ${squadra1}`);
+    for (let row = 0; row < data.length; row++) {
+        const rowData = data[row];
+        
+        // Cerca una cella che potrebbe essere il nome di una squadra
+        for (let col = 0; col < rowData.length; col++) {
+            const cellValue = rowData[col];
+            
+            if (typeof cellValue === 'string' && cellValue.trim()) {
+                console.log(`🔍 [parseSquadreFromSheet] Riga ${row + 1}, Colonna ${col + 1}: "${cellValue}"`);
+                
+                if (isValidSquadraName(cellValue, ['crediti', 'residui', 'totale'])) {
+                    console.log(`✅ [parseSquadreFromSheet] Trovata squadra: "${cellValue}"`);
+                    
+                    try {
+                        const squadra = await processSquadraTable(data, row, col, cellValue.trim(), sheetName);
+                        if (squadra && squadra.giocatori.length > 0) {
+                            squadre.push(squadra);
+                            squadreFoundInSheet++;
+                            console.log(`🏆 [parseSquadreFromSheet] Squadra aggiunta: "${squadra.nome}" con ${squadra.giocatori.length} giocatori`);
+                        } else {
+                            console.log(`⚠️ [parseSquadreFromSheet] Squadra "${cellValue}" scartata: nessun giocatore valido`);
+                        }
+                    } catch (error) {
+                        console.error(`❌ [parseSquadreFromSheet] Errore processando squadra "${cellValue}":`, error.message);
+                    }
+                } else {
+                    console.log(`❌ [parseSquadreFromSheet] Cella "${cellValue}" non valida come nome squadra`);
+                }
+            }
+        }
     }
     
-    // Processa la seconda squadra se valida
-    if (squadra2Valida) {
-      console.log(`⚽ [${sheetName}] Processando squadra 2: ${squadra2}`);
-      const squadra = processSquadraTable(data, currentRow, 5, squadra2, sheetName);
-      if (squadra && squadra.giocatori.length > 0) {
-        squadre.push(squadra);
-        console.log(`✅ [${sheetName}] Squadra 2 aggiunta: ${squadra2} con ${squadra.giocatori.length} giocatori`);
-      } else {
-        console.log(`⚠️ [${sheetName}] Squadra 2 scartata: ${squadra2} (nessun giocatore trovato)`);
-      }
-    } else {
-      console.log(`❌ [${sheetName}] Squadra 2 non valida: ${squadra2}`);
-    }
-  }
-  
-  console.log(`📊 [${sheetName}] Totale squadre processate: ${squadre.length}`);
-  return squadre;
+    console.log(`📈 [parseSquadreFromSheet] Foglio "${sheetName}": trovate ${squadreFoundInSheet} squadre valide`);
+    return squadre;
 }
 
 function isValidSquadraName(nome, excludeWords) {
