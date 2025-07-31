@@ -280,8 +280,7 @@ router.post('/create', requireAuth, (req, res, next) => {
                     nome: giocatore.nome,
                     ruolo: giocatore.ruolo,
                     squadra_id: squadraId,
-                    valore: giocatore.valore,
-                    crediti: giocatore.crediti
+                    quotazione: giocatore.costo
                   });
                 } catch (giocatoreError) {
                   console.error('❌ Errore creazione giocatore:', giocatore.nome, giocatoreError.message);
