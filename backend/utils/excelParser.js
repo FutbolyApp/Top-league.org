@@ -270,6 +270,8 @@ function processSquadraTable(data, startRow, startCol, nomeSquadra, sheetName) {
             costo: parseInt(playerData.costo) || 0
           };
           
+          console.log(`💰 [${sheetName}] Giocatore ${player.nome} - Costo estratto: "${playerData.costo}" -> Parsed: ${player.costo}`);
+          
           squadra.giocatori.push(player);
           squadra.valoreRosa += player.costo;
           playerCount++;

@@ -276,12 +276,16 @@ router.post('/create', requireAuth, (req, res, next) => {
             if (squadra.giocatori && squadra.giocatori.length > 0) {
               for (const giocatore of squadra.giocatori) {
                 try {
+                  console.log(`🔍 [creaLega] Creazione giocatore: nome="${giocatore.nome}", ruolo="${giocatore.ruolo}", costo="${giocatore.costo}"`);
+                  
                   await createGiocatore({
                     nome: giocatore.nome,
                     ruolo: giocatore.ruolo,
                     squadra_id: squadraId,
                     quotazione: giocatore.costo
                   });
+                  
+                  console.log(`✅ [creaLega] Giocatore creato: ${giocatore.nome} con quotazione: ${giocatore.costo}`);
                 } catch (giocatoreError) {
                   console.error('❌ Errore creazione giocatore:', giocatore.nome, giocatoreError.message);
                 }
