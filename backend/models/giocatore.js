@@ -18,7 +18,7 @@ export async function createGiocatore(data) {
     const params = [
       data.squadra_id,
       data?.nome || 'Nome',
-      data?.cognome || null,
+      data?.cognome || null, // Permette NULL
       data?.ruolo || 'Ruolo',
       data.quotazione || null,
       data.fv_mp || null,

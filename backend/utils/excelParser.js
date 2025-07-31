@@ -147,31 +147,15 @@ function isValidSquadraName(nome, excludeWords) {
     return false;
   }
   
-  const nomeLower = nome.toLowerCase().trim();
+  const nomeLower = nome.toLowerCase();
   
-  // Escludi parole di servizio
-  if (excludeWords.some(word => nomeLower.includes(word.toLowerCase()))) {
+  // Controlla se contiene parole da escludere
+  if (excludeWords && excludeWords.some(word => nomeLower.includes(word.toLowerCase()))) {
     console.log(`🔍 isValidSquadraName: "${nome}" - contiene parola esclusa`);
     return false;
   }
   
-  // Escludi se è solo un ruolo
-  const roleWords = ['p', 'por', 'd', 'dd', 'dc', 'ds', 'e', 'c', 'm', 't', 'w', 'a', 'pc', 'b'];
-  if (roleWords.includes(nomeLower)) {
-    console.log(`🔍 isValidSquadraName: "${nome}" - è solo un ruolo`);
-    return false;
-  }
-  
-  // Escludi se è una combinazione di ruoli
-  if (nomeLower.includes(';')) {
-    const parts = nomeLower.split(';').map(part => part.trim());
-    if (parts.length > 1 && parts.every(part => roleWords.includes(part))) {
-      console.log(`🔍 isValidSquadraName: "${nome}" - è combinazione di ruoli`);
-      return false;
-    }
-  }
-  
-  // Controlli aggiuntivi per evitare falsi positivi
+  // Controlla se contiene parole chiave che indicano che non è una squadra
   if (nomeLower.includes('crediti') || nomeLower.includes('residui')) {
     console.log(`🔍 isValidSquadraName: "${nome}" - contiene crediti/residui`);
     return false;
@@ -301,8 +285,10 @@ function processSquadraTable(data, startRow, startCol, nomeSquadra, sheetName) {
         if (playerData.nome && playerData.nome.length > 0 && 
             !playerData.nome.toLowerCase().includes('crediti') && 
             !playerData.nome.toLowerCase().includes('residui')) {
+          
           const player = {
             nome: playerData.nome,
+            cognome: '', // Cognome non disponibile nella struttura attuale
             ruolo: playerData.ruolo, // NON normalizzare - usa il ruolo originale
             squadra: playerData.squadra,
             costo: parseInt(playerData.costo) || 0
