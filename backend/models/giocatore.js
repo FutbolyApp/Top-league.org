@@ -12,26 +12,22 @@ export async function createGiocatore(data) {
       throw new Error('È richiesto squadra_id per creare un giocatore');
     }
     
-    const sql = `INSERT INTO giocatori (squadra_id, nome, cognome, ruolo, squadra_reale, quotazione, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO giocatori (squadra_id, nome, cognome, ruolo, quotazione, fv_mp, qi, qa, site_id, nazione_campionato, fvm, media_voto)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     
     const params = [
       data.squadra_id,
       data?.nome || 'Nome',
       data?.cognome || null,
       data?.ruolo || 'Ruolo',
-      data.squadra_reale || null,
       data.quotazione || null,
-      data.salario || null,
-      data.costo_attuale || null,
-      data.costo_precedente || null,
-      data.prestito ? true : false,
-      data.anni_contratto || null,
-      data.cantera ? true : false,
-      data.triggers || null,
-      data.valore_prestito || 0,
-      data.valore_trasferimento || 0,
-      data.roster || 'A'
+      data.fv_mp || null,
+      data.qi || null,
+      data.qa || null,
+      data.site_id || null,
+      data.nazione_campionato || null,
+      data.fvm || null,
+      data.media_voto || null
     ];
     
     console.log(`🔄 SQL: ${sql}`);
@@ -115,25 +111,21 @@ export async function updateGiocatore(id, data) {
       throw new Error('Database non disponibile');
     }
     
-    const sql = `UPDATE giocatori SET squadra_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
+    const sql = `UPDATE giocatori SET squadra_id=?, nome=?, cognome=?, ruolo=?, quotazione=?, fv_mp=?, qi=?, qa=?, site_id=?, nazione_campionato=?, fvm=?, media_voto=? WHERE id=?`;
     
     const params = [
       data.squadra_id,
       data?.nome || 'Nome',
       data?.cognome || null,
       data?.ruolo || 'Ruolo',
-      data.squadra_reale || null,
       data.quotazione || null,
-      data.salario || null,
-      data.costo_attuale || null,
-      data.costo_precedente || null,
-      data.prestito ? true : false,
-      data.anni_contratto || null,
-      data.cantera ? true : false,
-      data.triggers || null,
-      data.valore_prestito || 0,
-      data.valore_trasferimento || 0,
-      data.roster || 'A',
+      data.fv_mp || null,
+      data.qi || null,
+      data.qa || null,
+      data.site_id || null,
+      data.nazione_campionato || null,
+      data.fvm || null,
+      data.media_voto || null,
       id
     ];
     
@@ -158,25 +150,21 @@ export async function updateGiocatorePartial(id, data) {
       throw new Error('Database non disponibile');
     }
     
-    const sql = `UPDATE giocatori SET squadra_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
+    const sql = `UPDATE giocatori SET squadra_id=?, nome=?, cognome=?, ruolo=?, quotazione=?, fv_mp=?, qi=?, qa=?, site_id=?, nazione_campionato=?, fvm=?, media_voto=? WHERE id=?`;
     
     const params = [
       data.squadra_id,
       data?.nome || 'Nome',
       data?.cognome || null,
       data?.ruolo || 'Ruolo',
-      data.squadra_reale || null,
       data.quotazione || null,
-      data.salario || null,
-      data.costo_attuale || null,
-      data.costo_precedente || null,
-      data.prestito ? true : false,
-      data.anni_contratto || null,
-      data.cantera ? true : false,
-      data.triggers || null,
-      data.valore_prestito || 0,
-      data.valore_trasferimento || 0,
-      data.roster || 'A',
+      data.fv_mp || null,
+      data.qi || null,
+      data.qa || null,
+      data.site_id || null,
+      data.nazione_campionato || null,
+      data.fvm || null,
+      data.media_voto || null,
       id
     ];
     
