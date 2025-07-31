@@ -27,22 +27,28 @@ export async function createLega(data) {
   const admin_id = parseInt(data.admin_id) || 1;
   
   // Se non esiste, procedi con la creazione
-  const sql = `INSERT INTO leghe (nome, descrizione, modalita, admin_id, is_pubblica, password, max_squadre, roster_ab, cantera, contratti, triggers, regole)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+  const sql = `INSERT INTO leghe (nome, descrizione, modalita, admin_id, max_squadre, regole, is_pubblica, password, min_giocatori, max_giocatori, roster_ab, cantera, contratti, triggers, fantacalcio_url, fantacalcio_username, fantacalcio_password, scraping_automatico)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
   const db = getDb();
   const result = await db.query(sql, [
     data?.nome || 'Nome',
     data?.descrizione || '',
     data?.modalita || '',
     admin_id,
-    data?.is_pubblica || false? true : false,
-    data?.password || null,
     max_squadre,
-    data?.roster_ab ? true : false,
-    data?.cantera ? true : false,
-    data?.contratti ? true : false,
-    data?.triggers ? true : false,
-    data?.regole || null
+    data?.regole || null,
+    data?.is_pubblica || true,
+    data?.password || null,
+    data?.min_giocatori || 0,
+    data?.max_giocatori || 0,
+    data?.roster_ab || false,
+    data?.cantera || false,
+    data?.contratti || false,
+    data?.triggers || false,
+    data?.fantacalcio_url || null,
+    data?.fantacalcio_username || null,
+    data?.fantacalcio_password || null,
+    data?.scraping_automatico || false
   ]);
   
   return result.insertId;
@@ -78,20 +84,14 @@ export async function updateLega(id, data) {
   const admin_id = parseInt(data.admin_id) || 1;
   
   // Procedi con l'aggiornamento
-  const sql = `UPDATE leghe SET nome=?, descrizione=?, modalita=?, admin_id=?, is_pubblica=?, password=?, max_squadre=?, roster_ab=?, cantera=?, contratti=?, triggers=?, regole=? WHERE id=?`;
+  const sql = `UPDATE leghe SET nome=?, descrizione=?, modalita=?, admin_id=?, max_squadre=?, regole=? WHERE id=?`;
   const db = getDb();
   await db.query(sql, [
     data?.nome || 'Nome',
     data?.descrizione || '',
     data?.modalita || '',
     admin_id,
-    data?.is_pubblica || false? true : false,
-    data?.password || null,
     max_squadre,
-    data?.roster_ab ? true : false,
-    data?.cantera ? true : false,
-    data?.contratti ? true : false,
-    data?.triggers ? true : false,
     data?.regole || null,
     id
   ]);

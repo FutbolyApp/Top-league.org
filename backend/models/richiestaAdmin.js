@@ -1,4 +1,4 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 export async function createRichiestaAdmin(squadra_id, tipo_richiesta, dati_richiesta) {
   try {

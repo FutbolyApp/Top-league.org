@@ -222,7 +222,7 @@ router.get('/my-team', requireAuth, async (req, res) => {
     const squadra = squadraResult.rows[0];
     
     const giocatoriResult = await db.query(
-      `SELECT g.*, g.quotazione_attuale,
+      `SELECT g.*, g.quotazione,
               sp.nome as squadra_prestito_nome
        FROM giocatori g
        LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id
@@ -282,7 +282,7 @@ router.get('/my-team/:legaId', requireAuth, async (req, res) => {
     
     console.log('Eseguendo query giocatori...');
     const giocatoriResult = await db.query(
-      `SELECT g.*, g.quotazione_attuale,
+      `SELECT g.*, g.quotazione,
               sp.nome as squadra_prestito_nome
        FROM giocatori g
        LEFT JOIN squadre sp ON g.squadra_prestito_id = sp.id

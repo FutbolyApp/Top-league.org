@@ -22,7 +22,7 @@ export async function createGiocatore(data) {
       throw new Error('È richiesto squadra_id o lega_id per creare un giocatore');
     }
     
-    const sql = `INSERT INTO giocatori (squadra_id, lega_id, nome, cognome, ruolo, squadra_reale, quotazione_attuale, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
+    const sql = `INSERT INTO giocatori (squadra_id, lega_id, nome, cognome, ruolo, squadra_reale, quotazione, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     
     const params = [
@@ -32,7 +32,7 @@ export async function createGiocatore(data) {
       data?.cognome || '' || null,
       data?.ruolo || 'Ruolo',
       data.squadra_reale || null,
-      data.quotazione_attuale || null,
+      data.quotazione || null,
       data.salario || null,
       data.costo_attuale || null,
       data.costo_precedente || null,
@@ -81,7 +81,7 @@ export async function getGiocatoriBySquadra(squadra_id) {
     
     const result = await db.query(`
       SELECT *, 
-             quotazione_attuale
+             quotazione
       FROM giocatori WHERE squadra_id = ?
     `, [squadra_id]);
     
@@ -99,7 +99,7 @@ export async function getGiocatoriByLega(lega_id) {
   const db = getDb();
   const result = await db.query(`
     SELECT g.*, 
-           g.quotazione_attuale
+           g.quotazione
     FROM giocatori g
     JOIN squadre s ON g.squadra_id = s.id
     WHERE s.lega_id = ?
@@ -112,7 +112,7 @@ export async function getAllGiocatori() {
   const db = getDb();
   const result = await db.query(`
     SELECT *, 
-           quotazione_attuale
+           quotazione
     FROM giocatori
   `);
   
@@ -137,7 +137,7 @@ export async function updateGiocatore(id, data) {
       }
     }
     
-    const sql = `UPDATE giocatori SET squadra_id=?, lega_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione_attuale=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
+    const sql = `UPDATE giocatori SET squadra_id=?, lega_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
     
     const params = [
       data.squadra_id,
@@ -146,7 +146,7 @@ export async function updateGiocatore(id, data) {
       data?.cognome || '' || null,
       data?.ruolo || 'Ruolo',
       data.squadra_reale || null,
-      data.quotazione_attuale || null,
+      data.quotazione || null,
       data.salario || null,
       data.costo_attuale || null,
       data.costo_precedente || null,
@@ -192,7 +192,7 @@ export async function updateGiocatorePartial(id, data) {
       }
     }
     
-    const sql = `UPDATE giocatori SET squadra_id=?, lega_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione_attuale=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
+    const sql = `UPDATE giocatori SET squadra_id=?, lega_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
     
     const params = [
       data.squadra_id,
@@ -201,7 +201,7 @@ export async function updateGiocatorePartial(id, data) {
       data?.cognome || '' || null,
       data?.ruolo || 'Ruolo',
       data.squadra_reale || null,
-      data.quotazione_attuale || null,
+      data.quotazione || null,
       data.salario || null,
       data.costo_attuale || null,
       data.costo_precedente || null,

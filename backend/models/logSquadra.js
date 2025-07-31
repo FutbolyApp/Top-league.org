@@ -1,4 +1,4 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 // Crea un nuovo log per una squadra
 export async function createLogSquadra(logData) {

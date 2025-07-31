@@ -1,4 +1,4 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 // Validazione bilancio squadra
 export const validateBudget = async (req, res, next) => {

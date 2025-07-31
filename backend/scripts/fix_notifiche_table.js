@@ -1,4 +1,4 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 async function fixNotificheTable() {
   try {

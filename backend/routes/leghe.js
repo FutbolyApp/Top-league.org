@@ -66,8 +66,7 @@ router.post('/', requireAuth, async (req, res) => {
     console.log('Creazione lega semplice - Body:', req.body);
     
     const {
-      nome, descrizione, modalita, is_pubblica, password, max_squadre,
-      roster_ab, cantera, contratti, triggers, regole
+      nome, descrizione, modalita, max_squadre, regole
     } = req.body;
     
     // Validazione dei dati richiesti
@@ -83,13 +82,7 @@ router.post('/', requireAuth, async (req, res) => {
       nome: nome.trim(),
       descrizione: descrizione || '',
       modalita: modalita.trim(),
-      is_pubblica: is_pubblica === 'true' || is_pubblica === true,
-      password: password || null,
       max_squadre: max_squadre || 20,
-      roster_ab: roster_ab === 'true' || roster_ab === true,
-      cantera: cantera === 'true' || cantera === true,
-      contratti: contratti === 'true' || contratti === true,
-      triggers: triggers === 'true' || triggers === true,
       regole: regole || null
     };
     
@@ -150,9 +143,7 @@ router.post('/create', requireAuth, (req, res, next) => {
     console.log('Content-Length:', req.headers['content-length']);
     
     const {
-      nome, modalita, is_pubblica, password, max_squadre, min_giocatori, max_giocatori,
-      roster_ab, cantera, contratti, triggers, regolamento_pdf,
-      fantacalcio_url, fantacalcio_username, fantacalcio_password, scraping_automatico
+      nome, modalita, max_squadre
     } = req.body;
     
     // Validazione dei dati richiesti
@@ -167,20 +158,7 @@ router.post('/create', requireAuth, (req, res, next) => {
     const cleanData = {
       nome: nome.trim(),
       modalita: modalita.trim(),
-      is_pubblica: is_pubblica === 'true' || is_pubblica === true,
-      password: password || null,
-      max_squadre: max_squadre || '0',
-      min_giocatori: min_giocatori || '0',
-      max_giocatori: max_giocatori || '0',
-      roster_ab: roster_ab === 'true' || roster_ab === true,
-      cantera: cantera === 'true' || cantera === true,
-      contratti: contratti === 'true' || contratti === true,
-      triggers: triggers === 'true' || triggers === true,
-      regolamento_pdf: regolamento_pdf || null,
-      fantacalcio_url: fantacalcio_url || null,
-      fantacalcio_username: fantacalcio_username || null,
-      fantacalcio_password: fantacalcio_password || null,
-      scraping_automatico: scraping_automatico === 'true' || scraping_automatico === true
+      max_squadre: max_squadre || '0'
     };
     
     if (!req.file) {
@@ -194,9 +172,7 @@ router.post('/create', requireAuth, (req, res, next) => {
     try {
       const legaId = await createLega({
         ...cleanData,
-        admin_id: req.user.id, // Imposta automaticamente l'admin_id all'utente corrente
-        excel_originale: req.file.path,
-        excel_modificato: null
+        admin_id: req.user.id // Imposta automaticamente l'admin_id all'utente corrente
       });
       
       console.log('Lega creata con ID:', legaId, 'Admin ID:', req.user.id);

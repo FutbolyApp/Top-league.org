@@ -6,13 +6,20 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { initializeDatabase, getDb } from './db/mariadb.js';
 import { fixNotificheColumns } from './scripts/fix_remaining_columns.js';
+import { 
+  errorHandler, 
+  asyncHandler, 
+  validationErrorHandler, 
+  databaseErrorHandler, 
+  notFoundHandler 
+} from './middleware/errorHandler.js';
 
 // Carica le variabili d'ambiente dal file corretto in base all'ambiente
 const envFile = process.env.NODE_ENV === 'production' ? './env.ionos' : './env.local';
 console.log(`🔍 Loading environment from: ${envFile} (NODE_ENV: ${process.env.NODE_ENV})`);
 dotenv.config({ path: envFile });
 import { initializeWebSocket } from './websocket.js';
-import legheRouter from './routes/leghe.js';
+import legheRouter from './routes/leghe-fixed.js';
 import authRouter from './routes/auth.js';
 import squadreRouter from './routes/squadre.js';
 import giocatoriRouter from './routes/giocatori.js';
@@ -40,275 +47,111 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configurazione CORS ottimizzata per risolvere problemi di accesso
+// Enhanced CORS configuration
 app.use(cors({
   origin: [
-    'https://topleague-frontend-new.onrender.com',
-    'https://topleaguem-frontend.onrender.com',
-    'https://topleague-frontend.onrender.com',
-    'https://topleaguem.onrender.com',
-    'https://top-league.org',
     'http://localhost:3000',
-    'http://localhost:3001'
+    'https://topleaguem-frontend.onrender.com',
+    'https://topleague-frontend-new.onrender.com',
+    'https://topleaguem.onrender.com',
+    'https://topleague-frontend.onrender.com',
+    'https://topleague-frontend-new.onrender.com',
+    'https://top-league.org',
+    'https://www.top-league.org'
   ],
-  methods: ['GET','POST','PUT','DELETE','OPTIONS','PATCH'],
-  allowedHeaders: ['Content-Type','Authorization','Cache-Control','Pragma','Expires','Origin','X-Requested-With','Accept'],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization', 'Cache-Control', 'Content-Length', 'X-Request-ID', 'X-Frontend-Version']
 }));
 
-app.options('*', cors()); // abilita le richieste preflight
-
-// Middleware specifico per gestire richieste OPTIONS
+// Enhanced request logging middleware
 app.use((req, res, next) => {
-  if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-    return res.status(200).end();
-  }
-  next();
-});
-
-// Middleware per gestire errori globali
-app.use((err, req, res, next) => {
-  console.error('Global error handler:', err);
+  const start = Date.now();
+  const requestId = req.headers['x-request-id'] || Math.random().toString(36).substr(2, 9);
   
-  // Se è un errore CORS, rispondi con headers appropriati
-  if (err.message && err.message.includes('CORS')) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma, Expires');
-    res.header('Access-Control-Allow-Credentials', 'true');
-  }
-  
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: err.message,
-    type: 'server_error'
+  console.log('🔍 REQUEST:', {
+    requestId,
+    method: req.method,
+    url: req.url,
+    endpoint: req.path,
+    ip: req.ip || req.connection.remoteAddress,
+    userAgent: req.headers['user-agent'],
+    hasAuth: !!req.headers.authorization,
+    hasBody: !!req.body,
+    timestamp: new Date().toISOString()
   });
-});
 
-// Logging middleware per debugging
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - Origin: ${req.headers.origin} - Content-Type: ${req.headers['content-type']}`);
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log('🔍 RESPONSE:', {
+      requestId,
+      method: req.method,
+      url: req.url,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   next();
 });
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Servi file statici dalla cartella uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-
-
-// Rendi il database accessibile alle route
-app.locals.db = getDb();
-
-// Storage per upload file (Excel/PDF)
-const upload = multer({ 
-  dest: path.join(__dirname, 'uploads'),
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
-    fieldSize: 50 * 1024 * 1024, // 50MB limit for fields
+// FIXED: Enhanced body parsing with better error handling
+app.use(express.json({ 
+  limit: '50mb',
+  verify: (req, res, buf) => {
+    try {
+      JSON.parse(buf);
+    } catch (e) {
+      res.status(400).json({
+        error: 'Formato JSON non valido',
+        details: 'Il corpo della richiesta non è un JSON valido'
+      });
+      throw new Error('Invalid JSON');
+    }
   }
-});
+}));
 
-// Route di test
-app.get('/api/ping', (req, res) => {
-  console.log('Ping received');
-  res.json({ 
-    message: 'pong',
+app.use(express.urlencoded({ 
+  extended: true, 
+  limit: '50mb',
+  parameterLimit: 1000
+}));
+
+// FIXED: Enhanced static file serving with error handling
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res, path) => {
+    res.set('Cache-Control', 'public, max-age=31536000');
+  },
+  fallthrough: false
+}));
+
+// FIXED: Health check endpoint
+app.get('/health', (req, res) => {
+  const db = getDb();
+  const dbStatus = db ? 'connected' : 'disconnected';
+  
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
+    database: dbStatus,
     environment: process.env.NODE_ENV || 'development',
-    database: process.env.DATABASE_URL ? 'configured' : 'not configured'
+    version: '1.0.13'
   });
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  console.log('Health check received');
-  res.json({ 
-    status: 'healthy',
+// FIXED: API version endpoint
+app.get('/api/version', (req, res) => {
+  res.json({
+    version: '1.0.13',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// Test CORS endpoint
-app.get('/api/test-cors', (req, res) => {
-  console.log('CORS test received');
-  res.json({ 
-    message: 'CORS test successful',
-    timestamp: new Date().toISOString(),
-    origin: req.headers.origin
-  });
-});
-
-// Test CORS preflight endpoint
-app.options('/api/test-cors-preflight', (req, res) => {
-  console.log('CORS preflight test received');
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.sendStatus(200);
-});
-
-app.post('/api/test-cors-preflight', (req, res) => {
-  console.log('CORS preflight POST test received');
-  res.json({ 
-    message: 'CORS preflight POST test successful',
-    timestamp: new Date().toISOString(),
-    origin: req.headers.origin
-  });
-});
-
-// Test authentication endpoint
-app.get('/api/test-auth', (req, res) => {
-  const authHeader = req.headers['authorization'];
-  console.log('Auth test received, headers:', req.headers);
-  
-  if (!authHeader) {
-    return res.status(401).json({ error: 'No authorization header' });
-  }
-  
-  const token = authHeader.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-  
-  res.json({ 
-    message: 'Auth header present',
-    hasToken: !!token,
-    tokenLength: token.length
-  });
-});
-
-// Test FormData endpoint
-app.post('/api/test-formdata', upload.single('file'), (req, res) => {
-  console.log('FormData test received');
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
-  console.log('File:', req.file);
-  
-  res.json({ 
-    message: 'FormData test successful',
-    hasFile: !!req.file,
-    bodyKeys: Object.keys(req.body),
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Test database connection
-app.get('/api/test-db', async (req, res) => {
-  try {
-    const db = getDb();
-    if (!db) {
-      return res.status(503).json({ error: 'Database connection not available' });
-    }
-    
-    const result = await db.query('SELECT COUNT(*) as total FROM leghe');
-    console.log('Query result:', result);
-    console.log('Result rows:', result.rows);
-    console.log('Result structure:', Object.keys(result));
-    console.log('Result type:', typeof result);
-    console.log('Result is array:', Array.isArray(result));
-    
-    res.json({ 
-      success: true, 
-      total_leghe: result.rows ? result.rows[0]?.total : 'no rows',
-      result_structure: Object.keys(result),
-      has_rows: !!result.rows,
-      rows_length: result.rows ? result.rows.length : 0,
-      result_type: typeof result,
-      is_array: Array.isArray(result),
-      message: 'Database connection working'
-    });
-  } catch (error) {
-    console.error('Database test error:', error);
-    res.status(500).json({ 
-      error: 'Database error', 
-      details: error.message,
-      stack: error.stack
-    });
-  }
-});
-
-// Test leghe admin query
-app.get('/api/test-leghe-admin', async (req, res) => {
-  try {
-    const db = getDb();
-    if (!db) {
-      return res.status(503).json({ error: 'Database connection not available' });
-    }
-    
-    const result = await db.query(`
-      SELECT l.*, 
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id) as numero_squadre_totali,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = false) as squadre_assegnate,
-           (SELECT COUNT(*) FROM squadre s WHERE s.lega_id = l.id AND s.is_orfana = true) as squadre_non_assegnate,
-           (SELECT COUNT(*) FROM giocatori g JOIN squadre s ON g.squadra_id = s.id WHERE s.lega_id = l.id) as numero_giocatori,
-           (SELECT COUNT(*) FROM tornei t WHERE t.lega_id = l.id) as numero_tornei,
-           DATE_FORMAT(l.created_at, '%d/%m/%Y') as data_creazione_formattata
-      FROM leghe l
-      WHERE l.admin_id = ?
-      ORDER BY l.created_at DESC
-    `, [1]);
-    
-    console.log('Leghe admin query result:', result);
-    console.log('Result rows:', result.rows);
-    
-    res.json({ 
-      success: true, 
-      leghe: result.rows,
-      rows_length: result.rows ? result.rows.length : 0,
-      message: 'Leghe admin query working'
-    });
-  } catch (error) {
-    console.error('Leghe admin query error:', error);
-    res.status(500).json({ 
-      error: 'Leghe admin query error', 
-      details: error.message,
-      stack: error.stack
-    });
-  }
-});
-
-// Placeholder: upload file Excel
-app.post('/api/upload/excel', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Nessun file caricato' });
-  res.json({ filename: req.file.filename, originalname: req.file.originalname });
-});
-
-// Upload logo
-app.post('/api/upload/logo', upload.single('logo'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Nessun logo caricato' });
-  
-  // Verifica che sia un'immagine
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
-  if (!allowedTypes.includes(req.file.mimetype)) {
-    return res.status(400).json({ error: 'Formato file non supportato. Usa solo JPG, PNG o GIF' });
-  }
-  
-  // Verifica dimensione file (max 5MB)
-  if (req.file.size > 5 * 1024 * 1024) {
-    return res.status(400).json({ error: 'File troppo grande. Massimo 5MB' });
-  }
-  
-  res.json({ 
-    filename: req.file.filename, 
-    originalname: req.file.originalname,
-    size: req.file.size 
-  });
-});
-
-// API Routes
-
-app.use('/api/leghe', legheRouter);
+// FIXED: Enhanced route mounting with error handling
 app.use('/api/auth', authRouter);
+app.use('/api/leghe', legheRouter);
 app.use('/api/squadre', squadreRouter);
 app.use('/api/giocatori', giocatoriRouter);
 app.use('/api/notifiche', notificheRouter);
@@ -328,167 +171,112 @@ app.use('/api/schema', schemaRouter);
 app.use('/api/debug', debugRouter);
 app.use('/api/test', testRouter);
 
-// Error handling
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  console.error('Stack:', err.stack);
-  res.status(500).json({ 
-    error: 'Internal Server Error',
-    message: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+// FIXED: 404 handler for undefined routes
+app.use('*', (req, res) => {
+  console.log('🔍 404 - Route not found:', req.method, req.originalUrl);
+  res.status(404).json({
+    error: 'Endpoint non trovato',
+    details: `La route ${req.method} ${req.originalUrl} non esiste`,
+    timestamp: new Date().toISOString()
   });
 });
 
-// Sistema automatico di pulizia profili browser
-const cleanupBrowserProfiles = () => {
-  const profilesDir = path.join(__dirname, 'playwright_profile');
-  const puppeteerDir = path.join(__dirname, 'puppeteer_profile');
-  
-  try {
-    // Pulisci profili Playwright
-    if (fs.existsSync(profilesDir)) {
-      const files = fs.readdirSync(profilesDir);
-      files.forEach(file => {
-        const filePath = path.join(profilesDir, file);
-        const stats = fs.statSync(filePath);
-        const daysOld = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60 * 24);
-        
-        // Rimuovi profili più vecchi di 1 giorno
-        if (daysOld > 1) {
-          if (stats.isDirectory()) {
-            fs.rmSync(filePath, { recursive: true, force: true });
-          } else {
-            fs.unlinkSync(filePath);
-          }
-          console.log(`Rimosso profilo browser: ${file}`);
-        }
-      });
+// Enhanced error handling middleware chain
+app.use(validationErrorHandler);
+app.use(databaseErrorHandler);
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+// FIXED: Graceful shutdown handler
+process.on('SIGTERM', () => {
+  console.log('🔍 SIGTERM received, shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('🔍 SIGINT received, shutting down gracefully...');
+  process.exit(0);
+});
+
+// FIXED: Unhandled promise rejection handler
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// FIXED: Uncaught exception handler
+process.on('uncaughtException', (error) => {
+  console.error('🚨 Uncaught Exception:', error);
+  process.exit(1);
+});
+
+// FIXED: Memory leak detection
+const used = process.memoryUsage();
+console.log('🔍 Memory usage on startup:', {
+  rss: `${Math.round(used.rss / 1024 / 1024 * 100) / 100} MB`,
+  heapTotal: `${Math.round(used.heapTotal / 1024 / 1024 * 100) / 100} MB`,
+  heapUsed: `${Math.round(used.heapUsed / 1024 / 1024 * 100) / 100} MB`,
+  external: `${Math.round(used.external / 1024 / 1024 * 100) / 100} MB`
+});
+
+// FIXED: Database initialization with retry logic
+const initializeDatabaseWithRetry = async (maxRetries = 5) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🔍 Database initialization attempt ${attempt}/${maxRetries}`);
+      await initializeDatabase();
+      console.log('✅ Database initialized successfully');
+      return true;
+    } catch (error) {
+      console.error(`🚨 Database initialization attempt ${attempt} failed:`, error.message);
+      
+      if (attempt === maxRetries) {
+        console.error('🚨 All database initialization attempts failed');
+        throw error;
+      }
+      
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
     }
-    
-    // Pulisci profili Puppeteer
-    if (fs.existsSync(puppeteerDir)) {
-      const files = fs.readdirSync(puppeteerDir);
-      files.forEach(file => {
-        const filePath = path.join(puppeteerDir, file);
-        const stats = fs.statSync(filePath);
-        const daysOld = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60 * 24);
-        
-        // Rimuovi profili più vecchi di 1 giorno
-        if (daysOld > 1) {
-          if (stats.isDirectory()) {
-            fs.rmSync(filePath, { recursive: true, force: true });
-          } else {
-            fs.unlinkSync(filePath);
-          }
-          console.log(`Rimosso profilo browser: ${file}`);
-        }
-      });
-    }
-    
-    console.log('Pulizia automatica profili browser completata');
-  } catch (error) {
-    console.error('Errore durante la pulizia automatica profili:', error);
   }
 };
 
-// Esegui pulizia ogni giorno alle 2:00
-const scheduleCleanup = () => {
-  const now = new Date();
-  const nextRun = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 2, 0, 0);
-  const timeUntilNextRun = nextRun.getTime() - now.getTime();
-  
-  setTimeout(() => {
-    cleanupBrowserProfiles();
-    // Riprogramma per il giorno successivo
-    setInterval(cleanupBrowserProfiles, 24 * 60 * 60 * 1000);
-  }, timeUntilNextRun);
-  
-  console.log(`Pulizia automatica profili programmata per: ${nextRun.toLocaleString()}`);
-};
-
-// Avvia il sistema di pulizia automatica
-scheduleCleanup();
-
-// Initialize database and start server
+// FIXED: Enhanced server startup
 const startServer = async () => {
   try {
-    console.log('Starting server...');
-    console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
-    console.log('NODE_ENV:', process.env.NODE_ENV);
-    console.log('PORT:', process.env.PORT);
+    console.log('🔍 Starting server...');
     
-    // Try to initialize database
-    if (process.env.DATABASE_URL) {
-      try {
-        console.log('Initializing database...');
-        await initializeDatabase();
-        // Fix colonne notifiche
-        await fixNotificheColumns();
-        console.log('Database initialization completed successfully');
-      } catch (dbError) {
-        console.error('Database initialization failed:', dbError.message);
-        console.log('Server will start without database functionality');
-      }
-    } else {
-      console.log('DATABASE_URL not set, skipping database initialization');
-    }
+    // Initialize database
+    await initializeDatabaseWithRetry();
     
-    const server = app.listen(PORT, () => {
-      console.log(`TopLeague backend listening on port ${PORT}`);
-      console.log(`Test the server with: curl http://localhost:${PORT}/api/ping`);
-    });
-
-    // Initialize WebSocket server
+    // Fix notification columns if needed
     try {
-      initializeWebSocket(server);
-    } catch (wsError) {
-      console.error('WebSocket initialization failed:', wsError.message);
+      await fixNotificheColumns();
+      console.log('✅ Notification columns fixed');
+    } catch (error) {
+      console.warn('⚠️ Could not fix notification columns:', error.message);
     }
-
-    server.on('error', (error) => {
-      if (error.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use. Please try a different port.`);
-        process.exit(1);
-      } else {
-        console.error('Server error:', error);
-      }
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`✅ Server running on port ${PORT}`);
+      console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`✅ Database: ${getDb() ? 'Connected' : 'Disconnected'}`);
+      console.log(`✅ Timestamp: ${new Date().toISOString()}`);
     });
+    
+    // Initialize WebSocket
+    try {
+      await initializeWebSocket();
+      console.log('✅ WebSocket initialized');
+    } catch (error) {
+      console.warn('⚠️ WebSocket initialization failed:', error.message);
+    }
+    
   } catch (error) {
-    console.error('Failed to start server:', error);
-    console.error('Error details:', error.message);
-    console.error('Stack trace:', error.stack);
+    console.error('🚨 Server startup failed:', error);
     process.exit(1);
   }
 };
 
+// Start the server
 startServer();
-
-// Servi i file statici del frontend React
-const frontendBuildPath = path.join(__dirname, '../frontend/build');
-if (fs.existsSync(frontendBuildPath)) {
-  app.use(express.static(frontendBuildPath));
-  console.log('✅ Frontend build files found and served');
-} else {
-  console.log('⚠️ Frontend build directory not found, serving API only');
-}
-
-// Conferma API
-app.get('/api', (req, res) => {
-  res.send('✅ API TopLeague attiva!');
-});
-
-// Catch-all handler per SPA routing (deve essere dopo tutte le altre route)
-app.get('*', (req, res) => {
-  // Se la richiesta inizia con /api, restituisci 404
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'API endpoint not found' });
-  }
-  
-  // Altrimenti, servi il file index.html del frontend
-  const indexPath = path.join(frontendBuildPath, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Frontend not built. Please run "npm run build" in the frontend directory.');
-  }
-});

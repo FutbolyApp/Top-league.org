@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { api } from '../api/config.js';
-import { useAuth } from '../components/AuthContext.js';
+import { useAuth } from './AuthContext';
 
 const Container = styled.div`
   background: white;

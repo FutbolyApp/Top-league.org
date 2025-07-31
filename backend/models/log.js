@@ -1,4 +1,4 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 export async function createLog(data) {
   try {

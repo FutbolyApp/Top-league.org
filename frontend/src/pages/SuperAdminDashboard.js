@@ -359,16 +359,20 @@ const SuperAdminDashboard = () => {
       }
 
       try {
-        console.log('🔍 SuperAdminDashboard: Starting fetchData');
-        console.log('🔍 SuperAdminDashboard: Token available:', !!token);
+          if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 SuperAdminDashboard: Starting fetchData');
+    console.log('🔍 SuperAdminDashboard: Token available:', !!token);
+  }
         
         const [legheRes, subadminsRes] = await Promise.all([
           getAllLegheAdmin(token),
           getAllSubadmins(token)
         ]);
         
-        console.log('🔍 SuperAdminDashboard: Leghe response:', legheRes);
-        console.log('🔍 SuperAdminDashboard: Subadmins response:', subadminsRes);
+          if (process.env.NODE_ENV === 'development') {
+    console.log('🔍 SuperAdminDashboard: Leghe response:', legheRes);
+    console.log('🔍 SuperAdminDashboard: Subadmins response:', subadminsRes);
+  }
         
         // Gestione risposta leghe - supporta sia {data: {leghe: [...]}} che {leghe: [...]}
         const legheData = legheRes?.data?.leghe || legheRes?.leghe || [];
@@ -378,8 +382,10 @@ const SuperAdminDashboard = () => {
         const subadminsData = subadminsRes?.data?.subadmins || subadminsRes?.subadmins || [];
         setSubadmins(subadminsData);
         
-        console.log('🔍 SuperAdminDashboard: Leghe set:', legheData.length);
-        console.log('🔍 SuperAdminDashboard: Subadmins set:', subadminsData.length);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 SuperAdminDashboard: Leghe set:', legheData.length);
+          console.log('🔍 SuperAdminDashboard: Subadmins set:', subadminsData.length);
+        }
         
         // Carica utenti separatamente con gestione errori migliorata
         try {
@@ -389,7 +395,9 @@ const SuperAdminDashboard = () => {
           const usersData = usersResponse?.users || usersResponse || [];
           setUsers(usersData);
           
-          console.log('🔍 SuperAdminDashboard: Users loaded:', usersData.length);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔍 SuperAdminDashboard: Users loaded:', usersData.length);
+          }
         } catch (usersErr) {
           console.error('Errore caricamento utenti:', usersErr);
           setUsers([]);
@@ -415,18 +423,22 @@ const SuperAdminDashboard = () => {
   const handleDeleteLega = async (legaId, legaNome) => {
     if (window.confirm(`Sei sicuro di voler eliminare la lega "${legaNome}"? Questa azione non può essere annullata.`)) {
       try {
-        console.log('🔍 SuperAdminDashboard: Eliminazione lega', legaId);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 SuperAdminDashboard: Eliminazione lega', legaId);
+        }
         
         const deleteResponse = await deleteLeague(legaId, token);
         
-        // Gestione risposta flessibile - supporta sia {success: true} che {...} direttamente
-        const success = deleteResponse?.success || deleteResponse?.ok || false;
-        const message = deleteResponse?.message || 'Lega eliminata con successo';
+        // Gestione risposta flessibile - supporta sia {success: true} che {data: {success: true}}
+        const success = deleteResponse?.success || deleteResponse?.data?.success || deleteResponse?.ok || false;
+        const message = deleteResponse?.message || deleteResponse?.data?.message || 'Lega eliminata con successo';
         
         if (success) {
           setLeghe(leghe?.filter(lega => lega.id !== legaId));
           alert(message);
-          console.log('✅ SuperAdminDashboard: Lega eliminata con successo');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ SuperAdminDashboard: Lega eliminata con successo');
+          }
         } else {
           throw new Error(message || 'Errore nell\'eliminazione della lega');
         }

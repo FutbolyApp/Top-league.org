@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 // Funzione per svuotare la tabella users mantenendo solo il SuperAdmin
 async function resetUsers() {

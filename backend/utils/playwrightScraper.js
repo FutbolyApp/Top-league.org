@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 class PlaywrightScraper {
     constructor() {
@@ -1924,7 +1924,7 @@ class PlaywrightScraper {
     }
     
     async saveSquadraScraping(legaId, nomeSquadra) {
-        const { getDb } = await import('../db/postgres.js');
+        const { getDb } = await import('../db/mariadb.js');
         const db = getDb();
         if (!db) {
             throw new Error('Database non disponibile');
@@ -1959,7 +1959,7 @@ class PlaywrightScraper {
     }
     
     async saveGiocatoreScraping(legaId, squadraScrapingId, giocatore) {
-        const { getDb } = await import('../db/postgres.js');
+        const { getDb } = await import('../db/mariadb.js');
         const db = getDb();
         if (!db) {
             throw new Error('Database non disponibile');
@@ -2048,7 +2048,7 @@ class PlaywrightScraper {
 
     // Metodo per eliminare i dati di rose precedenti
     async clearRoseScraping(legaId) {
-        const { getDb } = await import('../db/postgres.js');
+        const { getDb } = await import('../db/mariadb.js');
         const db = getDb();
         if (!db) {
             throw new Error('Database non disponibile');
@@ -2079,7 +2079,7 @@ class PlaywrightScraper {
 
     // Metodo per salvare la classifica nel database
     async saveClassificaToDatabase(legaId, classificaData) {
-        const { getDb } = await import('../db/postgres.js');
+        const { getDb } = await import('../db/mariadb.js');
         const db = getDb();
         if (!db) {
             throw new Error('Database non disponibile');
@@ -2140,14 +2140,14 @@ class PlaywrightScraper {
 
     // Metodo per salvare le formazioni nel database
     async saveFormazioniToDatabase(legaId, formazioniData) {
-        const { getDb } = await import('../db/postgres.js');
+        const { getDb } = await import('../db/mariadb.js');
         const db = getDb();
         if (!db) {
             throw new Error('Database non disponibile');
         }
 
         try {
-            console.log(`💾 Salvataggio formazioni di scraping nel database per lega ${legaId}...`);
+            console.log(`�� Salvataggio formazioni di scraping nel database per lega ${legaId}...`);
             
             // Prima elimina i dati precedenti
             const deleteResult = await db.query(
@@ -2200,7 +2200,7 @@ class PlaywrightScraper {
             await this.clearRoseScraping(legaId);
             
             // Elimina anche classifica e formazioni
-            const { getDb } = await import('../db/postgres.js');
+            const { getDb } = await import('../db/mariadb.js');
             const db = getDb();
             if (!db) {
                 throw new Error('Database non disponibile');

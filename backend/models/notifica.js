@@ -1,4 +1,4 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 export async function createNotifica(data) {
   console.log('createNotifica called with data:', data);

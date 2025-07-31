@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 import cron from 'node-cron';
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 class FantacalcioScraper {
     constructor() {

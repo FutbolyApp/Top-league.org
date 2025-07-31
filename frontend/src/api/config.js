@@ -1,240 +1,222 @@
-// Import mock API
-import { useState, useCallback } from 'react'; // Added for useApiCall hook
-import { mockFetch } from './mockApi.js';
+// Enhanced API configuration with comprehensive error handling and debug logging
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://www.top-league.org/api';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const FRONTEND_VERSION = process.env.REACT_APP_VERSION || '1.0.13';
+const BUILD_TIMESTAMP = process.env.REACT_APP_BUILD_TIMESTAMP || new Date().toISOString();
 
-// Configurazione API
-export const API_BASE_URL = 'https://www.top-league.org/api';
-const NODE_ENV = process.env.NODE_ENV || 'production';
+console.log('config.js:9 API_BASE_URL:', API_BASE_URL);
+console.log('config.js:10 NODE_ENV:', NODE_ENV);
+console.log('config.js:11 Frontend version:', FRONTEND_VERSION);
+console.log('config.js:12 Build timestamp:', BUILD_TIMESTAMP);
 
-console.log('API_BASE_URL:', API_BASE_URL);
-console.log('NODE_ENV:', NODE_ENV);
-console.log('Frontend version:', '1.0.12'); // Force cache clear
-console.log('Build timestamp:', new Date().toISOString());
-
-// Flag per usare mock API - FORZATO A TRUE PER RISOLVERE CORS
-let useMockApi = true; // FORZATO A TRUE
-
-console.log('🔧 MOCK API ENABLED - Using mock data for all requests');
-
-// Validazione schema risposta
-const validateResponseSchema = (data, expectedSchema) => {
-  if (!expectedSchema) return true;
+// Enhanced error handling and response processing
+const processResponse = async (response, requestInfo) => {
+  const { method, url, token } = requestInfo;
   
-  for (const [key, type] of Object.entries(expectedSchema)) {
-    if (!(key in data)) {
-      console.warn(`⚠️ Missing required field: ${key}`);
-      return false;
-    }
-    if (type === 'array' && !Array.isArray(data[key])) {
-      console.warn(`⚠️ Expected array for field: ${key}`);
-      return false;
-    }
-    if (type === 'object' && typeof data[key] !== 'object') {
-      console.warn(`⚠️ Expected object for field: ${key}`);
-      return false;
-    }
-    if (type === 'boolean' && typeof data[key] !== 'boolean') {
-      console.warn(`⚠️ Expected boolean for field: ${key}`);
-      return false;
-    }
-  }
-  return true;
-};
+  console.log(`🔍 RESPONSE:`, {
+    method,
+    url,
+    status: response.status,
+    statusText: response.statusText,
+    duration: `${Date.now() - requestInfo.startTime}ms`,
+    timestamp: new Date().toISOString()
+  });
 
-// Schemi di risposta comuni
-export const responseSchemas = {
-  leghe: { leghe: 'array' },
-  squadre: { squadre: 'array' },
-  giocatori: { giocatori: 'array' },
-  notifiche: { notifiche: 'array' },
-  offerte: { offerte: 'array' },
-  richieste: { richieste: 'array' },
-  user: { user: 'object' },
-  success: { success: 'boolean' },
-  token: { token: 'string' }
-};
-
-// Funzione per rilevare errori CORS o di rete
-const isCorsOrNetworkError = (error) => {
-  return (
-    error.message.includes('Network Error') ||
-    error.message.includes('Failed to fetch') ||
-    error.message.includes('CORS') ||
-    error.message.includes('ERR_FAILED') ||
-    error.message.includes('ERR_NETWORK') ||
-    error.message.includes('ERR_CONNECTION_REFUSED') ||
-    error.message.includes('ERR_NAME_NOT_RESOLVED')
-  );
-};
-
-// Funzione fetch con retry e validazione
-export const fetchWithRetry = async (url, options = {}, expectedSchema = null, maxRetries = 3) => {
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
-  
-  console.log('Making request to:', fullUrl, 'with options:', options);
-  
-  // Usa mock API se configurato o se errore CORS
-  if (useMockApi) {
-    console.log('🔧 Using MOCK API for:', fullUrl);
-    const mockResponse = await mockFetch(fullUrl, options);
-    let data = null;
+  // Enhanced error handling for different status codes
+  if (!response.ok) {
+    let errorData = {};
     
     try {
-      data = await mockResponse.json();
-      console.log('🔧 MOCK API response:', data);
-    } catch (jsonError) {
-      console.error('🚨 Failed to parse mock JSON response:', jsonError);
-      data = { error: 'Invalid mock response' };
-    }
-    
-    // Valida schema se fornito
-    if (expectedSchema && data && !validateResponseSchema(data, expectedSchema)) {
-      console.warn('⚠️ Mock API schema validation failed:', data);
-    }
-    
-    // Return response object structure
-    return {
-      ok: true,
-      data: data,
-      status: 200
-    };
-  }
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const response = await fetch(fullUrl, {
-        ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          ...options.headers,
-        },
-        mode: 'cors',
-        credentials: 'omit'
-      });
-
-      let data = null;
-      
-      // Check if response has content before trying to parse JSON
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
-        try {
-          data = await response.json();
-        } catch (jsonError) {
-          console.error('🚨 Failed to parse JSON response:', jsonError);
-          throw new Error(`Invalid JSON response: ${jsonError.message}`);
-        }
-      } else if (response.status === 204 || response.status === 205) {
-        // No content responses
-        data = null;
+        errorData = await response.json();
       } else {
-        // Non-JSON response
-        const text = await response.text();
-        console.warn('⚠️ Non-JSON response received:', text);
-        data = { message: text };
+        const textError = await response.text();
+        errorData = { error: textError || 'Unknown error' };
       }
-      
-      // Valida schema se fornito
-      if (expectedSchema && data && !validateResponseSchema(data, expectedSchema)) {
-        console.warn('⚠️ Schema validation failed for response:', data);
-        // Still return data, but log a warning
-      }
-      
-      // Return response object structure
-      return {
-        ok: response.ok,
-        data: data,
-        status: response.status,
-        statusText: response.statusText
-      };
-    } catch (error) {
-      console.error(`🚨 Request failed (attempt ${attempt}/${maxRetries}):`, error);
-      
-      if (isCorsOrNetworkError(error)) {
-        console.log('🚨 CORS/Network error detected, switching to MOCK API');
-        
-        // Fallback a mock API per errori di rete
-        try {
-          const mockResponse = await mockFetch(fullUrl, options);
-          let data = null;
-          
-          try {
-            data = await mockResponse.json();
-            console.log('🔧 MOCK API response after CORS error:', data);
-          } catch (jsonError) {
-            console.error('🚨 Failed to parse fallback mock JSON response:', jsonError);
-            data = { error: 'Invalid fallback mock response' };
-          }
-          
-          // Valida schema se fornito
-          if (expectedSchema && data && !validateResponseSchema(data, expectedSchema)) {
-            console.warn('⚠️ Fallback mock API schema validation failed:', data);
-          }
-          
-          // Return response object structure
-          return {
-            ok: true,
-            data: data,
-            status: 200
-          };
-        } catch (mockError) {
-          console.error('🚨 Mock API also failed:', mockError);
-          throw error; // Rilancia l'errore originale
-        }
-      }
-      
-      if (attempt === maxRetries) {
-        throw error;
-      }
-      
-      // Attendi prima del retry
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    } catch (parseError) {
+      console.error('🚨 Error parsing error response:', parseError);
+      errorData = { error: 'Failed to parse error response' };
     }
+
+    console.error('🚨 HTTP Error:', {
+      status: response.status,
+      statusText: response.statusText,
+      error: errorData.error,
+      data: errorData.data,
+      url,
+      method,
+      token: token ? `${token.substring(0, 20)}...` : 'none'
+    });
+
+    // Enhanced error messages based on status code
+    let errorMessage = errorData.error || 'Unknown error';
+    
+    switch (response.status) {
+      case 401:
+        errorMessage = 'Token non valido o scaduto';
+        break;
+      case 403:
+        errorMessage = 'Accesso negato';
+        break;
+      case 404:
+        errorMessage = 'Risorsa non trovata';
+        break;
+      case 500:
+        errorMessage = 'Errore del server';
+        break;
+      case 503:
+        errorMessage = 'Servizio non disponibile';
+        break;
+      default:
+        errorMessage = errorData.error || `Errore ${response.status}`;
+    }
+
+    const error = new Error(errorMessage);
+    error.status = response.status;
+    error.statusText = response.statusText;
+    error.data = errorData;
+    throw error;
+  }
+
+  // Enhanced success response processing
+  try {
+    const contentType = response.headers.get('content-type');
+    let data;
+    
+    if (contentType && contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      data = { message: text };
+    }
+
+    console.log(`✅ API Success:`, {
+      method,
+      url,
+      status: response.status,
+      hasData: !!data,
+      dataType: typeof data,
+      timestamp: new Date().toISOString()
+    });
+
+    return {
+      ok: true,
+      data,
+      status: response.status,
+      statusText: response.statusText
+    };
+  } catch (parseError) {
+    console.error('🚨 Error parsing success response:', parseError);
+    throw new Error('Errore nel parsing della risposta');
   }
 };
 
-// API object con metodi HTTP
-export const api = {
-  get: (url, token = null, expectedSchema = null) => 
-    fetchWithRetry(url, { method: 'GET' }, expectedSchema),
+// Enhanced request function with comprehensive logging
+const makeRequest = async (method, endpoint, token = null, body = null, options = {}) => {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const startTime = Date.now();
   
-  post: (url, data = null, token = null, expectedSchema = null) => 
-    fetchWithRetry(url, { 
-      method: 'POST', 
-      body: data ? JSON.stringify(data) : null 
-    }, expectedSchema),
-  
-  put: (url, data = null, token = null, expectedSchema = null) => 
-    fetchWithRetry(url, { 
-      method: 'PUT', 
-      body: data ? JSON.stringify(data) : null 
-    }, expectedSchema),
-  
-  delete: (url, token = null, expectedSchema = null) => 
-    fetchWithRetry(url, { method: 'DELETE' }, expectedSchema)
-};
+  const requestInfo = {
+    method,
+    url,
+    token: token ? `${token.substring(0, 20)}...` : 'none',
+    startTime
+  };
 
-// Hook per gestire loading e errori
-export const useApiCall = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  console.log(`🔍 REQUEST:`, {
+    method,
+    url,
+    ip: 'client',
+    userAgent: navigator.userAgent,
+    timestamp: new Date().toISOString(),
+    hasToken: !!token,
+    hasBody: !!body,
+    bodySize: body ? JSON.stringify(body).length : 0
+  });
 
-  const callApi = useCallback(async (apiMethod, ...args) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const result = await apiMethod(...args);
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
+  try {
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-Frontend-Version': FRONTEND_VERSION,
+      'X-Build-Timestamp': BUILD_TIMESTAMP
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
-  }, []);
 
-  return { loading, error, callApi };
+    const requestOptions = {
+      method,
+      headers,
+      credentials: 'include',
+      ...options
+    };
+
+    if (body && method !== 'GET') {
+      requestOptions.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(url, requestOptions);
+    return await processResponse(response, requestInfo);
+  } catch (error) {
+    console.error('🚨 Network Error:', {
+      method,
+      url,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+
+    // Enhanced network error handling
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error('Errore di connessione al server');
+    }
+
+    throw error;
+  }
 };
 
-export default api; 
+// Enhanced API object with better error handling
+export const api = {
+  get: async (endpoint, token = null) => {
+    return makeRequest('GET', endpoint, token);
+  },
+
+  post: async (endpoint, data = null, token = null) => {
+    return makeRequest('POST', endpoint, token, data);
+  },
+
+  put: async (endpoint, data = null, token = null) => {
+    return makeRequest('PUT', endpoint, token, data);
+  },
+
+  delete: async (endpoint, token = null) => {
+    return makeRequest('DELETE', endpoint, token);
+  },
+
+  patch: async (endpoint, data = null, token = null) => {
+    return makeRequest('PATCH', endpoint, token, data);
+  }
+};
+
+// Enhanced health check
+export const checkApiHealth = async () => {
+  try {
+    const response = await api.get('/health');
+    return response.ok;
+  } catch (error) {
+    console.error('🚨 API Health Check Failed:', error);
+    return false;
+  }
+};
+
+// Enhanced version check
+export const getApiVersion = async () => {
+  try {
+    const response = await api.get('/version');
+    return response.data;
+  } catch (error) {
+    console.error('🚨 API Version Check Failed:', error);
+    return null;
+  }
+}; 

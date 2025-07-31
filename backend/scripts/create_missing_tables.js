@@ -1,15 +1,15 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 import fs from 'fs';
 import path from 'path';
 
 async function createMissingTables() {
   try {
-    console.log('🔄 Connessione al database PostgreSQL...');
+    console.log('🔄 Connessione al database MariaDB...');
     const db = getDb();
     
     // Verifica connessione
     await db.query('SELECT NOW()');
-    console.log('✅ Connesso al database PostgreSQL');
+    console.log('✅ Connesso al database MariaDB');
     
     // Leggi il file SQL
     const sqlPath = path.join(process.cwd(), 'backend/db/create_missing_tables.sql');

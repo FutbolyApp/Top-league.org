@@ -4,6 +4,7 @@ import React, { useEffect } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './components/AuthContext';
 import { NotificationProvider } from './components/NotificationSystem';
+import { NetworkErrorProvider } from './components/NetworkErrorHandler';
 import Navigation from './components/Navigation';
 import { ApiMonitor } from './components/ApiMonitor';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -48,12 +49,11 @@ import RichiestaAdmin from './pages/RichiestaAdmin';
 import GestioneRichiesteAdmin from './pages/GestioneRichiesteAdmin';
 import GestioneRosterAdmin from './pages/GestioneRosterAdmin';
 import NotFound from './pages/NotFound';
-import NetworkErrorHandler from './components/NetworkErrorHandler';
 import TokenExpiredHandler from './components/TokenExpiredHandler';
 import AuthRedirect from './components/AuthRedirect';
 import './index.css';
 
-console.log('🚀 TopLeague Frontend v1.0.5 - Build:', new Date().toISOString());
+console.log('🚀 TopLeague Frontend v1.0.13 - Build:', new Date().toISOString());
 
 function AppRoutes() {
   const location = useLocation();
@@ -98,25 +98,24 @@ function AppRoutes() {
         <Route path="/super-admin-access" element={<ProtectedRoute><SuperAdminAccess /></ProtectedRoute>} />
         <Route path="/super-admin-dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
         <Route path="/dashboard-avanzata" element={<ProtectedRoute><DashboardAvanzata /></ProtectedRoute>} />
-        <Route path="/super-admin/lega/:id/edit" element={<ProtectedRoute><ModificaLega /></ProtectedRoute>} />
-        <Route path="/gestione-squadre-lega/:id" element={<ProtectedRoute><GestioneSquadreLega /></ProtectedRoute>} />
+        <Route path="/gestione-credenziali" element={<ProtectedRoute><GestioneCredenziali /></ProtectedRoute>} />
+        <Route path="/modifica-lega/:id" element={<ProtectedRoute><ModificaLega /></ProtectedRoute>} />
+        <Route path="/gestione-squadre-lega/:legaId" element={<ProtectedRoute><GestioneSquadreLega /></ProtectedRoute>} />
         <Route path="/modifica-squadra-completa/:id" element={<ProtectedRoute><ModificaSquadraCompleta /></ProtectedRoute>} />
         <Route path="/modifica-giocatore-completa/:id" element={<ProtectedRoute><ModificaGiocatoreCompleta /></ProtectedRoute>} />
         <Route path="/crea-giocatore" element={<ProtectedRoute><CreaGiocatore /></ProtectedRoute>} />
-        <Route path="/gestione-credenziali/:legaId" element={<ProtectedRoute><GestioneCredenziali /></ProtectedRoute>} />
-        <Route path="/league-admin/:legaId" element={<ProtectedRoute><LeagueAdminArea /></ProtectedRoute>} />
-        <Route path="/league-subadmin/:legaId" element={<ProtectedRoute><LeagueSubadminArea /></ProtectedRoute>} />
+        <Route path="/league-admin-area" element={<ProtectedRoute><LeagueAdminArea /></ProtectedRoute>} />
         <Route path="/subadmin-area" element={<ProtectedRoute><SubadminArea /></ProtectedRoute>} />
-        <Route path="/subadmin-requests" element={<ProtectedRoute><SubadminRequestsPage /></ProtectedRoute>} />
+        <Route path="/league-subadmin-area/:legaId" element={<ProtectedRoute><LeagueSubadminArea /></ProtectedRoute>} />
         <Route path="/request-squadre-modification/:legaId" element={<ProtectedRoute><RequestSquadreModification /></ProtectedRoute>} />
         <Route path="/request-giocatori-modification/:legaId" element={<ProtectedRoute><RequestGiocatoriModification /></ProtectedRoute>} />
-        <Route path="/gestione-squadra/:legaId" element={<ProtectedRoute><GestioneSquadra /></ProtectedRoute>} />
-        <Route path="/richiesta-admin" element={<RichiestaAdmin />} />
-        <Route path="/gestione-richieste-admin/:legaId" element={<GestioneRichiesteAdmin />} />
+        <Route path="/subadmin-requests" element={<ProtectedRoute><SubadminRequestsPage /></ProtectedRoute>} />
+        <Route path="/gestione-squadra/:squadraId" element={<ProtectedRoute><GestioneSquadra /></ProtectedRoute>} />
+        <Route path="/richiesta-admin" element={<ProtectedRoute><RichiestaAdmin /></ProtectedRoute>} />
+        <Route path="/gestione-richieste-admin" element={<ProtectedRoute><GestioneRichiesteAdmin /></ProtectedRoute>} />
         <Route path="/gestione-roster-admin/:legaId" element={<ProtectedRoute><GestioneRosterAdmin /></ProtectedRoute>} />
-        <Route path="/modifica-lega/:id" element={<ProtectedRoute><ModificaLega /></ProtectedRoute>} />
         <Route path="/log-squadra/:squadraId" element={<ProtectedRoute><LogSquadraPage /></ProtectedRoute>} />
-        {/* Catch-all route for SPA - must be at the end */}
+        <Route path="/auth-redirect" element={<AuthRedirect />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
@@ -125,17 +124,15 @@ function AppRoutes() {
 
 function App() {
   return (
-    <NetworkErrorHandler>
+    <NetworkErrorProvider>
       <AuthProvider>
         <NotificationProvider>
-          <TokenExpiredHandler>
-            <AuthRedirect />
-            <AppRoutes />
-            <ApiMonitor />
-          </TokenExpiredHandler>
+          <TokenExpiredHandler />
+          <ApiMonitor />
+          <AppRoutes />
         </NotificationProvider>
       </AuthProvider>
-    </NetworkErrorHandler>
+    </NetworkErrorProvider>
   );
 }
 

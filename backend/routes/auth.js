@@ -19,18 +19,36 @@ router.get('/test-no-db', (req, res) => {
 // Registrazione utente
 router.post('/register', async (req, res) => {
   try {
+    console.log('🔍 AUTH: Register request received:', {
+      hasBody: !!req.body,
+      bodyKeys: req.body ? Object.keys(req.body) : 'no body',
+      contentType: req.headers['content-type']
+    });
+    
     const { nome, cognome, username, provenienza, squadra_cuore, come_conosciuto, email, password, ruolo } = req.body;
+    
+    // FIXED: Enhanced validation
     if (!nome || !cognome || !username || !email || !password) {
-      return res.status(400).json({ error: 'Tutti i campi obbligatori devono essere compilati (nome, cognome, username, email, password)' });
+      console.log('🔍 AUTH: Missing required fields for registration');
+      return res.status(400).json({ 
+        error: 'Tutti i campi obbligatori devono essere compilati (nome, cognome, username, email, password)',
+        details: 'Dati mancanti nella richiesta'
+      });
     }
     
     // Verifica se email già esiste
     const existingUser = await getUtenteByEmail(email);
-    if (existingUser) return res.status(400).json({ error: 'Email già registrata. Usa un\'altra email o fai login.' });
+    if (existingUser) {
+      console.log('🔍 AUTH: Email already exists:', email);
+      return res.status(400).json({ error: 'Email già registrata. Usa un\'altra email o fai login.' });
+    }
     
     // Verifica se username già esiste
     const existingUsername = await getUtenteByUsername(username);
-    if (existingUsername) return res.status(400).json({ error: 'Username già in uso. Scegline un altro.' });
+    if (existingUsername) {
+      console.log('🔍 AUTH: Username already exists:', username);
+      return res.status(400).json({ error: 'Username già in uso. Scegline un altro.' });
+    }
     
     const password_hash = bcrypt.hashSync(password, 10);
     const userRole = ruolo || 'Utente'; // Default a Utente se non specificato
@@ -47,32 +65,48 @@ router.post('/register', async (req, res) => {
       ruolo: userRole 
     });
     
+    console.log('🔍 AUTH: User registered successfully:', { userId, username, email });
     res.json({ success: true, userId });
   } catch (e) {
-    console.error('Registration error:', e);
-    res.status(500).json({ error: 'Errore interno del server', details: e.message });
+    console.error('🚨 AUTH: Registration error:', e);
+    res.status(500).json({ 
+      error: 'Errore interno del server', 
+      details: e.message 
+    });
   }
 });
 
-// Login utente - versione PostgreSQL
+// Login utente - versione migliorata
 router.post('/login', async (req, res) => {
   try {
-    console.log('🔍 DEBUG: Request body received:', req.body);
-    console.log('🔍 DEBUG: Content-Type:', req.headers['content-type']);
+    console.log('🔍 AUTH: Login request received:', {
+      hasBody: !!req.body,
+      bodyKeys: req.body ? Object.keys(req.body) : 'no body',
+      contentType: req.headers['content-type']
+    });
     
     const { email, password } = req.body;
-    console.log('🔍 DEBUG: Extracted email:', email);
-    console.log('🔍 DEBUG: Extracted password:', password ? '***' : 'undefined');
+    console.log('🔍 AUTH: Extracted credentials:', { email, hasPassword: !!password });
     
-    if (!email || !password) return res.status(400).json({ error: 'Email/Username e password sono obbligatorie' });
+    // FIXED: Enhanced validation
+    if (!email || !password) {
+      console.log('🔍 AUTH: Missing credentials');
+      return res.status(400).json({ 
+        error: 'Email/Username e password sono obbligatorie',
+        details: 'Credenziali mancanti'
+      });
+    }
     
-    console.log('Login attempt for email/username:', email);
+    console.log('🔍 AUTH: Login attempt for email/username:', email);
     
     // Get database connection
     const db = getDb();
     if (!db) {
-      console.error('Database not available');
-      return res.status(500).json({ error: 'Database non disponibile' });
+      console.error('🚨 AUTH: Database not available');
+      return res.status(500).json({ 
+        error: 'Database non disponibile',
+        details: 'Errore di connessione al database'
+      });
     }
     
     let utente = null;
@@ -83,28 +117,37 @@ router.post('/login', async (req, res) => {
       
       // Se non trova per email, prova per username
       if (!utente) {
-        console.log('User not found by email, trying username...');
+        console.log('🔍 AUTH: User not found by email, trying username...');
         utente = await getUtenteByUsername(email);
       }
     } catch (dbError) {
-      console.error('Database error during login:', dbError);
-      return res.status(500).json({ error: 'Errore del database durante il login' });
+      console.error('🚨 AUTH: Database error during login:', dbError);
+      return res.status(500).json({ 
+        error: 'Errore del database durante il login',
+        details: dbError.message
+      });
     }
     
     if (!utente) {
-      console.log('User not found');
-      return res.status(400).json({ error: 'Utente non trovato. Verifica email/username o registrati.' });
+      console.log('🔍 AUTH: User not found');
+      return res.status(400).json({ 
+        error: 'Utente non trovato. Verifica email/username o registrati.',
+        details: 'Credenziali non valide'
+      });
     }
     
     // Verifica password
     if (!(await bcrypt.compare(password, utente.password_hash))) {
-      console.log('Password incorrect');
-      return res.status(400).json({ error: 'Password non corretta. Riprova.' });
+      console.log('🔍 AUTH: Password incorrect');
+      return res.status(400).json({ 
+        error: 'Password non corretta. Riprova.',
+        details: 'Credenziali non valide'
+      });
     }
     
-    console.log('User authenticated:', utente.username, 'ID:', utente.id);
+    console.log('🔍 AUTH: User authenticated:', utente.username, 'ID:', utente.id);
     
-    // Generate token
+    // FIXED: Generate token and get admin leghe in one place
     const token = generateToken(utente);
     
     // Get admin leghe
@@ -117,46 +160,13 @@ router.post('/login', async (req, res) => {
       } else if (legheResult && legheResult.rows) {
         legheAdmin = legheResult.rows;
       }
+      console.log('🔍 AUTH: Found admin leghe:', legheAdmin.length);
     } catch (error) {
-      console.log('No admin leghe found or error:', error.message);
+      console.log('🔍 AUTH: No admin leghe found or error:', error.message);
     }
     
-    // Process login success
-    await processLoginSuccess(utente, res, req, legheAdmin, token);
-    
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Errore interno del server', details: error.message });
-  }
-});
-
-// Funzione helper per processare il login di successo
-async function processLoginSuccess(utente, res, req, legheAdmin, token) {
-  try {
-    console.log('processLoginSuccess started for user:', utente.username);
-    
-    // Ottieni le leghe di cui l'utente è admin
-    const db = getDb();
-    if (!db) {
-      console.error('Database not available');
-      return res.status(500).json({ error: 'Database non disponibile' });
-    }
-    
-    console.log('Querying leghe admin for user ID:', utente.id);
-    const legheResult = await db.query('SELECT id, nome FROM leghe WHERE admin_id = ?', [utente.id]);
-    // Handle MariaDB result format
-    let legheAdmin = [];
-    if (legheResult && typeof legheResult === 'object' && legheResult.rows) {
-      legheAdmin = legheResult.rows;
-    } else if (Array.isArray(legheResult)) {
-      legheAdmin = legheResult;
-    }
-    
-    console.log('Generating token for user:', utente.username);
-    const token = generateToken(utente);
-    console.log('Login successful for:', utente.username, 'Leghe admin:', legheAdmin?.length || 0);
-    
-    console.log('Sending response to client');
+    // FIXED: Send response directly instead of calling separate function
+    console.log('🔍 AUTH: Sending login response');
     res.json({ 
       token, 
       user: { 
@@ -169,18 +179,26 @@ async function processLoginSuccess(utente, res, req, legheAdmin, token) {
         leghe_admin: legheAdmin
       } 
     });
-    console.log('Response sent successfully');
-  } catch (dbError) {
-    console.error('Database error in login:', dbError);
-    res.status(500).json({ error: 'Errore nel database durante il login', details: dbError.message });
+    console.log('🔍 AUTH: Login response sent successfully');
+    
+  } catch (error) {
+    console.error('🚨 AUTH: Login error:', error);
+    res.status(500).json({ 
+      error: 'Errore interno del server', 
+      details: error.message 
+    });
   }
-}
+});
+
+// FIXED: Removed duplicate processLoginSuccess function
 
 // Verifica esistenza utente per username
 router.post('/check-user', async (req, res) => {
   try {
     const { username } = req.body;
-    if (!username) return res.status(400).json({ error: 'Username è obbligatorio' });
+    if (!username) {
+      return res.status(400).json({ error: 'Username è obbligatorio' });
+    }
     
     const utente = await getUtenteByUsername(username);
     
@@ -199,8 +217,11 @@ router.post('/check-user', async (req, res) => {
       }
     });
   } catch (e) {
-    console.error('Check user error:', e);
-    res.status(500).json({ error: 'Errore interno del server', details: e.message });
+    console.error('🚨 AUTH: Check user error:', e);
+    res.status(500).json({ 
+      error: 'Errore interno del server', 
+      details: e.message 
+    });
   }
 });
 
@@ -252,22 +273,25 @@ router.get('/search-users', requireSuperAdmin, async (req, res) => {
       res.json(users);
     }
   } catch (e) {
-    console.error('Errore ricerca utenti:', e);
-    res.status(500).json({ error: 'Errore interno del server', details: e.message });
+    console.error('🚨 AUTH: Search users error:', e);
+    res.status(500).json({ 
+      error: 'Errore interno del server', 
+      details: e.message 
+    });
   }
 });
 
 // Ottieni tutti gli utenti (solo SuperAdmin)
 router.get('/all-users', requireSuperAdmin, async (req, res) => {
   try {
-    console.log('User from middleware:', req.user);
+    console.log('🔍 AUTH: User from middleware:', req.user);
     
     const db = getDb();
     if (!db) {
       return res.status(500).json({ error: 'Database non disponibile' });
     }
     
-    console.log('GET /all-users - Querying database');
+    console.log('🔍 AUTH: GET /all-users - Querying database');
     const users = await db.query('SELECT id, username, email, ruolo, created_at FROM users ORDER BY created_at DESC');
     
     // Handle MariaDB result format
@@ -278,13 +302,16 @@ router.get('/all-users', requireSuperAdmin, async (req, res) => {
       userList = users.rows;
     }
     
-    console.log('GET /all-users - Found users:', userList.length);
+    console.log('🔍 AUTH: GET /all-users - Found users:', userList.length);
     return res.json(userList);
     
   } catch (e) {
-    console.error('GET /all-users - Error:', e);
-    console.error('GET /all-users - Error stack:', e.stack);
-    res.status(500).json({ error: 'Errore interno del server', details: e.message });
+    console.error('🚨 AUTH: GET /all-users - Error:', e);
+    console.error('🚨 AUTH: GET /all-users - Error stack:', e.stack);
+    res.status(500).json({ 
+      error: 'Errore interno del server', 
+      details: e.message 
+    });
   }
 });
 
@@ -321,7 +348,11 @@ router.post('/check-availability', async (req, res) => {
     
     res.json(results);
   } catch (e) {
-    res.status(500).json({ error: 'Errore interno del server', details: e.message });
+    console.error('🚨 AUTH: Check availability error:', e);
+    res.status(500).json({ 
+      error: 'Errore interno del server', 
+      details: e.message 
+    });
   }
 });
 
@@ -355,19 +386,38 @@ router.get('/is-league-admin/:legaId', async (req, res) => {
       return res.status(401).json({ error: 'Token non valido' });
     }
   } catch (e) {
-    res.status(500).json({ error: 'Errore interno del server', details: e.message });
+    console.error('🚨 AUTH: Is league admin error:', e);
+    res.status(500).json({ 
+      error: 'Errore interno del server', 
+      details: e.message 
+    });
   }
 });
 
-// Verifica e aggiorna i dati utente (senza richiedere password)
+// Enhanced verify user endpoint with comprehensive logging and error handling
 router.get('/verify-user', async (req, res) => {
   try {
+    console.log('🔍 AUTH: Verify user request received:', {
+      hasHeaders: !!req.headers,
+      hasAuthHeader: !!req.headers['authorization'],
+      contentType: req.headers['content-type'],
+      userAgent: req.headers['user-agent']
+    });
+    
     const authHeader = req.headers['authorization'];
     
-    if (!authHeader) return res.status(401).json({ error: 'Token mancante' });
+    if (!authHeader) {
+      console.log('🔍 AUTH: Missing authorization header');
+      return res.status(401).json({ error: 'Token mancante' });
+    }
     
     const token = authHeader.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'Token non fornito' });
+    if (!token) {
+      console.log('🔍 AUTH: Token not provided in authorization header');
+      return res.status(401).json({ error: 'Token non fornito' });
+    }
+    
+    console.log('🔍 AUTH: Token extracted:', token.substring(0, 20) + '...');
     
     // Verifica token e ottieni user
     const JWT_SECRET = process.env.JWT_SECRET || 'topleague_secret';
@@ -376,17 +426,28 @@ router.get('/verify-user', async (req, res) => {
       const payload = jwt.verify(token, JWT_SECRET);
       const userId = payload.id;
       
+      console.log('🔍 AUTH: JWT verified successfully, userId:', userId);
+      
       const db = getDb();
       if (!db) {
+        console.error('🚨 AUTH: Database not available');
         return res.status(503).json({ error: 'Database non disponibile' });
       }
       
       const user = await getUtenteById(userId);
       if (!user) {
+        console.log('🔍 AUTH: User not found for ID:', userId);
         return res.status(404).json({ error: 'Utente non trovato' });
       }
       
-      res.json({
+      console.log('🔍 AUTH: User found:', {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        ruolo: user.ruolo
+      });
+      
+      const userResponse = {
         user: {
           id: user.id,
           nome: user.nome,
@@ -395,16 +456,30 @@ router.get('/verify-user', async (req, res) => {
           email: user.email,
           ruolo: user.ruolo
         }
-      });
+      };
+      
+      console.log('🔍 AUTH: Sending user response:', userResponse);
+      res.json(userResponse);
       
     } catch (jwtError) {
-      console.error('JWT verification error:', jwtError);
+      console.error('🚨 AUTH: JWT verification error:', {
+        error: jwtError.message,
+        name: jwtError.name,
+        token: token.substring(0, 20) + '...'
+      });
       return res.status(401).json({ error: 'Token non valido' });
     }
     
   } catch (error) {
-    console.error('Errore in verify-user:', error);
-    res.status(500).json({ error: 'Errore interno del server' });
+    console.error('🚨 AUTH: Verify user error:', {
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+    res.status(500).json({ 
+      error: 'Errore interno del server',
+      details: error.message
+    });
   }
 });
 

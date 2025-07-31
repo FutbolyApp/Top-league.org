@@ -1,4 +1,4 @@
-import { getDb } from '../db/postgres.js';
+import { getDb } from '../db/mariadb.js';
 
 // Funzione per ottenere le configurazioni di una lega
 export async function getLeagueConfig(legaId) {
@@ -17,7 +17,7 @@ export async function getLeagueConfig(legaId) {
         max_attaccanti, min_attaccanti,
         modalita
       FROM leghe 
-      WHERE id = $1
+      WHERE id = ?
     `, [legaId]);
     
     return result.rows[0] || {};
@@ -162,7 +162,7 @@ async function getSquadraGiocatori(squadraId) {
       throw new Error('Database non disponibile');
     }
     
-    const result = await db.query('SELECT * FROM giocatori WHERE squadra_id = $1', [squadraId]);
+    const result = await db.query('SELECT * FROM giocatori WHERE squadra_id = ?', [squadraId]);
     return result.rows || [];
   } catch (error) {
     console.error('Errore in getSquadraGiocatori:', error);

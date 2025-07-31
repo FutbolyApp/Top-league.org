@@ -1,150 +1,239 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import { useAuth } from './AuthContext';
 
-const ErrorOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-`;
+// Context per gestire errori di rete globalmente
+const NetworkErrorContext = createContext();
 
-const ErrorModal = styled.div`
-  background: white;
-  border-radius: 16px;
-  padding: 2rem;
-  max-width: 500px;
-  width: 90%;
-  text-align: center;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-`;
-
-const ErrorIcon = styled.div`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.7;
-`;
-
-const ErrorTitle = styled.h2`
-  color: #e53e3e;
-  margin: 1rem 0;
-  font-size: 1.5rem;
-`;
-
-const ErrorMessage = styled.p`
-  color: #4a5568;
-  margin: 1rem 0;
-  line-height: 1.6;
-`;
-
-const RetryButton = styled.button`
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin: 0.5rem;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+export const useNetworkError = () => {
+  const context = useContext(NetworkErrorContext);
+  if (!context) {
+    throw new Error('useNetworkError must be used within a NetworkErrorProvider');
   }
-`;
+  return context;
+};
 
-const CloseButton = styled.button`
-  background: transparent;
-  color: #718096;
-  border: 2px solid #718096;
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin: 0.5rem;
-  
-  &:hover {
-    background: #718096;
-    color: white;
-  }
-`;
+// Componente per mostrare errori di rete
+const NetworkErrorModal = ({ error, onClose, onRetry }) => {
+  const [isVisible, setIsVisible] = useState(false);
 
-// Styled components per il form di login
-const LoginForm = styled.form`
-  margin-top: 1.5rem;
-  text-align: left;
-`;
+  useEffect(() => {
+    if (error) {
+      setIsVisible(true);
+    }
+  }, [error]);
 
-const FormGroup = styled.div`
-  margin-bottom: 1rem;
-`;
+  const handleClose = () => {
+    setIsVisible(false);
+    onClose();
+  };
 
-const Label = styled.label`
-  display: block;
-  margin-bottom: 0.5rem;
-  color: #4a5568;
-  font-weight: 600;
-  font-size: 0.9rem;
-`;
+  const handleRetry = () => {
+    setIsVisible(false);
+    onRetry();
+  };
 
-const Input = styled.input`
-  width: 100%;
-  padding: 0.75rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.3s ease;
-  
-  &:focus {
-    outline: none;
-    border-color: #667eea;
-  }
-`;
+  if (!isVisible) return null;
 
-const LoginButton = styled.button`
-  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin: 0.5rem;
-  width: 100%;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
-  }
-  
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
-`;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="flex items-center mb-4">
+          <div className="flex-shrink-0">
+            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-lg font-medium text-gray-900">
+              Errore di Connessione
+            </h3>
+          </div>
+        </div>
+        
+        <div className="mt-2">
+          <p className="text-sm text-gray-600">
+            {error?.message || 'Si è verificato un errore di connessione. Verifica la tua connessione internet e riprova.'}
+          </p>
+          
+          {error?.details && (
+            <div className="mt-3 p-3 bg-gray-50 rounded-md">
+              <p className="text-xs text-gray-500 font-mono">
+                {error.details}
+              </p>
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-6 flex justify-end space-x-3">
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            Chiudi
+          </button>
+          <button
+            onClick={handleRetry}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Riprova
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-const ErrorText = styled.p`
-  color: #e53e3e;
-  font-size: 0.9rem;
-  margin-top: 0.5rem;
-`;
+// Componente per mostrare errori di autenticazione
+const AuthErrorModal = ({ error, onClose, onRetry }) => {
+  const [isVisible, setIsVisible] = useState(false);
 
-const NetworkErrorHandler = ({ children }) => {
+  useEffect(() => {
+    if (error) {
+      setIsVisible(true);
+    }
+  }, [error]);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    onClose();
+  };
+
+  const handleRetry = () => {
+    setIsVisible(false);
+    onRetry();
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="flex items-center mb-4">
+          <div className="flex-shrink-0">
+            <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-lg font-medium text-gray-900">
+              Errore di Autenticazione
+            </h3>
+          </div>
+        </div>
+        
+        <div className="mt-2">
+          <p className="text-sm text-gray-600">
+            {error?.message || 'Si è verificato un errore di autenticazione. Effettua nuovamente il login.'}
+          </p>
+          
+          {error?.details && (
+            <div className="mt-3 p-3 bg-gray-50 rounded-md">
+              <p className="text-xs text-gray-500 font-mono">
+                {error.details}
+              </p>
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-6 flex justify-end space-x-3">
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            Chiudi
+          </button>
+          <button
+            onClick={handleRetry}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Riconnetti
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Componente per mostrare errori di server
+const ServerErrorModal = ({ error, onClose, onRetry }) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (error) {
+      setIsVisible(true);
+    }
+  }, [error]);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    onClose();
+  };
+
+  const handleRetry = () => {
+    setIsVisible(false);
+    onRetry();
+  };
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="flex items-center mb-4">
+          <div className="flex-shrink-0">
+            <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-lg font-medium text-gray-900">
+              Errore del Server
+            </h3>
+          </div>
+        </div>
+        
+        <div className="mt-2">
+          <p className="text-sm text-gray-600">
+            {error?.message || 'Si è verificato un errore del server. Riprova più tardi.'}
+          </p>
+          
+          {error?.details && (
+            <div className="mt-3 p-3 bg-gray-50 rounded-md">
+              <p className="text-xs text-gray-500 font-mono">
+                {error.details}
+              </p>
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-6 flex justify-end space-x-3">
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            Chiudi
+          </button>
+          <button
+            onClick={handleRetry}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Riprova
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Provider principale per gestire errori di rete
+export const NetworkErrorProvider = ({ children }) => {
   const [networkError, setNetworkError] = useState(null);
+  const [authError, setAuthError] = useState(null);
+  const [serverError, setServerError] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [loginError, setLoginError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const { logout } = useAuth();
 
+  // Monitora lo stato della connessione
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -154,186 +243,156 @@ const NetworkErrorHandler = ({ children }) => {
     const handleOffline = () => {
       setIsOnline(false);
       setNetworkError({
-        type: 'connection',
-        message: 'Connessione internet persa. Verifica la tua connessione e riprova.',
-        title: 'Errore di Connessione'
+        message: 'Connessione internet persa',
+        details: 'Verifica la tua connessione e riprova'
       });
-    };
-
-    const handleFetchError = (event) => {
-      if (event.detail && event.detail.error) {
-        const error = event.detail.error;
-        
-        if (error.message && error.message.includes('Failed to fetch')) {
-          setNetworkError({
-            type: 'fetch',
-            message: 'Impossibile raggiungere il server. Verifica la tua connessione o riprova più tardi.',
-            title: 'Errore di Connessione'
-          });
-        } else if (error.status === 502) {
-          setNetworkError({
-            type: 'server',
-            message: 'Il server è temporaneamente non disponibile. Riprova tra qualche minuto.',
-            title: 'Server Non Disponibile'
-          });
-        } else if (error.status === 404) {
-          setNetworkError({
-            type: 'notfound',
-            message: 'La risorsa richiesta non è stata trovata.',
-            title: 'Risorsa Non Trovata'
-          });
-        } else if (error.status === 403) {
-          setNetworkError({
-            type: 'forbidden',
-            message: 'Non hai i permessi per accedere a questa risorsa.',
-            title: 'Accesso Negato'
-          });
-        } else if (error.status === 401) {
-          setNetworkError({
-            type: 'unauthorized',
-            message: 'Sessione scaduta. Effettua di nuovo il login.',
-            title: 'Sessione Scaduta'
-          });
-        }
-      }
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    window.addEventListener('fetch-error', handleFetchError);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      window.removeEventListener('fetch-error', handleFetchError);
     };
   }, []);
 
-  const handleRetry = () => {
-    setNetworkError(null);
-    window.location.reload();
-  };
-
-  const handleClose = () => {
-    setNetworkError(null);
-  };
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setIsLoggingIn(true);
-    setLoginError('');
-
-    try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(loginData),
+  // Funzione per gestire errori di rete
+  const handleNetworkError = (error) => {
+    console.error('🚨 Network Error:', error);
+    
+    if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+      setNetworkError({
+        message: 'Errore di connessione',
+        details: 'Verifica la tua connessione internet e riprova'
       });
-
-      let data = null;
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        console.error('🚨 Failed to parse network error handler login response JSON:', jsonError);
-        data = { message: 'Errore nel parsing della risposta' };
-      }
-
-      if (response.ok) {
-        // Salva il token nel localStorage
-        localStorage.setItem('token', data?.token || '');
-        localStorage.setItem('user', JSON.stringify(data?.user || {}));
-        
-        // Chiudi il popup e ricarica la pagina
-        setNetworkError(null);
-        window.location.reload();
-      } else {
-        setLoginError(data?.message || 'Errore durante il login');
-      }
-    } catch (error) {
-      setLoginError('Errore di connessione. Riprova.');
-    } finally {
-      setIsLoggingIn(false);
+    } else if (error.message.includes('CORS')) {
+      setNetworkError({
+        message: 'Errore di configurazione',
+        details: 'Problema di configurazione del server. Contatta l\'amministratore.'
+      });
+    } else {
+      setNetworkError({
+        message: 'Errore di rete',
+        details: error.message
+      });
     }
   };
 
-  const handleInputChange = (e) => {
-    setLoginData({
-      ...loginData,
-      [e.target.name]: e.target.value
-    });
+  // Funzione per gestire errori di autenticazione
+  const handleAuthError = (error) => {
+    console.error('🚨 Auth Error:', error);
+    
+    if (error.message.includes('Token non valido') || error.message.includes('Unauthorized')) {
+      setAuthError({
+        message: 'Sessione scaduta',
+        details: 'Effettua nuovamente il login'
+      });
+      // Logout automatico dopo 5 secondi
+      setTimeout(() => {
+        logout();
+      }, 5000);
+    } else {
+      setAuthError({
+        message: 'Errore di autenticazione',
+        details: error.message
+      });
+    }
   };
 
-  if (!networkError) {
-    return children;
-  }
+  // Funzione per gestire errori del server
+  const handleServerError = (error) => {
+    console.error('🚨 Server Error:', error);
+    
+    if (error.status === 500) {
+      setServerError({
+        message: 'Errore interno del server',
+        details: 'Il server ha riscontrato un errore. Riprova più tardi.'
+      });
+    } else if (error.status === 503) {
+      setServerError({
+        message: 'Servizio temporaneamente non disponibile',
+        details: 'Il server è in manutenzione. Riprova più tardi.'
+      });
+    } else {
+      setServerError({
+        message: 'Errore del server',
+        details: error.message
+      });
+    }
+  };
+
+  // Funzione per pulire gli errori
+  const clearErrors = () => {
+    setNetworkError(null);
+    setAuthError(null);
+    setServerError(null);
+  };
+
+  // Funzione per retry
+  const handleRetry = () => {
+    clearErrors();
+    window.location.reload();
+  };
+
+  const value = {
+    networkError,
+    authError,
+    serverError,
+    isOnline,
+    handleNetworkError,
+    handleAuthError,
+    handleServerError,
+    clearErrors
+  };
 
   return (
-    <>
+    <NetworkErrorContext.Provider value={value}>
       {children}
-      <ErrorOverlay>
-        <ErrorModal>
-          <ErrorIcon>
-            {networkError.type === 'connection' && '🌐'}
-            {networkError.type === 'server' && '🔧'}
-            {networkError.type === 'notfound' && '🔍'}
-            {networkError.type === 'forbidden' && '🚫'}
-            {networkError.type === 'unauthorized' && '🔐'}
-            {networkError.type === 'fetch' && '📡'}
-          </ErrorIcon>
-          
-          <ErrorTitle>{networkError.title}</ErrorTitle>
-          <ErrorMessage>{networkError.message}</ErrorMessage>
-          
-          {networkError.type === 'unauthorized' ? (
-            <LoginForm onSubmit={handleLogin}>
-              <FormGroup>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={loginData.email}
-                  onChange={handleInputChange}
-                  placeholder="Inserisci la tua email"
-                  required
-                />
-              </FormGroup>
-              
-              <FormGroup>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={loginData?.password || ''}
-                  onChange={handleInputChange}
-                  placeholder="Inserisci la tua password"
-                  required
-                />
-              </FormGroup>
-              
-              {loginError && <ErrorText>{loginError}</ErrorText>}
-              
-              <LoginButton type="submit" disabled={isLoggingIn}>
-                {isLoggingIn ? 'Accesso in corso...' : 'Accedi'}
-              </LoginButton>
-            </LoginForm>
-          ) : (
-            <div>
-              <RetryButton onClick={handleRetry}>
-                Riprova
-              </RetryButton>
-              <CloseButton onClick={handleClose}>
-                Chiudi
-              </CloseButton>
-            </div>
-          )}
-        </ErrorModal>
-      </ErrorOverlay>
-    </>
+      
+      {/* Modali per gli errori */}
+      <NetworkErrorModal 
+        error={networkError} 
+        onClose={() => setNetworkError(null)}
+        onRetry={handleRetry}
+      />
+      
+      <AuthErrorModal 
+        error={authError} 
+        onClose={() => setAuthError(null)}
+        onRetry={handleRetry}
+      />
+      
+      <ServerErrorModal 
+        error={serverError} 
+        onClose={() => setServerError(null)}
+        onRetry={handleRetry}
+      />
+    </NetworkErrorContext.Provider>
   );
 };
 
-export default NetworkErrorHandler; 
+// Hook per intercettare errori nelle chiamate API
+export const useApiErrorHandler = () => {
+  const { handleNetworkError, handleAuthError, handleServerError } = useNetworkError();
+
+  const handleApiError = (error) => {
+    console.error('🚨 API Error:', error);
+
+    // Determina il tipo di errore
+    if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+      handleNetworkError(error);
+    } else if (error.status === 401 || error.status === 403) {
+      handleAuthError(error);
+    } else if (error.status >= 500) {
+      handleServerError(error);
+    } else {
+      // Altri errori HTTP
+      handleServerError(error);
+    }
+  };
+
+  return { handleApiError };
+};
+
+export default NetworkErrorProvider; 

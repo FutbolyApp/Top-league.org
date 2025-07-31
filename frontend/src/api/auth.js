@@ -34,12 +34,14 @@ export const login = async (credentials) => {
       throw new Error('Nessuna risposta dal server');
     }
 
+    // FIXED: Handle non-ok responses properly
     if (!response.ok) {
-      const errorMessage = response.error || response.message || 'Errore di autenticazione';
+      const errorMessage = response.error || response.data?.error || response.data?.message || 'Errore di autenticazione';
       console.error('🚨 AUTH API ERROR: Response not ok:', {
         status: response.status,
         statusText: response.statusText,
-        error: errorMessage
+        error: errorMessage,
+        data: response.data
       });
       throw new Error(errorMessage);
     }
@@ -85,6 +87,16 @@ export const login = async (credentials) => {
     console.error('🚨 Error message:', error.message);
     console.error('🚨 Error response:', error.response?.data);
     console.error('🚨 Error status:', error.response?.status);
+    
+    // FIXED: Provide user-friendly error messages
+    if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+      throw new Error('Errore di connessione. Verifica la tua connessione internet.');
+    }
+    
+    if (error.message.includes('CORS')) {
+      throw new Error('Errore di configurazione del server. Contatta l\'amministratore.');
+    }
+    
     throw error;
   }
 };
@@ -113,13 +125,19 @@ export const register = async (userData) => {
     
     // FIXED: Validate registration response
     if (!response?.ok) {
-      const errorMessage = response?.error || response?.message || 'Errore durante la registrazione';
+      const errorMessage = response?.error || response?.data?.error || response?.data?.message || 'Errore durante la registrazione';
       throw new Error(errorMessage);
     }
     
     return response.data || response;
   } catch (error) {
     console.error('🚨 AUTH API REGISTER ERROR:', error);
+    
+    // FIXED: Provide user-friendly error messages
+    if (error.message.includes('Network Error') || error.message.includes('Failed to fetch')) {
+      throw new Error('Errore di connessione durante la registrazione.');
+    }
+    
     throw error;
   }
 };

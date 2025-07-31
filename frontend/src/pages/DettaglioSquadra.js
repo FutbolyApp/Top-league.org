@@ -405,33 +405,59 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
   const [userSquadre, setUserSquadre] = useState([]);
   const [hasSquadraInLega, setHasSquadraInLega] = useState(false);
 
-  // Funzione per caricare i dati della squadra
+  // Enhanced function to load squad data with robust error handling
   const fetchSquadra = useCallback(async () => {
     setLoading(true);
     setError('');
+    
     try {
+      console.log('🔍 [DettaglioSquadra] Inizio caricamento squadra ID:', id);
+      console.log('🔍 [DettaglioSquadra] Token disponibile:', !!token);
+      
       const res = await getSquadraById(id, token);
-      console.log('fetchSquadra: risposta API:', res);
+      console.log('🔍 [DettaglioSquadra] Risposta API squadra:', res);
+      
+      // Enhanced response validation
+      if (!res || !res.ok) {
+        console.error('🚨 [DettaglioSquadra] API error:', {
+          endpoint: `/squadre/${id}`,
+          status: res?.status,
+          error: res?.error,
+          data: res?.data
+        });
+        throw new Error(res?.error || 'Errore nel caricamento della squadra');
+      }
       
       // Gestisci sia la risposta diretta che quella wrappata
       const squadraData = res?.data?.squadra || res?.squadra;
-      setSquadra(squadraData);
       
+      if (!squadraData) {
+        console.error('🚨 [DettaglioSquadra] Squadra data not found in response:', res);
+        throw new Error('Dati squadra non trovati');
+      }
+      
+      console.log('🔍 [DettaglioSquadra] Squadra caricata:', {
+        id: squadraData.id,
+        nome: squadraData.nome,
+        lega_id: squadraData.lega_id
+      });
+      
+      setSquadra(squadraData);
       if (setCurrentTeam) setCurrentTeam(squadraData);
       
-      // Carica i giocatori della squadra
+      // Enhanced giocatori loading with robust error handling
       if (squadraData?.id) {
         try {
           console.log('🔍 [DettaglioSquadra] Inizio caricamento giocatori per squadra ID:', squadraData.id);
-          console.log('🔍 [DettaglioSquadra] Token disponibile:', !!token);
           
           const giocatoriRes = await getGiocatoriBySquadra(squadraData.id, token);
           console.log('🔍 [DettaglioSquadra] Risposta API giocatori completa:', giocatoriRes);
           console.log('🔍 [DettaglioSquadra] Tipo di risposta:', typeof giocatoriRes);
           console.log('🔍 [DettaglioSquadra] È array?', Array.isArray(giocatoriRes));
           
-          // Estrazione corretta dei dati dalla risposta API
+          // Enhanced data extraction with fallback
           let giocatori = [];
+          
           if (giocatoriRes && giocatoriRes.ok && giocatoriRes.data) {
             // Se la risposta ha la struttura { ok: true, data: { giocatori: [...] } }
             giocatori = giocatoriRes.data.giocatori || giocatoriRes.data || [];
@@ -445,7 +471,14 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
             giocatori = giocatoriRes;
             console.log('🔍 [DettaglioSquadra] Estratto diretto (array):', giocatori);
           } else {
-            console.log('🔍 [DettaglioSquadra] Nessun dato valido trovato:', giocatoriRes);
+            console.log('🔍 [DettaglioSquadra] Nessun dato valido trovato, usando array vuoto:', giocatoriRes);
+            giocatori = [];
+          }
+          
+          // Ensure giocatori is always an array
+          if (!Array.isArray(giocatori)) {
+            console.warn('🔍 [DettaglioSquadra] Giocatori non è un array, convertendo:', giocatori);
+            giocatori = [];
           }
           
           console.log('🔍 [DettaglioSquadra] Giocatori finali estratti:', giocatori);
@@ -455,29 +488,43 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
             ...prevSquadra,
             giocatori: giocatori
           }));
+          
         } catch (err) {
-          console.error('❌ [DettaglioSquadra] Errore nel caricamento giocatori:', err);
-          console.error('❌ [DettaglioSquadra] Stack trace:', err.stack);
-          // Gestione specifica degli errori di rete
+          console.error('🚨 [DettaglioSquadra] Errore nel caricamento giocatori:', {
+            error: err.message,
+            stack: err.stack,
+            squadraId: squadraData.id,
+            endpoint: `/giocatori/squadra/${squadraData.id}`
+          });
+          
+          // Enhanced error handling with specific messages
           if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
             setError('Errore di connessione. Verifica la tua connessione e riprova.');
           } else if (err.message.includes('401') || err.message.includes('Token')) {
             setError('Sessione scaduta. Effettua di nuovo il login.');
+          } else if (err.message.includes('500') || err.message.includes('Errore DB')) {
+            setError('Impossibile caricare i calciatori, riprova più tardi.');
           } else {
             setError(`Errore nel caricamento giocatori: ${err.message}`);
           }
+          
+          // Set empty array as fallback
+          setSquadra(prevSquadra => ({
+            ...prevSquadra,
+            giocatori: []
+          }));
         }
       }
       
-      // Carica la lega per il contesto
+      // Enhanced lega loading
       if (squadraData?.lega_id) {
-        const legaRes = await getLegaById(squadraData.lega_id, token);
-        const lega = legaRes?.data?.lega || legaRes?.lega;
-        setLega(lega);
-        if (setCurrentLeague) setCurrentLeague(lega);
-        
-        // Carica le squadre dell'utente per verificare se ha già una squadra in questa lega
         try {
+          const legaRes = await getLegaById(squadraData.lega_id, token);
+          const lega = legaRes?.data?.lega || legaRes?.lega;
+          setLega(lega);
+          if (setCurrentLeague) setCurrentLeague(lega);
+          
+          // Enhanced user squadre loading
           const squadreRes = await getSquadreByUtente(token);
           const squadre = squadreRes?.data?.squadre || squadreRes?.squadre || [];
           setUserSquadre(squadre);
@@ -485,15 +532,36 @@ const DettaglioSquadra = ({ setCurrentLeague, setCurrentTeam }) => {
           // Verifica se l'utente ha già una squadra in questa lega
           const hasSquadra = squadre?.some(s => s?.lega_id === squadraData?.lega_id);
           setHasSquadraInLega(hasSquadra);
+          
         } catch (err) {
-          console.error('Errore nel caricamento squadre utente:', err);
+          console.error('🚨 [DettaglioSquadra] Errore nel caricamento lega/squadre utente:', err);
+          // Don't set error for this, as it's not critical
         }
       }
+      
     } catch (err) {
-      console.error('fetchSquadra: errore:', err);
-      setError(err.message);
+      console.error('🚨 [DettaglioSquadra] Errore generale:', {
+        error: err.message,
+        stack: err.stack,
+        squadraId: id,
+        endpoint: `/squadre/${id}`
+      });
+      
+      // Enhanced error handling
+      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+        setError('Errore di connessione. Verifica la tua connessione e riprova.');
+      } else if (err.message.includes('401') || err.message.includes('Token')) {
+        setError('Sessione scaduta. Effettua di nuovo il login.');
+      } else if (err.message.includes('404')) {
+        setError('Squadra non trovata.');
+      } else if (err.message.includes('500') || err.message.includes('Errore DB')) {
+        setError('Errore del server. Riprova più tardi.');
+      } else {
+        setError(err.message || 'Errore nel caricamento della squadra');
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [id, token, setCurrentLeague, setCurrentTeam]);
 
   useEffect(() => {
