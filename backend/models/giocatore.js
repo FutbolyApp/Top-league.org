@@ -7,29 +7,18 @@ export async function createGiocatore(data) {
       throw new Error('Database non disponibile');
     }
     
-    // Determina lega_id
-    let lega_id = null;
-    if (data.squadra_id) {
-      const squadraResult = await db.query('SELECT lega_id FROM squadre WHERE id = ?', [data.squadra_id]);
-      if (squadraResult.rows?.length || 0 > 0) {
-        lega_id = squadraResult.rows[0].lega_id;
-      } else {
-        throw new Error(`Squadra con ID ${data.squadra_id} non trovata`);
-      }
-    } else if (data.lega_id) {
-      lega_id = data.lega_id;
-    } else {
-      throw new Error('È richiesto squadra_id o lega_id per creare un giocatore');
+    // Verifica che squadra_id sia fornito
+    if (!data.squadra_id) {
+      throw new Error('È richiesto squadra_id per creare un giocatore');
     }
     
-    const sql = `INSERT INTO giocatori (squadra_id, lega_id, nome, cognome, ruolo, squadra_reale, quotazione, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO giocatori (squadra_id, nome, cognome, ruolo, squadra_reale, quotazione, salario, costo_attuale, costo_precedente, prestito, anni_contratto, cantera, triggers, valore_prestito, valore_trasferimento, roster)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     
     const params = [
       data.squadra_id,
-      lega_id,
       data?.nome || 'Nome',
-      data?.cognome || '' || null,
+      data?.cognome || null,
       data?.ruolo || 'Ruolo',
       data.squadra_reale || null,
       data.quotazione || null,
@@ -126,24 +115,12 @@ export async function updateGiocatore(id, data) {
       throw new Error('Database non disponibile');
     }
     
-    // Determina lega_id se necessario
-    let lega_id = null;
-    if (data.squadra_id) {
-      const squadraResult = await db.query('SELECT lega_id FROM squadre WHERE id = ?', [data.squadra_id]);
-      if (squadraResult.rows?.length || 0 > 0) {
-        lega_id = squadraResult.rows[0].lega_id;
-      } else {
-        throw new Error(`Squadra con ID ${data.squadra_id} non trovata`);
-      }
-    }
-    
-    const sql = `UPDATE giocatori SET squadra_id=?, lega_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
+    const sql = `UPDATE giocatori SET squadra_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
     
     const params = [
       data.squadra_id,
-      lega_id,
       data?.nome || 'Nome',
-      data?.cognome || '' || null,
+      data?.cognome || null,
       data?.ruolo || 'Ruolo',
       data.squadra_reale || null,
       data.quotazione || null,
@@ -181,24 +158,12 @@ export async function updateGiocatorePartial(id, data) {
       throw new Error('Database non disponibile');
     }
     
-    // Determina lega_id se necessario
-    let lega_id = null;
-    if (data.squadra_id) {
-      const squadraResult = await db.query('SELECT lega_id FROM squadre WHERE id = ?', [data.squadra_id]);
-      if (squadraResult.rows?.length || 0 > 0) {
-        lega_id = squadraResult.rows[0].lega_id;
-      } else {
-        throw new Error(`Squadra con ID ${data.squadra_id} non trovata`);
-      }
-    }
-    
-    const sql = `UPDATE giocatori SET squadra_id=?, lega_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
+    const sql = `UPDATE giocatori SET squadra_id=?, nome=?, cognome=?, ruolo=?, squadra_reale=?, quotazione=?, salario=?, costo_attuale=?, costo_precedente=?, prestito=?, anni_contratto=?, cantera=?, triggers=?, valore_prestito=?, valore_trasferimento=?, roster=? WHERE id=?`;
     
     const params = [
       data.squadra_id,
-      lega_id,
       data?.nome || 'Nome',
-      data?.cognome || '' || null,
+      data?.cognome || null,
       data?.ruolo || 'Ruolo',
       data.squadra_reale || null,
       data.quotazione || null,
